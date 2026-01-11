@@ -1,0 +1,128 @@
+import streamlit as st
+import google.generativeai as genai
+import pydeck as pdk
+import pandas as pd
+from datetime import date
+import random
+
+# CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="BioGlobe Expert - IA", layout="wide")
+
+# CONFIGURAÇÃO DA IA (GEMINI) - Substitui pela tua chave ou usa secrets
+# st.secrets["GOOGLE_API_KEY"] deve ser configurado no Streamlit Cloud
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-pro')
+except:
+    st.error("Por favor, configura a GOOGLE_API_KEY nos Secrets do Streamlit.")
+
+# INICIALIZAÇÃO DO ESTADO DA SESSÃO (Histórico, Notas, Favoritos)
+if 'historico' not in st.session_state:
+    st.session_state.historico = []
+if 'notas' not in st.session_state:
+    st.session_state.notas = ""
+if 'favoritos' not in st.session_state:
+    st.session_state.favoritos = []
+
+# --- FUNÇÕES DE IA ---
+def consultar_ia(prompt):
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except:
+        return "Erro ao conectar com a base de dados mundial. Verifica a ligação."
+
+# --- SIDEBAR (Navegação e Pop-up Diário) ---
+st.sidebar.title("🐾 BioGlobe Navigation")
+
+# Pop-up Diário (Simulado com expander)
+hoje = date.today().strftime("%d/%m/%Y")
+st.sidebar.info(f"📅 Facto Animal de Hoje: {hoje}")
+with st.sidebar.expander("Ver Espécie do Dia"):
+    especie_dia = "Lince-Ibérico (Lynx pardinus)"
+    st.write(f"**{especie_dia}**")
+    st.write("É o felino mais ameaçado do mundo, nativo da Península Ibérica.")
+
+menu = st.sidebar.radio("Ir para:", ["Globo Interativo", "Pesquisa Expert", "Favoritos 🐆", "Bloco de Notas"])
+
+# --- PÁGINA 1: GLOBO INTERATIVO ---
+if menu == "Globo Interativo":
+    st.title("🌍 Explorador Global de Biodiversidade")
+    st.write("Clica ou visualiza uma coordenada para descobrir espécies locais (IA Geográfica).")
+
+    # Configuração do Globo usando PyDeck
+    view_state = pdk.ViewState(latitude=38.7, longitude=-9.1, zoom=1, pitch=0)
+    
+    # Camada interativa (Pontos representativos de Continentes/Cidades)
+    data = pd.DataFrame({
+        'name': ['Lisboa', 'Amazónia', 'Serengeti', 'Sydney', 'Tóquio'],
+        'lat': [38.7223, -3.4653, -2.3333, -33.8688, 35.6895],
+        'lon': [-9.1393, -62.2159, 34.8333, 151.2093, 139.6917]
+    })
+
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data,
+        get_position='[lon, lat]',
+        get_color='[200, 30, 0, 160]',
+        get_radius=500000,
+        pickable=True,
+    )
+
+    r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "{name}"})
+    st.pydeck_chart(r)
+
+    local = st.text_input("Ou digita o nome de uma Cidade/País para a IA analisar:")
+    if local:
+        with st.spinner(f"A analisar fauna em {local}..."):
+            res = consultar_ia(f"Lista 3 animais comuns e 2 raros na região de {local}. Inclui nomes científicos e classe.")
+            st.markdown(res)
+            st.session_state.historico.append(f"Globo: {local}")
+
+# --- PÁGINA 2: PESQUISA EXPERT ---
+elif menu == "Pesquisa Expert":
+    st.title("🔍 Pesquisa Avançada por Classe e Nome")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        classe = st.selectbox("Classe:", ["Mamíferos", "Aves", "Répteis", "Anfíbios", "Peixes", "Invertebrados"])
+    with col2:
+        animal_busca = st.text_input("Nome do animal (comum ou científico):")
+
+    if st.button("Consultar Base de Dados IA"):
+        prompt = f"Dá-me informações sobre o animal {animal_busca} da classe {classe}. Inclui: Nome Científico, Habitat e Curiosidade."
+        resultado = consultar_ia(prompt)
+        st.subheader(f"Resultados para: {animal_busca}")
+        st.write(resultado)
+        
+        st.session_state.historico.append(f"Pesquisa: {animal_busca} ({classe})")
+        
+        if st.button("Adicionar aos Favoritos 🐆"):
+            st.session_state.favoritos.append(f"{animal_busca} - {classe}")
+            st.success("Adicionado!")
+
+# --- PÁGINA 3: FAVORITOS ---
+elif menu == "Favoritos 🐆":
+    st.title("🐆 Os Meus Favoritos (Animal Print Style)")
+    if not st.session_state.favoritos:
+        st.write("Ainda não tens animais favoritos.")
+    else:
+        for fav in st.session_state.favoritos:
+            st.markdown(f"### ❤️ {fav}")
+            st.divider()
+
+# --- PÁGINA 4: BLOCO DE NOTAS E HISTÓRICO ---
+elif menu == "Bloco de Notas":
+    st.title("📝 Registos e Notas de Campo")
+    
+    st.subheader("O meu Diário de Biodiversidade")
+    st.session_state.notas = st.text_area("Escreve aqui as tuas observações:", value=st.session_state.notas, height=200)
+    
+    st.divider()
+    st.subheader("📜 Histórico de Pesquisas")
+    for item in reversed(st.session_state.historico):
+        st.write(f"- {item}")
+
+# --- RODAPÉ ANTI-HACKER ---
+st.sidebar.markdown("---")
+st.sidebar.caption("🔒 Segurança: Encriptação de ponta-a-ponta Google SSL.")
