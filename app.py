@@ -2,116 +2,107 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="BIO-MAPA EXPERT", layout="wide")
+# 1. CONFIGURAÇÃO
+st.set_page_config(page_title="BIO-MAPA 2026", layout="wide")
 
-# Estilo para os Cards de Animais
 st.markdown("""
     <style>
-    .stApp { background-color: #0b0e14; color: #adbac7; }
+    .stApp { background-color: #0b1117; color: #adbac7; }
     .animal-card { 
-        background: #1c2128; border-radius: 15px; padding: 20px; 
-        border: 2px solid #2ea043; margin-bottom: 20px; text-align: center;
+        background: #161b22; border-radius: 10px; padding: 10px; 
+        border: 1px solid #2ea043; text-align: center; height: 320px;
     }
-    .img-fluid { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; }
-    h1, h2, h3 { color: #2ea043 !important; }
+    .img-zoom { width: 100%; height: 180px; object-fit: cover; border-radius: 5px; }
+    h3 { font-size: 16px !important; color: #2ea043; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BASE DE DADOS DE REGIÕES (Interatividade)
+# 2. BASE DE DADOS AMPLIADA
 locais = pd.DataFrame({
-    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Amazónia', 'Serengeti', 'Austrália', 'Portugal'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0]
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Antártida', 'Arquipélago Galápagos'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, -75.25, -0.95],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, 0.0, -90.96]
 })
 
-# 3. FUNÇÃO DE BUSCA POR NOMES COMUNS (iNaturalist)
-def buscar_animais_regiao(termo):
-    # Procuramos apenas no reino animal (taxon_id=1) e pedimos nomes comuns
-    url = f"https://api.inaturalist.org/v1/observations?q={termo}&taxon_id=1&per_page=9&order=desc&order_by=created_at"
+# 3. MOTOR DE BUSCA POR COORDENADAS (Traz muito mais animais)
+def buscar_muitos_animais(lat, lon):
+    # Pesquisa num raio de 500km das coordenadas escolhidas
+    url = f"https://api.inaturalist.org/v1/observations?lat={lat}&lng={lon}&radius=500&taxon_id=1&per_page=30&order=desc&order_by=votes"
     try:
-        res = requests.get(url, timeout=5).json()
+        res = requests.get(url, timeout=10).json()
         lista = []
         vistos = set()
         for obs in res.get('results', []):
             taxon = obs.get('taxon')
             if taxon:
-                nome_comum = taxon.get('preferred_common_name')
-                nome_sci = taxon.get('name')
-                
-                # Só adiciona se tiver nome comum e não for repetido
-                if nome_comum and nome_comum not in vistos:
-                    foto = taxon.get('default_photo', {}).get('medium_url')
-                    if foto:
-                        lista.append({
-                            'comum': nome_comum,
-                            'cientifico': nome_sci,
-                            'foto': foto
-                        })
-                        vistos.add(nome_comum)
+                nome = taxon.get('preferred_common_name') or taxon.get('name')
+                if nome not in vistos and taxon.get('default_photo'):
+                    lista.append({
+                        'nome': nome,
+                        'sci': taxon.get('name'),
+                        'foto': taxon['default_photo']['medium_url']
+                    })
+                    vistos.add(nome)
         return lista
-    except:
-        return []
+    except: return []
 
-# 4. INTERFACE PRINCIPAL
-st.title("🌍 BIO-CENTRO DE COMANDO")
+# 4. INTERFACE: MAPA E COMANDO
+st.title("🌍 BIO-COMMAND CENTER v3.0")
 
-# O Mapa aparece primeiro
-st.subheader("📍 Mapa Interativo de Hotspots")
-st.map(locais, size=25, color='#2ea043')
+st.subheader("📍 Seleciona a Região no Mapa")
+col_map, col_ctrl = st.columns([2, 1])
 
-# A Interatividade: O seletor que ativa as abas
-st.markdown("### 🔍 Seleciona uma região para ativar o Laboratório")
-escolha = st.selectbox("Clica aqui para escolher a região que tocaste no mapa:", [""] + list(locais['nome']))
+with col_ctrl:
+    escolha = st.selectbox("Escolha o Hotspot:", [""] + list(locais['nome']))
+    if escolha:
+        sel = locais[locais['nome'] == escolha].iloc[0]
+        lat_f, lon_f = sel['lat'], sel['lon']
+    else:
+        lat_f, lon_f = 20, 0
+
+with col_map:
+    # Mostra o mapa com círculos
+    st.map(locais, size=40, color='#2ea043')
 
 st.divider()
 
-# 5. AS ABAS SÓ APARECEM SE HOUVER UMA ESCOLHA
+# 5. RESULTADOS E FERRAMENTAS
 if escolha:
-    aba1, aba2, aba3 = st.tabs(["🔬 LABORATÓRIO ANIMAL", "📅 CALENDÁRIO", "📝 NOTAS & FAVORITOS"])
+    # Sincronização automática: Quando escolhes no menu, ele pesquisa por coordenadas
+    tab1, tab2, tab3 = st.tabs(["🔬 LABORATÓRIO ANIMAL (30+ ESPÉCIES)", "📅 CALENDÁRIO", "⭐ FAVORITOS"])
     
-    with aba1:
-        st.header(f"🐾 Espécies Registadas em: {escolha}")
-        with st.spinner("A carregar nomes comuns e fotos..."):
-            animais = buscar_animais_regiao(escolha)
-            
-            if animais:
-                cols = st.columns(3)
-                for idx, a in enumerate(animais):
-                    with cols[idx % 3]:
-                        st.markdown(f"""
-                        <div class='animal-card'>
-                            <img src='{a['foto']}' class='img-fluid'>
-                            <h3 style='margin-top:10px;'>{a['comum'].title()}</h3>
-                            <p style='font-style:italic; font-size:13px;'>{a['cientifico']}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button(f"❤️ Favoritar {a['comum']}", key=f"fav_{idx}"):
-                            if 'meus_favoritos' not in st.session_state:
-                                st.session_state.meus_favoritos = []
-                            st.session_state.meus_favoritos.append(a['comum'])
-            else:
-                st.warning("A tentar ligar aos satélites... Tenta selecionar a região novamente.")
+    with tab1:
+        st.header(f"🔎 Explorando a Biodiversidade de {escolha}")
+        animais = buscar_muitos_animais(lat_f, lon_f)
+        
+        if animais:
+            # Organiza em 4 colunas para caberem mais animais no ecrã
+            cols = st.columns(4)
+            for idx, a in enumerate(animais):
+                with cols[idx % 4]:
+                    st.markdown(f"""
+                    <div class='animal-card'>
+                        <img src='{a['foto']}' class='img-zoom'>
+                        <h3>{a['nome'].title()}</h3>
+                        <p style='font-size:11px; color:#888;'><i>{a['sci']}</i></p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"❤️ Guardar", key=f"f_{idx}"):
+                        if 'favs' not in st.session_state: st.session_state.favs = []
+                        st.session_state.favs.append(a['nome'])
+        else:
+            st.error("Erro de conexão. Tenta selecionar a região novamente.")
 
-    with aba2:
-        st.header("📅 Diário de Bordo")
-        c1, c2 = st.columns(2)
-        data = c1.date_input("Data do avistamento:")
-        animal_input = c2.text_input("Qual animal viste (ex: Orca)?")
-        if st.button("Guardar no Calendário"):
-            st.success(f"Avistamento de {animal_input} guardado para {data}!")
+    with tab2:
+        st.subheader("📅 Registo de Observação")
+        # Formulário simples
+        st.date_input("Data:")
+        st.text_input("Animal visto:")
+        st.button("Registar")
 
-    with aba3:
-        st.header("📝 Teu Bloco Científico")
-        col_fav, col_note = st.columns(2)
-        with col_fav:
-            st.subheader("⭐ Favoritos")
-            favs = st.session_state.get('meus_favoritos', [])
-            for f in set(favs):
-                st.write(f"✅ {f}")
-        with col_note:
-            st.subheader("📓 Notas")
-            st.text_area("Escreve aqui as tuas observações:", height=200)
-
+    with tab3:
+        st.subheader("⭐ Os Teus Favoritos")
+        for f in set(st.session_state.get('favs', [])):
+            st.success(f"🐾 {f}")
 else:
-    st.info("💡 Escolha uma região no menu acima para abrir o mapa e ver os animais.")
+    st.info("💡 Seleciona uma região no menu lateral do mapa para carregar a lista completa de animais.")
