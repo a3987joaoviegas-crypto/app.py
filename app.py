@@ -1,4 +1,29 @@
-import streamlit as st
+def buscar_muitos_animais(lat, lon):
+    # Adicionámos '&locale=pt-BR' para forçar a tradução da base de dados
+    url = f"https://api.inaturalist.org/v1/observations?lat={lat}&lng={lon}&radius=500&taxon_id=1&per_page=30&order=desc&order_by=votes&locale=pt-BR"
+    
+    try:
+        res = requests.get(url, timeout=10).json()
+        lista = []
+        vistos = set()
+        for obs in res.get('results', []):
+            taxon = obs.get('taxon')
+            if taxon:
+                # A API do iNaturalist já tenta traduzir se o locale estiver ativo
+                nome_pt = taxon.get('preferred_common_name')
+                
+                if not nome_pt:
+                    nome_pt = taxon.get('name') # Nome científico se não houver comum
+                
+                if nome_pt not in vistos and taxon.get('default_photo'):
+                    lista.append({
+                        'nome': nome_pt,
+                        'sci': taxon.get('name'),
+                        'foto': taxon['default_photo']['medium_url']
+                    })
+                    vistos.add(nome_pt)
+        return lista
+    except: return []import streamlit as st
 import pandas as pd
 import requests
 
@@ -106,3 +131,4 @@ if escolha:
             st.success(f"🐾 {f}")
 else:
     st.info("💡 Seleciona uma região no menu lateral do mapa para carregar a lista completa de animais.")
+
