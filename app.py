@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO DA PÁGINA (Podes mudar o nome aqui)
 st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
 
-# Estilo visual dos Cartões (Mantido)
+# Estilo visual dos Cartões
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -20,28 +20,23 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- NOVO: LÓGICA DE ALIMENTAÇÃO ---
+# --- LÓGICA DE ALIMENTAÇÃO (Apenas Omnívoro como padrão) ---
 def definir_dieta(classe, nome):
     c = str(classe).lower()
     n = str(nome).lower()
-    # Filtros rápidos por palavras-chave comuns
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcao', 'orca']): return "Carnívoro"
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa']): return "Herbívoro"
-    
-    # Baseado na classe biológica (generalização)
-    if 'mammalia' in c: return "Omnívoro / Variável"
-    if 'aves' in c: return "Omnívoro (Sementes/Insetos)"
-    if 'reptilia' in c: return "Carnívoro / Insetívoro"
-    return "Dieta Específica"
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcao', 'orca', 'serpente']): return "Carnívoro"
+    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho']): return "Herbívoro"
+    # Se não for especificamente um dos acima, assume Omnívoro por padrão
+    return "Omnívoro"
 
-# 2. LÓGICA DE REPRODUÇÃO (Mantida)
+# 2. LÓGICA DE REPRODUÇÃO
 def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# 3. MOTOR DE BUSCA (Mantido)
+# 3. MOTOR DE BUSCA (50 ESPÉCIES)
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
@@ -64,13 +59,13 @@ def buscar_fauna(termo, lat=None, lon=None):
                         'foto': t['default_photo']['medium_url'],
                         'classe': t.get('iconic_taxon_name', 'Não Classificado'),
                         'repro': definir_repro(t.get('iconic_taxon_name', '')),
-                        'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome) # Adicionado aqui
+                        'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome)
                     })
                     vistos.add(nome)
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Mantida)
+# 4. BASE DE DADOS
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -78,7 +73,7 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
 })
 
-# 5. BARRA LATERAL (Mantida)
+# 5. BARRA LATERAL (NAVEGADOR)
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
@@ -91,7 +86,7 @@ if menu == "🌍 Planisfério e Animais":
     
     if escolha_regiao:
         st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
-        sel = locais[locais['nome'] == escolha_regiao].iloc[0]
+        sel = locals = locais[locais['nome'] == escolha_regiao].iloc[0]
         animais_data = buscar_fauna("", sel['lat'], sel['lon'])
         
         if animais_data:
@@ -115,7 +110,6 @@ if menu == "🌍 Planisfério e Animais":
                     if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
                         st.session_state.setdefault('meus_favs', []).append(animal['nome'])
 
-# (As outras secções Laboratório, Calendário e Favoritos continuam iguais ao teu código original)
 elif menu == "🔬 Laboratório Global":
     st.title("🔬 Laboratório de Pesquisa Livre")
     pesquisa = st.text_input("Pesquisar qualquer animal no mundo:")
