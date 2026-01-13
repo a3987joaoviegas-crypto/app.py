@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
 import requests
-import pydeck as pdk
 
-# 1. CONFIGURAÇÃO DA PÁGINA (MUDA O NOME DA APP AQUI)
-st.set_page_config(page_title="BIO-COMMAND 3D", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA (Podes mudar o nome aqui)
+st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
 
-# Estilo visual
+# Estilo visual dos Cartões
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -56,7 +55,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS
+# 4. BASE DE DADOS (Incluindo Yucatán e Rússia)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -66,33 +65,14 @@ locais = pd.DataFrame({
 
 # 5. BARRA LATERAL (NAVEGADOR)
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Mapa 3D e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
 # 6. INTERFACE PRINCIPAL
-if menu == "🌍 Mapa 3D e Animais":
-    st.title("🌍 GLOBO BIO-INTERATIVO")
+if menu == "🌍 Planisfério e Animais":
+    st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
     
-    # CONFIGURAÇÃO DE GLOBO 3D REAL (Utilizando altitude e perspectiva)
-    view_state = pdk.ViewState(
-        latitude=20, longitude=0, zoom=0.5, 
-        pitch=45, bearing=0, height=600
-    )
-    
-    layer = pdk.Layer(
-        "ScatterplotLayer", locais,
-        get_position='[lon, lat]',
-        get_color='[46, 160, 67, 255]',
-        get_radius=500000,
-        pickable=True
-    )
-    
-    # O segredo do 3D está no map_style e na configuração do Deck
-    st.pydeck_chart(pdk.Deck(
-        map_style='mapbox://styles/mapbox/satellite-v9',
-        initial_view_state=view_state,
-        layers=[layer],
-        tooltip={"text": "{nome}"}
-    ))
+    # Mapa de Planisfério Nativo (100% tátil)
+    st.map(locais, color='#2ea043', size=40)
     
     st.markdown("---")
     escolha_regiao = st.selectbox("📍 Selecionar Região para ver Animais:", [""] + list(locais['nome']))
