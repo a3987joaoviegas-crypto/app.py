@@ -3,10 +3,10 @@ import pandas as pd
 import requests
 import pydeck as pdk
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO DA PÁGINA (MUDA O NOME DA APP AQUI)
 st.set_page_config(page_title="BIO-COMMAND 3D", layout="wide")
 
-# Estilo visual dos Cartões
+# Estilo visual
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -56,7 +56,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Locais incluindo Yucatán e Rússia)
+# 4. BASE DE DADOS
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -70,27 +70,25 @@ menu = st.sidebar.radio("Ir para:", ["🌍 Mapa 3D e Animais", "🔬 Laboratóri
 
 # 6. INTERFACE PRINCIPAL
 if menu == "🌍 Mapa 3D e Animais":
-    st.title("🌍 BIO-COMMAND 3D")
+    st.title("🌍 GLOBO BIO-INTERATIVO")
     
-    # AJUSTE PARA MAPA 3D (Pitch e Bearing criam o efeito de profundidade)
+    # CONFIGURAÇÃO DE GLOBO 3D REAL (Utilizando altitude e perspectiva)
     view_state = pdk.ViewState(
-        latitude=20, 
-        longitude=0, 
-        zoom=0.8, 
-        pitch=50, 
-        bearing=-10
+        latitude=20, longitude=0, zoom=0.5, 
+        pitch=45, bearing=0, height=600
     )
     
     layer = pdk.Layer(
         "ScatterplotLayer", locais,
         get_position='[lon, lat]',
-        get_color='[46, 160, 67, 200]',
-        get_radius=400000,
+        get_color='[46, 160, 67, 255]',
+        get_radius=500000,
         pickable=True
     )
     
+    # O segredo do 3D está no map_style e na configuração do Deck
     st.pydeck_chart(pdk.Deck(
-        map_style='mapbox://styles/mapbox/satellite-v9', # Satélite para parecer mais um globo real
+        map_style='mapbox://styles/mapbox/satellite-v9',
         initial_view_state=view_state,
         layers=[layer],
         tooltip={"text": "{nome}"}
@@ -145,5 +143,3 @@ elif menu == "⭐ Favoritos":
     if 'meus_favs' in st.session_state:
         for f in set(st.session_state.meus_favs):
             st.success(f)
-    else:
-        st.info("Ainda não guardaste favoritos.")
