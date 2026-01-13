@@ -5,7 +5,7 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
 
-# Estilo visual dos Cartões (Mantido exatamente como o teu)
+# Estilo visual dos Cartões
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -38,10 +38,11 @@ def definir_repro(classe):
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# MOTOR DE BUSCA
+# MOTOR DE BUSCA (ATUALIZADO PARA 70 ANIMAIS)
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
-    params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
+    # per_page alterado para 70
+    params = {"taxon_id": 1, "per_page": 70, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
     if lat and lon:
         params.update({"lat": lat, "lng": lon, "radius": 600})
     else:
@@ -67,7 +68,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Atualizada com Havai, Israel e Ilhas Fiji)
+# 4. BASE DE DADOS
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
@@ -76,9 +77,9 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07]
 })
 
-# NAVEGADOR
+# NAVEGADOR (ADICIONADO BLOCO DE NOTAS)
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
 # INTERFACE PRINCIPAL
 if menu == "🌍 Planisfério e Animais":
@@ -123,6 +124,14 @@ elif menu == "🔬 Laboratório Global":
             with cols[i % 3]:
                 st.image(a['foto'], use_container_width=True)
                 st.write(f"**{a['nome']}**")
+
+# NOVA SECÇÃO: BLOCO DE NOTAS
+elif menu == "📝 Bloco de Notas":
+    st.title("📝 Bloco de Notas Bio-Command")
+    if 'notas' not in st.session_state:
+        st.session_state.notas = ""
+    st.session_state.notas = st.text_area("Escreva aqui as suas observações:", value=st.session_state.notas, height=300)
+    st.info("As notas são mantidas enquanto a sessão estiver ativa.")
 
 elif menu == "📅 Calendário":
     st.title("📅 Diário de Observação")
