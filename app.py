@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA - Nome alterado na aba do navegador
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", layout="wide")
 
-# Estilo visual dos Cartões (Mantido exatamente igual)
+# Estilo visual (Mantido)
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -20,22 +20,40 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO (Reconhece Omnívoros como o porco)
+# --- LÓGICA DE ALIMENTAÇÃO REAL ---
 def definir_dieta(classe, nome):
     n = str(nome).lower()
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre']): return "Carnívoro"
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo']): return "Herbívoro"
-    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'rato', 'galinha', 'humano']): return "Omnívoro"
+    # Carnívoros e especialistas em carne
+    if any(x in n for x in ['leão', 'tigre', 'lobo', 'orca', 'tubarão', 'jacaré', 'crocodilo']): return "Carnívoro"
+    if any(x in n for x in ['águia', 'falcão', 'coruja', 'gavião', 'abutre']): return "Carnívoro (Rapina)"
+    if any(x in n for x in ['garça', 'pinguim', 'pelicano', 'lontra', 'foca']): return "Piscívoro (Peixes)"
+    
+    # Herbívoros e especialistas em plantas
+    if any(x in n for x in ['elefante', 'girafa', 'zebra', 'vaca', 'ovelha', 'veado', 'coelho']): return "Herbívoro"
+    if any(x in n for x in ['panda', 'coala']): return "Herbívoro Estrito"
+    if any(x in n for x in ['arara', 'papagaio', 'tucano']): return "Frugívoro (Frutos/Sementes)"
+    
+    # Insetívoros
+    if any(x in n for x in ['sapinho', 'rã', 'camaleão', 'lagartixa', 'andorinha', 'morcego']): return "Insetívoro"
+    if any(x in n for x in ['papa-formigas', 'tatu']): return "Insetívoro Especialista"
+    
+    # Omnívoros reais
+    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'corvo', 'gaivota']): return "Omnívoro"
+    
+    # Decisão por classe se não houver nome específico
+    c = str(classe).lower()
+    if 'reptilia' in c: return "Carnívoro / Insetívoro"
+    if 'amphibia' in c: return "Insetívoro"
     return "Omnívoro"
 
-# LÓGICA DE REPRODUÇÃO
+# 2. LÓGICA DE REPRODUÇÃO (Mantida)
 def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# MOTOR DE BUSCA
+# 3. MOTOR DE BUSCA
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
@@ -55,79 +73,4 @@ def buscar_fauna(termo, lat=None, lon=None):
                     lista.append({
                         'nome': nome.title(),
                         'sci': t.get('name'),
-                        'foto': t['default_photo']['medium_url'],
-                        'classe': t.get('iconic_taxon_name', 'Não Classificado'),
-                        'repro': definir_repro(t.get('iconic_taxon_name', '')),
-                        'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome)
-                    })
-                    vistos.add(nome)
-        return lista
-    except: return []
-
-# BASE DE DADOS GEOGRÁFICA
-locais = pd.DataFrame({
-    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
-})
-
-# BARRA LATERAL - Nome alterado aqui
-st.sidebar.title("📑 MundoVivo")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
-
-# INTERFACE PRINCIPAL
-if menu == "🌍 Planisfério e Animais":
-    # Título Principal alterado
-    st.title("🌍 MundoVivo: Planisfério")
-    st.map(locais, color='#2ea043', size=40)
-    st.markdown("---")
-    escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
-    
-    if escolha_regiao:
-        sel = locais[locais['nome'] == escolha_regiao].iloc[0]
-        animais_data = buscar_fauna("", sel['lat'], sel['lon'])
-        
-        if animais_data:
-            cols = st.columns(3)
-            for i, animal in enumerate(animais_data):
-                with cols[i % 3]:
-                    st.markdown(f"""
-                    <div class='cc-card'>
-                        <img src='{animal['foto']}' class='img-cc'>
-                        <h3>{animal['nome']}</h3>
-                        <div class='label-expert'>NOME CIENTÍFICO</div>
-                        <div class='val-expert'><i>{animal['sci']}</i></div>
-                        <div class='label-expert'>MÉTODO REPRODUTIVO</div>
-                        <div class='val-expert'>🧬 {animal['repro']}</div>
-                        <div class='label-expert'>ALIMENTAÇÃO</div>
-                        <div class='val-expert'>🍴 {animal['dieta']}</div>
-                        <div class='label-expert'>CLASSE BIOLÓGICA</div>
-                        <div class='val-expert'>🏷️ {animal['classe']}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
-                        st.session_state.setdefault('meus_favs', []).append(animal['nome'])
-
-# (Restantes secções Laboratório, Calendário e Favoritos continuam iguais)
-elif menu == "🔬 Laboratório Global":
-    st.title("🔬 MundoVivo: Pesquisa")
-    pesquisa = st.text_input("Procurar espécie:")
-    if pesquisa:
-        dados = buscar_fauna(pesquisa)
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i % 3]:
-                st.image(a['foto'], use_container_width=True)
-                st.write(f"**{a['nome']}**")
-
-elif menu == "📅 Calendário":
-    st.title("📅 Diário MundoVivo")
-    st.date_input("Data:")
-    st.button("Registar")
-
-elif menu == "⭐ Favoritos":
-    st.title("⭐ Os Meus Favoritos")
-    if 'meus_favs' in st.session_state:
-        for f in set(st.session_state.meus_favs):
-            st.success(f)
+                        'foto': t['default_photo']['medium
