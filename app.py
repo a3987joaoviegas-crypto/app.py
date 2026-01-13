@@ -20,13 +20,24 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- LÓGICA DE ALIMENTAÇÃO (Apenas Omnívoro como padrão) ---
+# --- LÓGICA DE ALIMENTAÇÃO DINÂMICA ---
 def definir_dieta(classe, nome):
-    c = str(classe).lower()
     n = str(nome).lower()
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcao', 'orca', 'serpente']): return "Carnívoro"
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho']): return "Herbívoro"
-    # Se não for especificamente um dos acima, assume Omnívoro por padrão
+    # Carnívoros estritos
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré']): 
+        return "Carnívoro"
+    # Herbívoros estritos
+    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha']): 
+        return "Herbívoro"
+    # Casos específicos de Omnívoros (como o Porco, Ursos, Humanos, etc)
+    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha']): 
+        return "Omnívoro"
+    
+    # Se não estiver na lista acima, decide pela classe biológica
+    c = str(classe).lower()
+    if 'mammalia' in c: return "Omnívoro" # Maioria dos mamíferos não listados
+    if 'aves' in c: return "Omnívoro"
+    if 'reptilia' in c: return "Carnívoro"
     return "Omnívoro"
 
 # 2. LÓGICA DE REPRODUÇÃO
@@ -86,7 +97,7 @@ if menu == "🌍 Planisfério e Animais":
     
     if escolha_regiao:
         st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
-        sel = locals = locais[locais['nome'] == escolha_regiao].iloc[0]
+        sel = locais[locais['nome'] == escolha_regiao].iloc[0]
         animais_data = buscar_fauna("", sel['lat'], sel['lon'])
         
         if animais_data:
