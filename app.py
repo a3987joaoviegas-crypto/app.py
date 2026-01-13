@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Podes mudar o nome aqui)
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
 
-# Estilo visual dos Cartões
+# Estilo visual dos Cartões (Mantido)
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -20,14 +20,28 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. LÓGICA DE REPRODUÇÃO
+# --- NOVO: LÓGICA DE ALIMENTAÇÃO ---
+def definir_dieta(classe, nome):
+    c = str(classe).lower()
+    n = str(nome).lower()
+    # Filtros rápidos por palavras-chave comuns
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcao', 'orca']): return "Carnívoro"
+    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa']): return "Herbívoro"
+    
+    # Baseado na classe biológica (generalização)
+    if 'mammalia' in c: return "Omnívoro / Variável"
+    if 'aves' in c: return "Omnívoro (Sementes/Insetos)"
+    if 'reptilia' in c: return "Carnívoro / Insetívoro"
+    return "Dieta Específica"
+
+# 2. LÓGICA DE REPRODUÇÃO (Mantida)
 def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# 3. MOTOR DE BUSCA (50 ESPÉCIES)
+# 3. MOTOR DE BUSCA (Mantido)
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
@@ -49,13 +63,14 @@ def buscar_fauna(termo, lat=None, lon=None):
                         'sci': t.get('name'),
                         'foto': t['default_photo']['medium_url'],
                         'classe': t.get('iconic_taxon_name', 'Não Classificado'),
-                        'repro': definir_repro(t.get('iconic_taxon_name', ''))
+                        'repro': definir_repro(t.get('iconic_taxon_name', '')),
+                        'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome) # Adicionado aqui
                     })
                     vistos.add(nome)
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Incluindo Yucatán e Rússia)
+# 4. BASE DE DADOS (Mantida)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -63,17 +78,14 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
 })
 
-# 5. BARRA LATERAL (NAVEGADOR)
+# 5. BARRA LATERAL (Mantida)
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
 # 6. INTERFACE PRINCIPAL
 if menu == "🌍 Planisfério e Animais":
     st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
-    
-    # Mapa de Planisfério Nativo (100% tátil)
     st.map(locais, color='#2ea043', size=40)
-    
     st.markdown("---")
     escolha_regiao = st.selectbox("📍 Selecionar Região para ver Animais:", [""] + list(locais['nome']))
     
@@ -94,6 +106,8 @@ if menu == "🌍 Planisfério e Animais":
                         <div class='val-expert'><i>{animal['sci']}</i></div>
                         <div class='label-expert'>MÉTODO REPRODUTIVO</div>
                         <div class='val-expert'>🧬 {animal['repro']}</div>
+                        <div class='label-expert'>ALIMENTAÇÃO</div>
+                        <div class='val-expert'>🍴 {animal['dieta']}</div>
                         <div class='label-expert'>CLASSE BIOLÓGICA</div>
                         <div class='val-expert'>🏷️ {animal['classe']}</div>
                     </div>
@@ -101,6 +115,7 @@ if menu == "🌍 Planisfério e Animais":
                     if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
                         st.session_state.setdefault('meus_favs', []).append(animal['nome'])
 
+# (As outras secções Laboratório, Calendário e Favoritos continuam iguais ao teu código original)
 elif menu == "🔬 Laboratório Global":
     st.title("🔬 Laboratório de Pesquisa Livre")
     pesquisa = st.text_input("Pesquisar qualquer animal no mundo:")
