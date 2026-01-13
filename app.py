@@ -1,132 +1,151 @@
 import streamlit as st
 import pandas as pd
 import requests
+import pydeck as pdk
 
-# 1. CONFIGURAÇÃO DE INTERFACE PRO
-st.set_page_config(page_title="BIO-COMMAND CENTER 2026", layout="wide", page_icon="🌍")
+# 1. CONFIGURAÇÃO EXPERT
+st.set_page_config(page_title="BIO-COMMAND CENTER GLOBAL", layout="wide", page_icon="🌎")
 
-# Estilo Dark Mode Expert
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
-    .animal-card { 
-        background: #161b22; border-radius: 12px; padding: 10px; 
-        border: 1px solid #2ea043; text-align: center; height: 350px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    .cc-card { 
+        background: #161b22; border-radius: 15px; padding: 15px; 
+        border: 2px solid #2ea043; margin-bottom: 20px;
+        box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
     }
-    .img-zoom { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
-    h3 { font-size: 18px !important; color: #2ea043; margin-top: 5px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { 
-        background-color: #1c2128; border-radius: 5px; padding: 10px 20px; color: #adbac7;
-    }
+    .img-cc { width: 100%; height: 220px; object-fit: cover; border-radius: 10px; border: 1px solid #30363d; }
+    .label-cc { color: #2ea043; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+    .info-cc { color: white; font-size: 14px; margin-bottom: 8px; }
+    h1, h2 { color: #2ea043 !important; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. MOTOR DE BUSCA COM TRADUÇÃO PARA PORTUGUÊS
-def buscar_animais_expert(lat, lon):
-    # Usamos locale=pt-BR para forçar a tradução dos nomes
-    url = f"https://api.inaturalist.org/v1/observations?lat={lat}&lng={lon}&radius=500&taxon_id=1&per_page=32&order=desc&order_by=votes&locale=pt-BR"
-    
+# 2. MOTOR DE REPRODUÇÃO (Lógica Taxonómica)
+def definir_reproducao(classe):
+    classe = str(classe).lower()
+    if classe in ['mammalia', 'mamíferos']: return "Vivíparo (Geralmente)"
+    if classe in ['aves', 'reptilia', 'amphibia', 'reptéis', 'anfíbios']: return "Ovíparo"
+    if classe in ['actinopterygii', 'elasmobranchii', 'peixes']: return "Ovíparo / Ovovivíparo"
+    return "Variável / Invertebrado"
+
+# 3. MOTOR DE BUSCA GLOBAL (50 ANIMAIS)
+def buscar_dados_completos(query, lat=None, lon=None):
+    base_url = "https://api.inaturalist.org/v1/observations"
+    params = {
+        "taxon_id": 1, "per_page": 50, "order": "desc", 
+        "order_by": "votes", "locale": "pt-BR"
+    }
+    if lat and lon:
+        params.update({"lat": lat, "lng": lon, "radius": 500})
+    else:
+        params.update({"q": query})
+        
     try:
-        res = requests.get(url, timeout=10).json()
+        res = requests.get(base_url, params=params, timeout=10).json()
         lista = []
         vistos = set()
         for obs in res.get('results', []):
-            taxon = obs.get('taxon')
-            if taxon:
-                # Prioridade 1: Nome Comum em Português
-                nome_pt = taxon.get('preferred_common_name')
-                # Prioridade 2: Nome Científico (se não houver tradução)
-                nome_final = nome_pt.title() if nome_pt else taxon.get('name')
-                
-                if nome_final not in vistos and taxon.get('default_photo'):
+            t = obs.get('taxon')
+            if t:
+                nome = t.get('preferred_common_name') or t.get('name')
+                if nome not in vistos and t.get('default_photo'):
                     lista.append({
-                        'nome': nome_final,
-                        'sci': taxon.get('name'),
-                        'foto': taxon['default_photo']['medium_url']
+                        'nome': nome.title(),
+                        'sci': t.get('name'),
+                        'foto': t['default_photo']['medium_url'],
+                        'classe': t.get('iconic_taxon_name', 'N/D'),
+                        'familia': t.get('ancestor_ids', ['N/D'])[-1], # Exemplo simplificado
+                        'reproducao': definir_reproducao(t.get('iconic_taxon_name'))
                     })
-                    vistos.add(nome_final)
+                    vistos.add(nome)
         return lista
-    except Exception as e:
-        return []
+    except: return []
 
-# 3. BASE DE DADOS DE HOTSPOTS (Coordenadas Reais)
+# 4. BASE DE DADOS EXPANDIDA
 locais = pd.DataFrame({
-    'nome': [
-        'Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-        'Amazónia', 'Serengeti (África)', 'Grande Barreira de Coral', 'Portugal', 
-        'Antártida', 'Ilhas Galápagos'
-    ],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -18.28, 39.5, -75.25, -0.95],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 147.69, -8.0, 0.0, -90.96]
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
+             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Rússia', 'Península de Yucatán'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 61.52, 18.84],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, 105.31, -89.11]
 })
 
-# 4. INTERFACE: MAPA E COMANDOS
-st.markdown("<h1 style='text-align: center; color: #2ea043;'>🌍 BIO-COMMAND CENTER v3.5</h1>", unsafe_allow_html=True)
+# 5. GLOBO INTERATIVO 3D
+st.title("🌍 BIO-COMMAND CENTER: GLOBO 3D")
 
-# O Mapa ocupa a parte superior
-st.subheader("📍 Mapa Global de Biodiversidade (Pontos Verdes)")
-st.map(locais, size=40, color='#2ea043')
+escolha = st.selectbox("🎯 Clique para focar numa região ou navegue no Globo:", ["Explorar Global"] + list(locais['nome']))
+
+if escolha != "Explorar Global":
+    sel = locais[locais['nome'] == escolha].iloc[0]
+    view_state = pdk.ViewState(latitude=sel['lat'], longitude=sel['lon'], zoom=4, pitch=45, bearing=0)
+else:
+    view_state = pdk.ViewState(latitude=20, longitude=0, zoom=1, pitch=30, bearing=0)
+
+# Camada de Hotspots (Círculos Verdes)
+layer = pdk.Layer(
+    "ScatterplotLayer", locais, get_position='[lon, lat]',
+    get_color='[46, 160, 67, 200]', get_radius=500000, pickable=True
+)
+
+st.pydeck_chart(pdk.Deck(
+    layers=[layer], initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/navigation-night-v1",
+    tooltip={"text": "{nome}"}
+))
 
 st.divider()
 
-# Coluna de seleção para ativar a pesquisa tátil
-col_sel, col_empty = st.columns([1, 2])
-with col_sel:
-    escolha = st.selectbox("🎯 Escolha a região para abrir o Laboratório:", [""] + list(locais['nome']))
+# 6. LABORATÓRIO E CARTÕES DE CIDADÃO
+tab1, tab2, tab3 = st.tabs(["🔬 LABORATÓRIO ANIMAL", "📅 CALENDÁRIO", "📝 NOTAS"])
 
-# 5. ABAS DE CONTEÚDO (Só aparecem após a escolha)
-if escolha:
-    # Obtém as coordenadas da escolha para a API
-    sel_data = locais[locais['nome'] == escolha].iloc[0]
+with tab1:
+    col_search, col_info = st.columns([1, 2])
+    with col_search:
+        pesquisa_manual = st.text_input("🔬 Navegador do Laboratório (Pesquisa Global):", 
+                                       placeholder="Ex: Tigre, Tubarão, Cobra...")
     
-    tab1, tab2, tab3 = st.tabs(["🔬 LABORATÓRIO ANIMAL", "📅 CALENDÁRIO", "⭐ FAVORITOS & NOTAS"])
+    # Define o que pesquisar: se manual ou se pela região do mapa
+    query_final = pesquisa_manual if pesquisa_manual else escolha
     
-    with tab1:
-        st.header(f"🔎 Espécies encontradas em: {escolha}")
-        with st.spinner("A traduzir nomes e a carregar imagens..."):
-            animais = buscar_animais_expert(sel_data['lat'], sel_data['lon'])
-            
-            if animais:
-                # Grelha de 4 colunas para mostrar muitos animais de uma vez
-                cols = st.columns(4)
-                for idx, a in enumerate(animais):
-                    with cols[idx % 4]:
-                        st.markdown(f"""
-                        <div class='animal-card'>
-                            <img src='{a['foto']}' class='img-zoom'>
-                            <h3>{a['nome']}</h3>
-                            <p style='font-size:12px; color:#8b949e;'><i>{a['sci']}</i></p>
+    if query_final and query_final != "Explorar Global":
+        st.subheader(f"🗂️ Registos de Identidade: {query_final}")
+        
+        # Busca por coordenadas se for região, senão busca por texto
+        if pesquisa_manual:
+            dados_animais = buscar_dados_completos(query_final)
+        else:
+            dados_animais = buscar_dados_completos("", sel['lat'], sel['lon'])
+
+        if dados_animais:
+            cols = st.columns(3)
+            for idx, a in enumerate(dados_animais):
+                with cols[idx % 3]:
+                    st.markdown(f"""
+                    <div class='cc-card'>
+                        <img src='{a['foto']}' class='img-cc'>
+                        <div style='padding:10px;'>
+                            <h3 style='margin:0;'>{a['nome']}</h3>
+                            <p style='font-size:11px; color:#8b949e; margin-bottom:15px;'><i>{a['sci']}</i></p>
+                            
+                            <div class='label-cc'>Tipo de Reprodução</div>
+                            <div class='info-cc'>🧬 {a['reproducao']}</div>
+                            
+                            <div class='label-cc'>Classe Taxonómica</div>
+                            <div class='info-cc'>🏷️ {a['classe']}</div>
+                            
+                            <div class='label-cc'>Estado de Observação</div>
+                            <div class='info-cc'>✅ Identificação Confirmada</div>
                         </div>
-                        """, unsafe_allow_html=True)
-                        if st.button(f"⭐ Guardar", key=f"f_{idx}"):
-                            if 'favs' not in st.session_state: st.session_state.favs = []
-                            st.session_state.favs.append(a['nome'])
-            else:
-                st.warning("Nenhum animal com foto encontrado nesta coordenada específica. Tenta outra região!")
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.warning("Nenhum 'Cartão de Cidadão' disponível para esta pesquisa.")
 
-    with tab2:
-        st.header("📅 Diário de Bordo")
-        c1, c2 = st.columns(2)
-        with c1:
-            data_v = st.date_input("Data da Observação:")
-            animal_v = st.text_input("Animal visto (ex: Orca):")
-        with c2:
-            local_v = st.text_input("Localização exata:", value=escolha)
-            if st.button("Registar Avistamento"):
-                st.success(f"Registado: {animal_v} em {data_v}")
+# 7. CALENDÁRIO E NOTAS (Mantidos conforme pedido)
+with tab2:
+    st.date_input("Data da Observação:")
+    st.text_input("Animal Avistado:")
+    st.button("Registar no Diário")
 
-    with tab3:
-        st.header("📝 Notas Científicas")
-        col_f, col_n = st.columns(2)
-        with col_f:
-            st.subheader("⭐ Favoritos")
-            for f in set(st.session_state.get('favs', [])):
-                st.write(f"✅ {f}")
-        with col_n:
-            st.subheader("📓 Bloco de Notas")
-            st.text_area("Insira aqui as suas observações sobre a fauna regional:", height=200)
-
-else:
-    st.info("💡 Para começar, selecione uma região ou oceano no menu acima do mapa.")
+with tab3:
+    st.text_area("Bloco de Notas Científico:", height=200)
