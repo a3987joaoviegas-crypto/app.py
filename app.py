@@ -6,7 +6,7 @@ import pydeck as pdk
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="BIO-COMMAND 3D", layout="wide")
 
-# Estilo para os Cartões (Animais mais comuns da região)
+# Estilo visual dos Cartões
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -56,7 +56,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Yucatán, Rússia e outros)
+# 4. BASE DE DADOS (Locais incluindo Yucatán e Rússia)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -64,7 +64,7 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
 })
 
-# 5. BARRA LATERAL (NAVEGADOR COM SETA)
+# 5. BARRA LATERAL (NAVEGADOR)
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Mapa 3D e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
@@ -72,19 +72,25 @@ menu = st.sidebar.radio("Ir para:", ["🌍 Mapa 3D e Animais", "🔬 Laboratóri
 if menu == "🌍 Mapa 3D e Animais":
     st.title("🌍 BIO-COMMAND 3D")
     
-    # Configuração do Mapa 3D Interativo
-    view_state = pdk.ViewState(latitude=20, longitude=0, zoom=1, pitch=45, bearing=0)
+    # AJUSTE PARA MAPA 3D (Pitch e Bearing criam o efeito de profundidade)
+    view_state = pdk.ViewState(
+        latitude=20, 
+        longitude=0, 
+        zoom=0.8, 
+        pitch=50, 
+        bearing=-10
+    )
     
     layer = pdk.Layer(
         "ScatterplotLayer", locais,
         get_position='[lon, lat]',
         get_color='[46, 160, 67, 200]',
-        get_radius=500000,
+        get_radius=400000,
         pickable=True
     )
     
     st.pydeck_chart(pdk.Deck(
-        map_style='mapbox://styles/mapbox/navigation-night-v1',
+        map_style='mapbox://styles/mapbox/satellite-v9', # Satélite para parecer mais um globo real
         initial_view_state=view_state,
         layers=[layer],
         tooltip={"text": "{nome}"}
@@ -136,5 +142,8 @@ elif menu == "📅 Calendário":
 
 elif menu == "⭐ Favoritos":
     st.title("⭐ Os Meus Favoritos")
-    for f in set(st.session_state.get('meus_favs', [])):
-        st.success(f)
+    if 'meus_favs' in st.session_state:
+        for f in set(st.session_state.meus_favs):
+            st.success(f)
+    else:
+        st.info("Ainda não guardaste favoritos.")
