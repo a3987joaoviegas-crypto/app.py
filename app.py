@@ -20,7 +20,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO (Reconhece o Porco e outros)
+# LÓGICA DE ALIMENTAÇÃO
 def definir_dieta(classe, nome):
     n = str(nome).lower()
     if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré']): 
@@ -67,12 +67,13 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# BASE DE DADOS
+# 4. BASE DE DADOS (Atualizada com Madagascar e Ilhas Maurícias)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
+             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
+             'Rússia', 'Madagascar', 'Ilhas Maurícias'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55]
 })
 
 # NAVEGADOR
@@ -88,7 +89,6 @@ if menu == "🌍 Planisfério e Animais":
     
     if escolha_regiao:
         st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
-        # Linha corrigida para evitar erro de variável
         regiao_sel = locais[locais['nome'] == escolha_regiao].iloc[0]
         animais_data = buscar_fauna("", regiao_sel['lat'], regiao_sel['lon'])
         
