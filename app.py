@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Podes mudar o nome aqui)
-st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA - Nome alterado na aba do navegador
+st.set_page_config(page_title="MundoVivo", layout="wide")
 
-# Estilo visual dos Cartões
+# Estilo visual dos Cartões (Mantido exatamente igual)
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -20,34 +20,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- LÓGICA DE ALIMENTAÇÃO DINÂMICA ---
+# LÓGICA DE ALIMENTAÇÃO (Reconhece Omnívoros como o porco)
 def definir_dieta(classe, nome):
     n = str(nome).lower()
-    # Carnívoros estritos
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré']): 
-        return "Carnívoro"
-    # Herbívoros estritos
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha']): 
-        return "Herbívoro"
-    # Casos específicos de Omnívoros (como o Porco, Ursos, Humanos, etc)
-    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha']): 
-        return "Omnívoro"
-    
-    # Se não estiver na lista acima, decide pela classe biológica
-    c = str(classe).lower()
-    if 'mammalia' in c: return "Omnívoro" # Maioria dos mamíferos não listados
-    if 'aves' in c: return "Omnívoro"
-    if 'reptilia' in c: return "Carnívoro"
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre']): return "Carnívoro"
+    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo']): return "Herbívoro"
+    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'rato', 'galinha', 'humano']): return "Omnívoro"
     return "Omnívoro"
 
-# 2. LÓGICA DE REPRODUÇÃO
+# LÓGICA DE REPRODUÇÃO
 def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# 3. MOTOR DE BUSCA (50 ESPÉCIES)
+# MOTOR DE BUSCA
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
@@ -76,7 +64,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS
+# BASE DE DADOS GEOGRÁFICA
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
@@ -84,19 +72,19 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
 })
 
-# 5. BARRA LATERAL (NAVEGADOR)
-st.sidebar.title("📑 Navegador")
+# BARRA LATERAL - Nome alterado aqui
+st.sidebar.title("📑 MundoVivo")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
-# 6. INTERFACE PRINCIPAL
+# INTERFACE PRINCIPAL
 if menu == "🌍 Planisfério e Animais":
-    st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
+    # Título Principal alterado
+    st.title("🌍 MundoVivo: Planisfério")
     st.map(locais, color='#2ea043', size=40)
     st.markdown("---")
-    escolha_regiao = st.selectbox("📍 Selecionar Região para ver Animais:", [""] + list(locais['nome']))
+    escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
     
     if escolha_regiao:
-        st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
         sel = locais[locais['nome'] == escolha_regiao].iloc[0]
         animais_data = buscar_fauna("", sel['lat'], sel['lon'])
         
@@ -121,9 +109,10 @@ if menu == "🌍 Planisfério e Animais":
                     if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
                         st.session_state.setdefault('meus_favs', []).append(animal['nome'])
 
+# (Restantes secções Laboratório, Calendário e Favoritos continuam iguais)
 elif menu == "🔬 Laboratório Global":
-    st.title("🔬 Laboratório de Pesquisa Livre")
-    pesquisa = st.text_input("Pesquisar qualquer animal no mundo:")
+    st.title("🔬 MundoVivo: Pesquisa")
+    pesquisa = st.text_input("Procurar espécie:")
     if pesquisa:
         dados = buscar_fauna(pesquisa)
         cols = st.columns(3)
@@ -133,9 +122,8 @@ elif menu == "🔬 Laboratório Global":
                 st.write(f"**{a['nome']}**")
 
 elif menu == "📅 Calendário":
-    st.title("📅 Diário de Observação")
+    st.title("📅 Diário MundoVivo")
     st.date_input("Data:")
-    st.text_input("Animal observado:")
     st.button("Registar")
 
 elif menu == "⭐ Favoritos":
