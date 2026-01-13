@@ -1,39 +1,41 @@
 import streamlit as st
 import pandas as pd
 import requests
+import pydeck as pdk
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="BIO-COMMAND", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="BIO-COMMAND 3D", layout="wide")
 
-# Estilo para os Cartões de Cidadão (Visual, não Python)
+# Estilo para os Cartões (Animais mais comuns da região)
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
     .cc-card { 
-        background: #1c2128; border-radius: 10px; padding: 15px; 
-        border-left: 5px solid #2ea043; margin-bottom: 20px;
+        background: #1c2128; border-radius: 12px; padding: 20px; 
+        border-left: 6px solid #2ea043; margin-bottom: 25px;
     }
-    .img-cc { width: 100%; height: 160px; object-fit: cover; border-radius: 5px; }
-    .info-label { color: #2ea043; font-weight: bold; font-size: 13px; }
+    .img-cc { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; }
+    .label-expert { color: #2ea043; font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+    .val-expert { color: white; font-size: 16px; margin-bottom: 10px; }
+    h1, h2, h3 { color: #2ea043 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # 2. LÓGICA DE REPRODUÇÃO
-def get_reproducao(classe):
+def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
-    return "Ovíparo/Variável"
+    return "Ovíparo / Variável"
 
-# 3. MOTOR DE BUSCA (50 ANIMAIS + TRADUÇÃO)
-def buscar_laboratorio(termo, lat=None, lon=None):
+# 3. MOTOR DE BUSCA (50 ESPÉCIES)
+def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 50, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
     if lat and lon:
         params.update({"lat": lat, "lng": lon, "radius": 600})
     else:
         params.update({"q": termo})
-    
     try:
         res = requests.get(url, params=params, timeout=10).json()
         lista = []
@@ -47,74 +49,92 @@ def buscar_laboratorio(termo, lat=None, lon=None):
                         'nome': nome.title(),
                         'sci': t.get('name'),
                         'foto': t['default_photo']['medium_url'],
-                        'classe': t.get('iconic_taxon_name', 'Desconhecida'),
-                        'repro': get_reproducao(t.get('iconic_taxon_name', ''))
+                        'classe': t.get('iconic_taxon_name', 'Não Classificado'),
+                        'repro': definir_repro(t.get('iconic_taxon_name', ''))
                     })
                     vistos.add(nome)
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Com Yucatán e Rússia)
+# 4. BASE DE DADOS (Yucatán, Rússia e outros)
 locais = pd.DataFrame({
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31],
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia']
+             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31]
 })
 
-# 5. INTERFACE
-st.title("🌍 BIO-COMMAND CENTER")
+# 5. BARRA LATERAL (NAVEGADOR COM SETA)
+st.sidebar.title("📑 Navegador")
+menu = st.sidebar.radio("Ir para:", ["🌍 Mapa 3D e Animais", "🔬 Laboratório Global", "📅 Calendário", "⭐ Favoritos"])
 
-# Mapa Nativo (Aparece sempre)
-st.map(locais, color='#2ea043')
-
-# Navegador do Laboratório (Global ou por Região)
-st.markdown("---")
-c1, c2 = st.columns([1, 1])
-escolha_mapa = c1.selectbox("🎯 Escolha a região do mapa:", [""] + list(locais['nome']))
-busca_manual = c2.text_input("🔬 Pesquisa Manual no Laboratório (Ex: Cobra, Leão):")
-
-query = busca_manual if busca_manual else escolha_mapa
-
-if query:
-    tab1, tab2, tab3 = st.tabs(["🔬 LABORATÓRIO ANIMAL", "📅 CALENDÁRIO", "📝 NOTAS & FAVORITOS"])
+# 6. INTERFACE PRINCIPAL
+if menu == "🌍 Mapa 3D e Animais":
+    st.title("🌍 BIO-COMMAND 3D")
     
-    with tab1:
-        st.subheader(f"🗂️ Cartões de Cidadão: {query}")
+    # Configuração do Mapa 3D Interativo
+    view_state = pdk.ViewState(latitude=20, longitude=0, zoom=1, pitch=45, bearing=0)
+    
+    layer = pdk.Layer(
+        "ScatterplotLayer", locais,
+        get_position='[lon, lat]',
+        get_color='[46, 160, 67, 200]',
+        get_radius=500000,
+        pickable=True
+    )
+    
+    st.pydeck_chart(pdk.Deck(
+        map_style='mapbox://styles/mapbox/navigation-night-v1',
+        initial_view_state=view_state,
+        layers=[layer],
+        tooltip={"text": "{nome}"}
+    ))
+    
+    st.markdown("---")
+    escolha_regiao = st.selectbox("📍 Selecionar Região para ver Animais:", [""] + list(locais['nome']))
+    
+    if escolha_regiao:
+        st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
+        sel = locais[locais['nome'] == escolha_regiao].iloc[0]
+        animais_data = buscar_fauna("", sel['lat'], sel['lon'])
         
-        # Define se busca por coordenadas ou texto
-        if busca_manual:
-            dados = buscar_laboratorio(busca_manual)
-        else:
-            sel = locais[locais['nome'] == escolha_mapa].iloc[0]
-            dados = buscar_laboratorio("", sel['lat'], sel['lon'])
-            
-        if dados:
+        if animais_data:
             cols = st.columns(3)
-            for i, a in enumerate(dados):
+            for i, animal in enumerate(animais_data):
                 with cols[i % 3]:
                     st.markdown(f"""
                     <div class='cc-card'>
-                        <img src='{a['foto']}' class='img-cc'>
-                        <h3>{a['nome']}</h3>
-                        <p><span class='info-label'>CIENTÍFICO:</span> <br><i>{a['sci']}</i></p>
-                        <p><span class='info-label'>REPRODUÇÃO:</span> <br>{a['repro']}</p>
-                        <p><span class='info-label'>CLASSE:</span> <br>{a['classe']}</p>
+                        <img src='{animal['foto']}' class='img-cc'>
+                        <h3>{animal['nome']}</h3>
+                        <div class='label-expert'>NOME CIENTÍFICO</div>
+                        <div class='val-expert'><i>{animal['sci']}</i></div>
+                        <div class='label-expert'>MÉTODO REPRODUTIVO</div>
+                        <div class='val-expert'>🧬 {animal['repro']}</div>
+                        <div class='label-expert'>CLASSE BIOLÓGICA</div>
+                        <div class='val-expert'>🏷️ {animal['classe']}</div>
                     </div>
                     """, unsafe_allow_html=True)
-                    if st.button(f"⭐ Fav", key=f"f_{i}"):
-                        st.session_state.setdefault('favs', []).append(a['nome'])
-        else:
-            st.warning("Nenhum animal encontrado.")
+                    if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
+                        st.session_state.setdefault('meus_favs', []).append(animal['nome'])
 
-    with tab2:
-        st.header("📅 Calendário")
-        st.date_input("Data:")
-        st.text_input("O que viste?")
-        st.button("Registar")
+elif menu == "🔬 Laboratório Global":
+    st.title("🔬 Laboratório de Pesquisa Livre")
+    pesquisa = st.text_input("Pesquisar qualquer animal no mundo:")
+    if pesquisa:
+        dados = buscar_fauna(pesquisa)
+        cols = st.columns(3)
+        for i, a in enumerate(dados):
+            with cols[i % 3]:
+                st.image(a['foto'], use_container_width=True)
+                st.write(f"**{a['nome']}**")
 
-    with tab3:
-        st.header("📝 Notas")
-        st.text_area("Escreve aqui...")
-        for f in set(st.session_state.get('favs', [])):
-            st.success(f"Favorito: {f}")
+elif menu == "📅 Calendário":
+    st.title("📅 Diário de Observação")
+    st.date_input("Data:")
+    st.text_input("Animal observado:")
+    st.button("Registar")
+
+elif menu == "⭐ Favoritos":
+    st.title("⭐ Os Meus Favoritos")
+    for f in set(st.session_state.get('meus_favs', [])):
+        st.success(f)
