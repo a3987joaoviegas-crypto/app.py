@@ -38,10 +38,9 @@ def definir_repro(classe):
     if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
     return "Ovíparo / Variável"
 
-# MOTOR DE BUSCA (ATUALIZADO PARA 70 ANIMAIS)
+# MOTOR DE BUSCA (70 ANIMAIS)
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
-    # per_page alterado para 70
     params = {"taxon_id": 1, "per_page": 70, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
     if lat and lon:
         params.update({"lat": lat, "lng": lon, "radius": 600})
@@ -68,16 +67,17 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS
+# 4. BASE DE DADOS (Atualizada com Maldivas, México e Argentina)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
-             'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07]
+             'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji',
+             'Maldivas', 'México', 'Argentina'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61]
 })
 
-# NAVEGADOR (ADICIONADO BLOCO DE NOTAS)
+# NAVEGADOR
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
@@ -125,7 +125,6 @@ elif menu == "🔬 Laboratório Global":
                 st.image(a['foto'], use_container_width=True)
                 st.write(f"**{a['nome']}**")
 
-# NOVA SECÇÃO: BLOCO DE NOTAS
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Bloco de Notas Bio-Command")
     if 'notas' not in st.session_state:
