@@ -67,19 +67,36 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Atualizada com Maldivas, México e Argentina)
+# 4. BASE DE DADOS (Atualizada com Finlândia, Moldávia e Polónia)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
              'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji',
-             'Maldivas', 'México', 'Argentina'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61]
+             'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
+
+# FUNÇÃO PARA DESENHAR O CARTÃO (Para evitar repetir código)
+def desenhar_cartao(animal, idx):
+    st.markdown(f"""
+    <div class='cc-card'>
+        <img src='{animal['foto']}' class='img-cc'>
+        <h3>{animal['nome']}</h3>
+        <div class='label-expert'>NOME CIENTÍFICO</div>
+        <div class='val-expert'><i>{animal['sci']}</i></div>
+        <div class='label-expert'>MÉTODO REPRODUTIVO</div>
+        <div class='val-expert'>🧬 {animal['repro']}</div>
+        <div class='label-expert'>ALIMENTAÇÃO</div>
+        <div class='val-expert'>🍴 {animal['dieta']}</div>
+        <div class='label-expert'>CLASSE BIOLÓGICA</div>
+        <div class='val-expert'>🏷️ {animal['classe']}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # INTERFACE PRINCIPAL
 if menu == "🌍 Planisfério e Animais":
@@ -97,22 +114,11 @@ if menu == "🌍 Planisfério e Animais":
             cols = st.columns(3)
             for i, animal in enumerate(animais_data):
                 with cols[i % 3]:
-                    st.markdown(f"""
-                    <div class='cc-card'>
-                        <img src='{animal['foto']}' class='img-cc'>
-                        <h3>{animal['nome']}</h3>
-                        <div class='label-expert'>NOME CIENTÍFICO</div>
-                        <div class='val-expert'><i>{animal['sci']}</i></div>
-                        <div class='label-expert'>MÉTODO REPRODUTIVO</div>
-                        <div class='val-expert'>🧬 {animal['repro']}</div>
-                        <div class='label-expert'>ALIMENTAÇÃO</div>
-                        <div class='val-expert'>🍴 {animal['dieta']}</div>
-                        <div class='label-expert'>CLASSE BIOLÓGICA</div>
-                        <div class='val-expert'>🏷️ {animal['classe']}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    desenhar_cartao(animal, i)
                     if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
-                        st.session_state.setdefault('meus_favs', []).append(animal['nome'])
+                        if 'meus_favs_objetos' not in st.session_state:
+                            st.session_state.meus_favs_objetos = []
+                        st.session_state.meus_favs_objetos.append(animal)
 
 elif menu == "🔬 Laboratório Global":
     st.title("🔬 Laboratório de Pesquisa Livre")
@@ -122,15 +128,12 @@ elif menu == "🔬 Laboratório Global":
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i % 3]:
-                st.image(a['foto'], use_container_width=True)
-                st.write(f"**{a['nome']}**")
+                desenhar_cartao(a, f"lab_{i}")
 
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Bloco de Notas Bio-Command")
-    if 'notas' not in st.session_state:
-        st.session_state.notas = ""
-    st.session_state.notas = st.text_area("Escreva aqui as suas observações:", value=st.session_state.notas, height=300)
-    st.info("As notas são mantidas enquanto a sessão estiver ativa.")
+    if 'notas' not in st.session_state: st.session_state.notas = ""
+    st.session_state.notas = st.text_area("Observações:", value=st.session_state.notas, height=300)
 
 elif menu == "📅 Calendário":
     st.title("📅 Diário de Observação")
@@ -140,6 +143,12 @@ elif menu == "📅 Calendário":
 
 elif menu == "⭐ Favoritos":
     st.title("⭐ Os Meus Favoritos")
-    if 'meus_favs' in st.session_state:
-        for f in set(st.session_state.meus_favs):
-            st.success(f)
+    if 'meus_favs_objetos' in st.session_state and st.session_state.meus_favs_objetos:
+        cols = st.columns(3)
+        # Remove duplicados mantendo a estrutura do objeto
+        favs_unicos = {v['nome']: v for v in st.session_state.meus_favs_objetos}.values()
+        for i, animal in enumerate(favs_unicos):
+            with cols[i % 3]:
+                desenhar_cartao(animal, f"fav_{i}")
+    else:
+        st.info("Ainda não tens animais guardados.")
