@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 
 # 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="BIO-COMMAND PLANISFÉRIO", layout="wide")
+st.set_page_config(page_title="MUNDO VIVO", layout="wide")
 
 # Estilo visual dos Cartões
 st.markdown("""
@@ -67,7 +67,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Atualizada com Finlândia, Moldávia e Polónia)
+# 4. BASE DE DADOS
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
@@ -81,7 +81,7 @@ locais = pd.DataFrame({
 st.sidebar.title("📑 Navegador")
 menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
-# FUNÇÃO PARA DESENHAR O CARTÃO (Para evitar repetir código)
+# FUNÇÃO PARA DESENHAR O CARTÃO
 def desenhar_cartao(animal, idx):
     st.markdown(f"""
     <div class='cc-card'>
@@ -103,21 +103,18 @@ if menu == "🌍 Planisfério e Animais":
     st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
     st.map(locais, color='#2ea043', size=40)
     st.markdown("---")
-    escolha_regiao = st.selectbox("📍 Selecionar Região para ver Animais:", [""] + list(locais['nome']))
+    escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
     
     if escolha_regiao:
-        st.subheader(f"🗂️ Animais mais comuns da região: {escolha_regiao}")
         regiao_sel = locais[locais['nome'] == escolha_regiao].iloc[0]
         animais_data = buscar_fauna("", regiao_sel['lat'], regiao_sel['lon'])
-        
         if animais_data:
             cols = st.columns(3)
             for i, animal in enumerate(animais_data):
                 with cols[i % 3]:
                     desenhar_cartao(animal, i)
-                    if st.button(f"⭐ Guardar {i}", key=f"btn_{i}"):
-                        if 'meus_favs_objetos' not in st.session_state:
-                            st.session_state.meus_favs_objetos = []
+                    if st.button(f"⭐ Guardar {i}", key=f"btn_reg_{i}"):
+                        if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
                         st.session_state.meus_favs_objetos.append(animal)
 
 elif menu == "🔬 Laboratório Global":
@@ -129,26 +126,28 @@ elif menu == "🔬 Laboratório Global":
         for i, a in enumerate(dados):
             with cols[i % 3]:
                 desenhar_cartao(a, f"lab_{i}")
+                # ADICIONADA A ESTRELINHA AQUI
+                if st.button(f"⭐ Guardar Favorito", key=f"btn_lab_{i}"):
+                    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+                    st.session_state.meus_favs_objetos.append(a)
 
 elif menu == "📝 Bloco de Notas":
-    st.title("📝 Bloco de Notas Bio-Command")
+    st.title("📝 Bloco de Notas")
     if 'notas' not in st.session_state: st.session_state.notas = ""
-    st.session_state.notas = st.text_area("Observações:", value=st.session_state.notas, height=300)
+    st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=300)
 
 elif menu == "📅 Calendário":
-    st.title("📅 Diário de Observação")
+    st.title("📅 Diário")
     st.date_input("Data:")
-    st.text_input("Animal observado:")
     st.button("Registar")
 
 elif menu == "⭐ Favoritos":
     st.title("⭐ Os Meus Favoritos")
     if 'meus_favs_objetos' in st.session_state and st.session_state.meus_favs_objetos:
         cols = st.columns(3)
-        # Remove duplicados mantendo a estrutura do objeto
         favs_unicos = {v['nome']: v for v in st.session_state.meus_favs_objetos}.values()
         for i, animal in enumerate(favs_unicos):
             with cols[i % 3]:
                 desenhar_cartao(animal, f"fav_{i}")
     else:
-        st.info("Ainda não tens animais guardados.")
+        st.info("Lista vazia.")
