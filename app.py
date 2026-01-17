@@ -20,29 +20,44 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO MELHORADA (PARA EVITAR O "VARIÁVEL")
+# LÓGICA DE ALIMENTAÇÃO REALISTA (Deteção por palavras-chave em qualquer parte do nome)
 def definir_dieta(classe, nome):
     n = str(nome).lower()
     c = str(classe).lower()
     
-    # CARNÍVOROS (Predadores, Peixes e Insetívoros)
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'foca', 'pinguim', 'crocodilo']):
-        return "Carnívoro"
+    # 1. CARNÍVOROS REAIS (Predadores, Peixes caçadores, Insetívoros)
+    carnivoros = [
+        'leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 
+        'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'foca', 
+        'pinguim', 'crocodilo', 'lince', 'leopardo', 'pantera', 'abutre', 'condor', 'pelicano',
+        'garça', 'martim', 'tubarao', 'raia', 'escorpião', 'cobra', 'víbora', 'dragão'
+    ]
+    if any(x in n for x in carnivoros): return "Carnívoro"
     
-    # HERBÍVOROS (Comedores de plantas, sementes e frutos)
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'borboleta', 'abelha']):
-        return "Herbívoro"
+    # 2. HERBÍVOROS REAIS (Plantas, Sementes, Frutos, Néctar)
+    herbivoros = [
+        'elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 
+        'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 
+        'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'borboleta', 'abelha',
+        'veada', 'touro', 'boi', 'pomba', 'periquito', 'escaravelho', 'grilo', 'gafanhoto',
+        'lagarta', 'preguiça', 'Antílope', 'camelo', 'lhama', 'alpaca'
+    ]
+    if any(x in n for x in herbivoros): return "Herbívoro"
     
-    # OMNÍVOROS (Comem de tudo)
-    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 'guaxinim', 'esquilo', 'humano', 'suricata', 'formiga']):
-        return "Omnívoro"
+    # 3. OMNÍVOROS REAIS (Comem de tudo por natureza)
+    omnivoros = [
+        'porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 
+        'guaxinim', 'esquilo', 'humano', 'suricata', 'formiga', 'texugo', 'avestruz', 'peru'
+    ]
+    if any(x in n for x in omnivoros): return "Omnívoro"
 
-    # Se não encontrar no nome, decide pela Classe
-    if 'reptilia' in c or 'amphibia' in c or 'arachnida' in c: return "Carnívoro / Insetívoro"
+    # Lógica Automática por Classe (Se o nome não der pistas)
+    if 'reptilia' in c or 'amphibia' in c: return "Carnívoro / Insetívoro"
+    if 'arachnida' in c: return "Carnívoro"
+    if 'aves' in c: return "Herbívoro / Insetívoro" # Pássaros pequenos geralmente
     if 'actinopterygii' in c: return "Carnívoro (Peixe)"
-    if 'aves' in c: return "Omnívoro (Sementes/Insetos)"
     
-    return "Omnívoro"
+    return "Omnívoro / Variável"
 
 # LÓGICA DE REPRODUÇÃO
 def definir_repro(classe):
@@ -77,7 +92,7 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS (Restaurada com todas as tuas regiões)
+# BASE DE DADOS (Restaurada com todas as 21 regiões)
 locais = pd.DataFrame({
     'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
              'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
