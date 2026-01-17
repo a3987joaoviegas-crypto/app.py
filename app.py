@@ -72,7 +72,7 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
-# GESTÃO DE FAVORITOS (PERSISTENTE DURANTE A UTILIZAÇÃO)
+# GESTÃO DE FAVORITOS
 if 'meus_favs_objetos' not in st.session_state:
     st.session_state.meus_favs_objetos = []
 
@@ -98,12 +98,21 @@ def desenhar_cartao(animal):
 
 # INTERFACES
 if menu == "🌍 Planisfério e Animais":
-    st.title("🌍 EXPLORAÇÃO BIO-INTERATIVA")
+    st.title("🌍 EXPLORAÇÃO POR REGIÃO E CLASSE")
     st.map(locais, color='#2ea043')
-    regiao = st.selectbox("📍 Escolha a Região:", [""] + list(locais['nome']))
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        regiao = st.selectbox("📍 1. Escolha o País/Região:", [""] + list(locais['nome']))
+    with col2:
+        classe_filtro = st.selectbox("🐾 2. Filtrar por Classe:", ["Todas", "Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"])
+
     if regiao:
         sel = locais[locais['nome'] == regiao].iloc[0]
         dados = buscar_fauna("", sel['lat'], sel['lon'])
+        if classe_filtro != "Todas":
+            dados = [a for a in dados if a['classe'] == classe_filtro]
+        
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i%3]:
@@ -131,12 +140,10 @@ elif menu == "📝 Bloco de Notas":
 
 elif menu == "⭐ Favoritos":
     st.title("⭐ Os Meus Favoritos")
-    
     if st.session_state.meus_favs_objetos:
         if st.button("🗑️ Eliminar Todos os Favoritos"):
             st.session_state.meus_favs_objetos = []
             st.rerun()
-            
         st.markdown("---")
         cols = st.columns(3)
         for i, a in enumerate(list(st.session_state.meus_favs_objetos)):
