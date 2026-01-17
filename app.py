@@ -79,10 +79,10 @@ locais = pd.DataFrame({
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🏷️ Classes por Região", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
 # FUNÇÃO PARA DESENHAR O CARTÃO
-def desenhar_cartao(animal, idx):
+def desenhar_cartao(animal, idx_prefix):
     st.markdown(f"""
     <div class='cc-card'>
         <img src='{animal['foto']}' class='img-cc'>
@@ -97,6 +97,10 @@ def desenhar_cartao(animal, idx):
         <div class='val-expert'>🏷️ {animal['classe']}</div>
     </div>
     """, unsafe_allow_html=True)
+    if st.button(f"⭐ Guardar Favorito", key=f"btn_{idx_prefix}"):
+        if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+        st.session_state.meus_favs_objetos.append(animal)
+        st.success(f"{animal['nome']} guardado!")
 
 # INTERFACE PRINCIPAL
 if menu == "🌍 Planisfério e Animais":
@@ -112,10 +116,29 @@ if menu == "🌍 Planisfério e Animais":
             cols = st.columns(3)
             for i, animal in enumerate(animais_data):
                 with cols[i % 3]:
-                    desenhar_cartao(animal, i)
-                    if st.button(f"⭐ Guardar {i}", key=f"btn_reg_{i}"):
-                        if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-                        st.session_state.meus_favs_objetos.append(animal)
+                    desenhar_cartao(animal, f"reg_{i}")
+
+elif menu == "🏷️ Classes por Região":
+    st.title("🏷️ Filtrar por Classe Biológica")
+    escolha_regiao = st.selectbox("1. Escolha a Região:", [""] + list(locais['nome']), key="class_reg")
+    
+    if escolha_regiao:
+        regiao_sel = locais[locais['nome'] == escolha_regiao].iloc[0]
+        animais_data = buscar_fauna("", regiao_sel['lat'], regiao_sel['lon'])
+        
+        if animais_data:
+            # Extrair classes únicas encontradas
+            classes_disponiveis = sorted(list(set([a['classe'] for a in animais_data])))
+            classe_filtro = st.multiselect("2. Selecione as Classes (ex: Mammalia):", classes_disponiveis, default=classes_disponiveis)
+            
+            dados_filtrados = [a for a in animais_data if a['classe'] in classe_filtro]
+            
+            st.markdown(f"Exibindo **{len(dados_filtrados)}** animais da classe selecionada em **{escolha_regiao}**.")
+            
+            cols = st.columns(3)
+            for i, animal in enumerate(dados_filtrados):
+                with cols[i % 3]:
+                    desenhar_cartao(animal, f"filter_{i}")
 
 elif menu == "🔬 Laboratório Global":
     st.title("🔬 Laboratório de Pesquisa Livre")
@@ -126,10 +149,6 @@ elif menu == "🔬 Laboratório Global":
         for i, a in enumerate(dados):
             with cols[i % 3]:
                 desenhar_cartao(a, f"lab_{i}")
-                # ADICIONADA A ESTRELINHA AQUI
-                if st.button(f"⭐ Guardar Favorito", key=f"btn_lab_{i}"):
-                    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-                    st.session_state.meus_favs_objetos.append(a)
 
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Bloco de Notas")
