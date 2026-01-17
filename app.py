@@ -20,52 +20,35 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO REALISTA (Deteção por palavras-chave em qualquer parte do nome)
-def definir_dieta(classe, nome):
+# LÓGICA DE ALIMENTAÇÃO (Simulando uma App de consulta de espécies)
+def consultar_dieta_real(classe, nome):
     n = str(nome).lower()
     c = str(classe).lower()
     
-    # 1. CARNÍVOROS REAIS (Predadores, Peixes caçadores, Insetívoros)
-    carnivoros = [
-        'leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 
-        'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'foca', 
-        'pinguim', 'crocodilo', 'lince', 'leopardo', 'pantera', 'abutre', 'condor', 'pelicano',
-        'garça', 'martim', 'tubarao', 'raia', 'escorpião', 'cobra', 'víbora', 'dragão'
-    ]
-    if any(x in n for x in carnivoros): return "Carnívoro"
+    # Base de dados de Carnívoros reais
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'foca', 'pinguim', 'crocodilo', 'lince', 'leopardo', 'garça', 'pelicano', 'fuinha', 'doninha', 'mocho', 'cobra']):
+        return "Carnívoro (Predador)"
     
-    # 2. HERBÍVOROS REAIS (Plantas, Sementes, Frutos, Néctar)
-    herbivoros = [
-        'elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 
-        'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 
-        'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'borboleta', 'abelha',
-        'veada', 'touro', 'boi', 'pomba', 'periquito', 'escaravelho', 'grilo', 'gafanhoto',
-        'lagarta', 'preguiça', 'Antílope', 'camelo', 'lhama', 'alpaca'
-    ]
-    if any(x in n for x in herbivoros): return "Herbívoro"
+    # Base de dados de Herbívoros reais
+    if any(x in n for x in ['elefante', 'veado', 'corça', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'borboleta', 'abelha', 'grilo', 'gafanhoto', 'veada', 'coelha', 'lebre']):
+        return "Herbívoro (Plantas/Frutos)"
     
-    # 3. OMNÍVOROS REAIS (Comem de tudo por natureza)
-    omnivoros = [
-        'porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 
-        'guaxinim', 'esquilo', 'humano', 'suricata', 'formiga', 'texugo', 'avestruz', 'peru'
-    ]
-    if any(x in n for x in omnivoros): return "Omnívoro"
+    # Base de dados de Omnívoros reais
+    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 'guaxinim', 'esquilo', 'humano', 'suricata', 'formiga', 'texugo', 'avestruz', 'pombo']):
+        return "Omnívoro"
 
-    # Lógica Automática por Classe (Se o nome não der pistas)
+    # Fallback inteligente por Classe
     if 'reptilia' in c or 'amphibia' in c: return "Carnívoro / Insetívoro"
     if 'arachnida' in c: return "Carnívoro"
-    if 'aves' in c: return "Herbívoro / Insetívoro" # Pássaros pequenos geralmente
-    if 'actinopterygii' in c: return "Carnívoro (Peixe)"
+    if 'actinopterygii' in c: return "Piscívoro (Carnívoro)"
     
-    return "Omnívoro / Variável"
+    return "Dieta Variada / Omnívoro"
 
-# LÓGICA DE REPRODUÇÃO
+# REPRODUÇÃO
 def definir_repro(classe):
-    c = str(classe).lower()
-    if 'mammalia' in c: return "Vivíparo"
-    return "Ovíparo"
+    return "Vivíparo" if 'mammalia' in str(classe).lower() else "Ovíparo"
 
-# MOTOR DE BUSCA (70 ANIMAIS)
+# BUSCA DE DADOS
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 70, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
@@ -86,25 +69,22 @@ def buscar_fauna(termo, lat=None, lon=None):
                         'foto': t['default_photo']['medium_url'],
                         'classe': t.get('iconic_taxon_name', 'Outros'),
                         'repro': definir_repro(t.get('iconic_taxon_name', '')),
-                        'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome)
+                        'dieta': consultar_dieta_real(t.get('iconic_taxon_name', ''), nome)
                     })
                     vistos.add(nome)
         return lista
     except: return []
 
-# BASE DE DADOS (Restaurada com todas as 21 regiões)
+# BASE DE DADOS DE REGIÕES (21 locais)
 locais = pd.DataFrame({
-    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
-             'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji',
-             'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji', 'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
     'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "🐾 Classes de Animais", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "⭐ Favoritos"])
 
 def desenhar_cartao(animal, idx):
     st.markdown(f"""
@@ -115,60 +95,64 @@ def desenhar_cartao(animal, idx):
         <div class='val-expert'><i>{animal['sci']}</i></div>
         <div class='label-expert'>MÉTODO REPRODUTIVO</div>
         <div class='val-expert'>🧬 {animal['repro']}</div>
-        <div class='label-expert'>ALIMENTAÇÃO</div>
+        <div class='label-expert'>ALIMENTAÇÃO REAL</div>
         <div class='val-expert'>🍴 {animal['dieta']}</div>
         <div class='label-expert'>CLASSE BIOLÓGICA</div>
         <div class='val-expert'>🏷️ {animal['classe']}</div>
     </div>
     """, unsafe_allow_html=True)
 
-def add_fav(animal):
-    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-    st.session_state.meus_favs_objetos.append(animal)
-
 # INTERFACES
 if menu == "🌍 Planisfério e Animais":
-    st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
+    st.title("🌍 EXPLORAÇÃO POR REGIÃO E CLASSE")
     st.map(locais, color='#2ea043')
-    escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
-    if escolha_regiao:
-        reg = locais[locais['nome'] == escolha_regiao].iloc[0]
-        dados = buscar_fauna("", reg['lat'], reg['lon'])
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]:
-                desenhar_cartao(a, i)
-                if st.button(f"⭐ Guardar {i}", key=f"reg_{i}"): add_fav(a)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        regiao = st.selectbox("📍 1. Escolha o País/Região:", [""] + list(locais['nome']))
+    with col2:
+        classe_filtro = st.selectbox("🐾 2. Filtrar por Classe (Opcional):", ["Todos", "Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"])
+
+    if regiao:
+        sel = locais[locais['nome'] == regiao].iloc[0]
+        # Busca animais da região
+        dados = buscar_fauna("", sel['lat'], sel['lon'])
+        
+        # Filtra por classe se selecionado
+        if classe_filtro != "Todos":
+            dados = [a for a in dados if a['classe'] == classe_filtro]
+        
+        if dados:
+            cols = st.columns(3)
+            for i, a in enumerate(dados):
+                with cols[i%3]:
+                    desenhar_cartao(a, i)
+                    if st.button(f"⭐ Guardar {i}", key=f"reg_{i}"):
+                        if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+                        st.session_state.meus_favs_objetos.append(a)
+        else:
+            st.warning("Nenhum animal desta classe encontrado nesta região.")
 
 elif menu == "🔬 Laboratório Global":
-    st.title("🔬 Laboratório de Pesquisa")
-    pesq = st.text_input("Procurar animal:")
+    st.title("🔬 Pesquisa Global")
+    pesq = st.text_input("Nome do animal:")
     if pesq:
         dados = buscar_fauna(pesq)
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i%3]:
                 desenhar_cartao(a, i)
-                if st.button(f"⭐ Guardar {i}", key=f"lab_{i}"): add_fav(a)
-
-elif menu == "🐾 Classes de Animais":
-    st.title("🐾 Filtro por Classes")
-    c_list = ["Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"]
-    cl = st.selectbox("Escolha a Classe:", c_list)
-    dados = buscar_fauna(cl)
-    cols = st.columns(3)
-    for i, a in enumerate(dados):
-        with cols[i%3]:
-            desenhar_cartao(a, i)
-            if st.button(f"⭐ Guardar {i}", key=f"class_{i}"): add_fav(a)
+                if st.button(f"⭐ Guardar {i}", key=f"lab_{i}"):
+                    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+                    st.session_state.meus_favs_objetos.append(a)
 
 elif menu == "📝 Bloco de Notas":
-    st.title("📝 Bloco de Notas")
+    st.title("📝 Notas")
     if 'notas' not in st.session_state: st.session_state.notas = ""
-    st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=300)
+    st.session_state.notas = st.text_area("Escreve aqui:", value=st.session_state.notas, height=300)
 
 elif menu == "⭐ Favoritos":
-    st.title("⭐ Os Meus Favoritos")
+    st.title("⭐ Favoritos")
     if 'meus_favs_objetos' in st.session_state:
         favs = {v['nome']: v for v in st.session_state.meus_favs_objetos}.values()
         cols = st.columns(3)
