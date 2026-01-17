@@ -20,32 +20,41 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO
+# LÓGICA DE ALIMENTAÇÃO AVANÇADA (REDUÇÃO DE OMNÍVOROS GENÉRICOS)
 def definir_dieta(classe, nome):
     n = str(nome).lower()
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré']): 
-        return "Carnívoro"
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha']): 
-        return "Herbívoro"
-    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha']): 
-        return "Omnívoro"
+    c = str(classe).lower()
+    
+    # Carnívoros (Predadores e Peixes Carnívoros)
+    carnivoros = ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'coruja', 'lince', 'leopardo', 'pinguim', 'foca', 'garça', 'pelicano', 'aranha', 'escorpião', 'crocodilo']
+    if any(x in n for x in carnivoros): return "Carnívoro"
+    
+    # Herbívoros (Pastadores e Comedores de Fruta/Sementes)
+    herbi_list = ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 'papagaio', 'beija-flor', 'gazela', 'búfalo']
+    if any(x in n for x in herbi_list): return "Herbívoro"
+    
+    # Omnívoros Reais
+    omni_list = ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 'guaxinim', 'esquilo', 'humano', 'suricata']
+    if any(x in n for x in omni_list): return "Omnívoro"
+    
+    # Lógica por Classe para animais não listados
+    if 'reptilia' in c or 'amphibia' in c: return "Carnívoro" # Maioria come insetos/carne
+    if 'aves' in c: return "Omnívoro" # Pássaros variam muito
+    
     return "Omnívoro"
 
 # LÓGICA DE REPRODUÇÃO
 def definir_repro(classe):
     c = str(classe).lower()
     if 'mammalia' in c: return "Vivíparo"
-    if any(x in c for x in ['aves', 'reptilia', 'amphibia']): return "Ovíparo"
-    return "Ovíparo / Variável"
+    return "Ovíparo"
 
 # MOTOR DE BUSCA (70 ANIMAIS)
 def buscar_fauna(termo, lat=None, lon=None):
     url = "https://api.inaturalist.org/v1/observations"
     params = {"taxon_id": 1, "per_page": 70, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
-    if lat and lon:
-        params.update({"lat": lat, "lng": lon, "radius": 600})
-    else:
-        params.update({"q": termo})
+    if lat and lon: params.update({"lat": lat, "lng": lon, "radius": 600})
+    else: params.update({"q": termo})
     try:
         res = requests.get(url, params=params, timeout=10).json()
         lista = []
@@ -59,7 +68,7 @@ def buscar_fauna(termo, lat=None, lon=None):
                         'nome': nome.title(),
                         'sci': t.get('name'),
                         'foto': t['default_photo']['medium_url'],
-                        'classe': t.get('iconic_taxon_name', 'Não Classificado'),
+                        'classe': t.get('iconic_taxon_name', 'Outros'),
                         'repro': definir_repro(t.get('iconic_taxon_name', '')),
                         'dieta': definir_dieta(t.get('iconic_taxon_name', ''), nome)
                     })
@@ -67,22 +76,18 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# 4. BASE DE DADOS
+# BASE DE DADOS
 locais = pd.DataFrame({
-    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
-             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
-             'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji',
-             'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
-    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
-    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
+    'nome': ['Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji', 'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
+    'lat': [-3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
+    'lon': [-62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🏷️ Classes por Região", "🔬 Laboratório Global", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "🐾 Classes de Animais", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
-# FUNÇÃO PARA DESENHAR O CARTÃO
-def desenhar_cartao(animal, idx_prefix):
+def desenhar_cartao(animal, idx):
     st.markdown(f"""
     <div class='cc-card'>
         <img src='{animal['foto']}' class='img-cc'>
@@ -97,76 +102,57 @@ def desenhar_cartao(animal, idx_prefix):
         <div class='val-expert'>🏷️ {animal['classe']}</div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button(f"⭐ Guardar Favorito", key=f"btn_{idx_prefix}"):
-        if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-        st.session_state.meus_favs_objetos.append(animal)
-        st.success(f"{animal['nome']} guardado!")
 
-# INTERFACE PRINCIPAL
+# LÓGICA PARA ADICIONAR FAVORITOS
+def add_fav(animal):
+    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+    st.session_state.meus_favs_objetos.append(animal)
+
+# --- INTERFACES ---
 if menu == "🌍 Planisfério e Animais":
     st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
-    st.map(locais, color='#2ea043', size=40)
-    st.markdown("---")
+    st.map(locais, color='#2ea043')
     escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
-    
     if escolha_regiao:
-        regiao_sel = locais[locais['nome'] == escolha_regiao].iloc[0]
-        animais_data = buscar_fauna("", regiao_sel['lat'], regiao_sel['lon'])
-        if animais_data:
-            cols = st.columns(3)
-            for i, animal in enumerate(animais_data):
-                with cols[i % 3]:
-                    desenhar_cartao(animal, f"reg_{i}")
-
-elif menu == "🏷️ Classes por Região":
-    st.title("🏷️ Filtrar por Classe Biológica")
-    escolha_regiao = st.selectbox("1. Escolha a Região:", [""] + list(locais['nome']), key="class_reg")
-    
-    if escolha_regiao:
-        regiao_sel = locais[locais['nome'] == escolha_regiao].iloc[0]
-        animais_data = buscar_fauna("", regiao_sel['lat'], regiao_sel['lon'])
-        
-        if animais_data:
-            # Extrair classes únicas encontradas
-            classes_disponiveis = sorted(list(set([a['classe'] for a in animais_data])))
-            classe_filtro = st.multiselect("2. Selecione as Classes (ex: Mammalia):", classes_disponiveis, default=classes_disponiveis)
-            
-            dados_filtrados = [a for a in animais_data if a['classe'] in classe_filtro]
-            
-            st.markdown(f"Exibindo **{len(dados_filtrados)}** animais da classe selecionada em **{escolha_regiao}**.")
-            
-            cols = st.columns(3)
-            for i, animal in enumerate(dados_filtrados):
-                with cols[i % 3]:
-                    desenhar_cartao(animal, f"filter_{i}")
-
-elif menu == "🔬 Laboratório Global":
-    st.title("🔬 Laboratório de Pesquisa Livre")
-    pesquisa = st.text_input("Pesquisar qualquer animal no mundo:")
-    if pesquisa:
-        dados = buscar_fauna(pesquisa)
+        reg = locais[locais['nome'] == escolha_regiao].iloc[0]
+        dados = buscar_fauna("", reg['lat'], reg['lon'])
         cols = st.columns(3)
         for i, a in enumerate(dados):
-            with cols[i % 3]:
-                desenhar_cartao(a, f"lab_{i}")
+            with cols[i%3]:
+                desenhar_cartao(a, i)
+                if st.button(f"⭐ Guardar {i}", key=f"reg_{i}"): add_fav(a)
+
+elif menu == "🔬 Laboratório Global":
+    st.title("🔬 Laboratório de Pesquisa")
+    pesq = st.text_input("Procurar animal:")
+    if pesq:
+        dados = buscar_fauna(pesq)
+        cols = st.columns(3)
+        for i, a in enumerate(dados):
+            with cols[i%3]:
+                desenhar_cartao(a, i)
+                if st.button(f"⭐ Guardar {i}", key=f"lab_{i}"): add_fav(a)
+
+elif menu == "🐾 Classes de Animais":
+    st.title("🐾 Filtro por Classes")
+    classe_escolhida = st.selectbox("Escolha a Classe:", ["Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"])
+    # Pesquisa animais dessa classe globalmente
+    dados = buscar_fauna(classe_escolhida)
+    cols = st.columns(3)
+    for i, a in enumerate(dados):
+        with cols[i%3]:
+            desenhar_cartao(a, i)
+            if st.button(f"⭐ Guardar {i}", key=f"class_{i}"): add_fav(a)
 
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Bloco de Notas")
     if 'notas' not in st.session_state: st.session_state.notas = ""
-    st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=300)
-
-elif menu == "📅 Calendário":
-    st.title("📅 Diário")
-    st.date_input("Data:")
-    st.button("Registar")
+    st.session_state.notas = st.text_area("Observações:", value=st.session_state.notas, height=300)
 
 elif menu == "⭐ Favoritos":
     st.title("⭐ Os Meus Favoritos")
-    if 'meus_favs_objetos' in st.session_state and st.session_state.meus_favs_objetos:
+    if 'meus_favs_objetos' in st.session_state:
+        favs = {v['nome']: v for v in st.session_state.meus_favs_objetos}.values()
         cols = st.columns(3)
-        favs_unicos = {v['nome']: v for v in st.session_state.meus_favs_objetos}.values()
-        for i, animal in enumerate(favs_unicos):
-            with cols[i % 3]:
-                desenhar_cartao(animal, f"fav_{i}")
-    else:
-        st.info("Lista vazia.")
+        for i, a in enumerate(favs):
+            with cols[i%3]: desenhar_cartao(a, i)
