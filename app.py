@@ -5,7 +5,7 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MUNDO VIVO", layout="wide")
 
-# Estilo visual dos Cartões (Mantido exatamente igual)
+# Estilo visual dos Cartões
 st.markdown("""
     <style>
     .stApp { background-color: #0b1117; color: #adbac7; }
@@ -20,37 +20,26 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE ALIMENTAÇÃO REALISTA (MUITO MAIS DETALHADA)
+# LÓGICA DE ALIMENTAÇÃO MELHORADA (PARA EVITAR O "VARIÁVEL")
 def definir_dieta(classe, nome):
     n = str(nome).lower()
     c = str(classe).lower()
     
-    # 1. CARNÍVOROS (Lista ampliada de predadores e insetívoros)
-    carnivoros_especificos = [
-        'leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 
-        'coruja', 'lince', 'leopardo', 'pinguim', 'foca', 'garça', 'pelicano', 'aranha', 
-        'escorpião', 'crocodilo', 'raposa', 'gavião', 'polvo', 'baleia', 'mantis', 'doninha'
-    ]
-    if any(x in n for x in carnivoros_especificos): return "Carnívoro"
+    # CARNÍVOROS (Predadores, Peixes e Insetívoros)
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'foca', 'pinguim', 'crocodilo']):
+        return "Carnívoro"
+    
+    # HERBÍVOROS (Comedores de plantas, sementes e frutos)
+    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'borboleta', 'abelha']):
+        return "Herbívoro"
+    
+    # OMNÍVOROS (Comem de tudo)
+    if any(x in n for x in ['porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 'guaxinim', 'esquilo', 'humano', 'suricata', 'formiga']):
+        return "Omnívoro"
+
+    # Se não encontrar no nome, decide pela Classe
     if 'reptilia' in c or 'amphibia' in c or 'arachnida' in c: return "Carnívoro / Insetívoro"
-    
-    # 2. HERBÍVOROS (Lista ampliada de pastadores e frugívoros)
-    herbivoros_especificos = [
-        'elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 
-        'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 
-        'papagaio', 'beija-flor', 'gazela', 'búfalo', 'veado', 'capivara', 'touro', 'bicho-preguiça'
-    ]
-    if any(x in n for x in herbivoros_especificos): return "Herbívoro"
-    
-    # 3. OMNÍVOROS CONFIRMADOS
-    omnivoros_reais = [
-        'porco', 'javali', 'urso', 'macaco', 'chimpanzé', 'rato', 'galinha', 'corvo', 
-        'guaxinim', 'esquilo', 'humano', 'suricata', 'texugo', 'avestruz'
-    ]
-    if any(x in n for x in omnivoros_reais): return "Omnívoro"
-    
-    # Lógica por Classe (Onde a dieta varia muito)
-    if 'mammalia' in c: return "Omnívoro / Variável"
+    if 'actinopterygii' in c: return "Carnívoro (Peixe)"
     if 'aves' in c: return "Omnívoro (Sementes/Insetos)"
     
     return "Omnívoro"
@@ -88,16 +77,19 @@ def buscar_fauna(termo, lat=None, lon=None):
         return lista
     except: return []
 
-# BASE DE DADOS (Mantendo as tuas 21 regiões)
+# 4. BASE DE DADOS (Restaurada com todas as tuas regiões)
 locais = pd.DataFrame({
-    'nome': ['Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji', 'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
-    'lat': [-3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
-    'lon': [-62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 
+             'Amazónia', 'Serengeti', 'Austrália', 'Portugal', 'Península de Yucatán', 
+             'Rússia', 'Madagascar', 'Ilhas Maurícias', 'Havai', 'Israel', 'Ilhas Fiji',
+             'Maldivas', 'México', 'Argentina', 'Finlândia', 'Moldávia', 'Polónia'],
+    'lat': [0.0, -15.0, -20.0, 85.0, -3.46, -2.33, -25.27, 39.5, 18.84, 61.52, -18.76, -20.34, 21.31, 31.05, -17.71, 3.20, 23.63, -38.41, 61.92, 47.41, 51.91],
+    'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério", "🔬 Laboratório", "🐾 Classes", "📝 Bloco de Notas", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "🐾 Classes de Animais", "📝 Bloco de Notas", "📅 Calendário", "⭐ Favoritos"])
 
 def desenhar_cartao(animal, idx):
     st.markdown(f"""
@@ -115,8 +107,12 @@ def desenhar_cartao(animal, idx):
     </div>
     """, unsafe_allow_html=True)
 
-# --- INTERFACES ---
-if menu == "🌍 Planisfério":
+def add_fav(animal):
+    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
+    st.session_state.meus_favs_objetos.append(animal)
+
+# INTERFACES
+if menu == "🌍 Planisfério e Animais":
     st.title("🌍 PLANISFÉRIO BIO-INTERATIVO")
     st.map(locais, color='#2ea043')
     escolha_regiao = st.selectbox("📍 Selecionar Região:", [""] + list(locais['nome']))
@@ -127,11 +123,9 @@ if menu == "🌍 Planisfério":
         for i, a in enumerate(dados):
             with cols[i%3]:
                 desenhar_cartao(a, i)
-                if st.button(f"⭐ Guardar {i}", key=f"reg_{i}"):
-                    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-                    st.session_state.meus_favs_objetos.append(a)
+                if st.button(f"⭐ Guardar {i}", key=f"reg_{i}"): add_fav(a)
 
-elif menu == "🔬 Laboratório":
+elif menu == "🔬 Laboratório Global":
     st.title("🔬 Laboratório de Pesquisa")
     pesq = st.text_input("Procurar animal:")
     if pesq:
@@ -140,22 +134,18 @@ elif menu == "🔬 Laboratório":
         for i, a in enumerate(dados):
             with cols[i%3]:
                 desenhar_cartao(a, i)
-                if st.button(f"⭐ Guardar {i}", key=f"lab_{i}"):
-                    if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-                    st.session_state.meus_favs_objetos.append(a)
+                if st.button(f"⭐ Guardar {i}", key=f"lab_{i}"): add_fav(a)
 
-elif menu == "🐾 Classes":
+elif menu == "🐾 Classes de Animais":
     st.title("🐾 Filtro por Classes")
     c_list = ["Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"]
-    classe_escolhida = st.selectbox("Escolha a Classe:", c_list)
-    dados = buscar_fauna(classe_escolhida)
+    cl = st.selectbox("Escolha a Classe:", c_list)
+    dados = buscar_fauna(cl)
     cols = st.columns(3)
     for i, a in enumerate(dados):
         with cols[i%3]:
             desenhar_cartao(a, i)
-            if st.button(f"⭐ Guardar {i}", key=f"class_{i}"):
-                if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
-                st.session_state.meus_favs_objetos.append(a)
+            if st.button(f"⭐ Guardar {i}", key=f"class_{i}"): add_fav(a)
 
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Bloco de Notas")
