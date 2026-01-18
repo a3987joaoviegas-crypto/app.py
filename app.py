@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="MUNDO VIVO", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA (Configurado para instalação como "MundoVivo")
+st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
 # Estilo visual dos Cartões
 st.markdown("""
