@@ -6,19 +6,17 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS REFINADOS: CARTÃO DE CIDADÃO E RESTAURO DA SETA DA SIDEBAR
+# ESTILOS: CARTÃO DE CIDADÃO COMPLETO E BARRA LATERAL COM SETA
 st.markdown("""
     <style>
-    /* Bloquear menus extra mas manter a seta (sidebar control) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
     
-    /* Cores principais */
     .stApp { background-color: #0b1117; color: #adbac7; }
     
-    /* CARTÃO DE CIDADÃO COMPLETO */
+    /* CARTÃO DE CIDADÃO COM TODOS OS CAMPOS */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -42,17 +40,18 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA BIOLÓGICA (ALIMENTAÇÃO E DADOS)
-def definir_biologia(nome, classe):
+# LÓGICA BIOLÓGICA
+def definir_biologia(nome, classe, bioma_tipo):
     n = str(nome).lower()
     dieta = "Omnívoro / Variada"
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'serpente', 'crocodilo', 'falcão']):
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'serpente', 'crocodilo']):
         dieta = "Carnívoro (Predador)"
-    elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda', 'veado']):
+    elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']):
         dieta = "Herbívoro (Plantas)"
     
     repro = "Vivíparo" if classe == 'Mammalia' else "Ovíparo"
-    return dieta, repro
+    ambiente = "Marinho / Aquático" if bioma_tipo == "marinho" else "Terrestre / Florestal"
+    return dieta, repro, ambiente
 
 def buscar_fauna_filtrada(lat, lon, bioma_tipo):
     url = "https://api.inaturalist.org/v1/observations"
@@ -68,19 +67,18 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
             if nome_pt in vistos: continue
             classe = t.get('iconic_taxon_name', '')
             
-            # Filtro de bioma
             if bioma_tipo == "marinho":
                 if classe not in ['Actinopterygii', 'Mollusca'] and 'Baleia' not in nome_pt and 'Tubarão' not in nome_pt: continue
             elif bioma_tipo == "floresta":
                 if classe in ['Actinopterygii']: continue
             
-            dieta, repro = definir_biologia(nome_pt, classe)
-            lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro})
+            dieta, repro, ambiente = definir_biologia(nome_pt, classe, bioma_tipo)
+            lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro, 'ambiente': ambiente})
             vistos.add(nome_pt)
         return lista[:15]
     except: return []
 
-# BASES DE DADOS EXPANDIDAS
+# BASES DE DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
 florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest', 'Tongass', 'Floresta Negra'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17, 57.17, 48.0], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41, -134.58, 8.0]})
 oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe', 'Mar Vermelho', 'Mar de Bering'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0, 20.0, 58.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0, 38.0, -170.0]})
@@ -99,15 +97,15 @@ def exibir_cartao_cidadao(dados, prefixo):
                 <img src='{a['foto']}' class='img-cc'>
                 <div class='common-name'>{a['nome']}</div>
                 <div class='sci-name'>{a['sci']}</div>
+                <div class='label-expert'>AMBIENTE</div><div class='val-expert'>🏡 {a['ambiente']}</div>
                 <div class='label-expert'>DIETA</div><div class='val-expert'>🍴 {a['dieta']}</div>
                 <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
-                <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a['classe']}</div>
+                <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a.get('classe', 'Desconhecida')}</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button("⭐ Guardar", key=f"{prefixo}_{i}"): 
                 if a not in st.session_state.favs: st.session_state.favs.append(a)
 
-# INTERFACES
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério")
     st.map(paises_db)
@@ -144,12 +142,12 @@ elif menu == "🔬 Laboratório":
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if t and t.get('default_photo'):
-                dieta, repro = definir_biologia(t.get('preferred_common_name', t['name']), t.get('iconic_taxon_name',''))
-                dados_lab.append({'nome': t.get('preferred_common_name', t['name']).title(), 'sci': t['name'], 'foto': t['default_photo']['medium_url'], 'classe': t.get('iconic_taxon_name',''), 'dieta': dieta, 'repro': repro})
+                d, r, amb = definir_biologia(t.get('preferred_common_name', t['name']), t.get('iconic_taxon_name',''), "geral")
+                dados_lab.append({'nome': t.get('preferred_common_name', t['name']).title(), 'sci': t['name'], 'foto': t['default_photo']['medium_url'], 'classe': t.get('iconic_taxon_name',''), 'dieta': d, 'repro': r, 'ambiente': amb})
         exibir_cartao_cidadao(dados_lab, "lab")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário de Observação")
+    st.title("📝 Diário")
     st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=450)
 
 elif menu == "⭐ Favoritos":
