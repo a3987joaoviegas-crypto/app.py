@@ -61,16 +61,44 @@ def buscar_fauna(lat, lon, local_tipo="geral"):
         return lista[:15]
     except: return []
 
-# BASES DE DADOS
+# SESSÃO PARA FAVORITOS
+if 'meus_favs' not in st.session_state: st.session_state.meus_favs = []
+
+# BASES DE DADOS EXPANDIDAS
 paises_db = pd.DataFrame({
     'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'],
     'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41],
     'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]
 })
-florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Bornéu'], 'lat': [-3.46, -0.22, 1.35], 'lon': [-62.21, 23.61, 113.8]})
-oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico'], 'lat': [0.0, -15.0], 'lon': [-25.0, -140.0]})
 
-menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário"])
+florestas_db = pd.DataFrame({
+    'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Floresta Negra', 'Mata Atlântica', 'Daintree Rainforest', 'Tongass'],
+    'lat': [-3.46, -0.22, 1.35, 61.52, 48.0, -23.55, -16.17, 57.17],
+    'lon': [-62.21, 23.61, 113.8, 105.31, 8.0, -46.63, 145.41, -134.58]
+})
+
+oceanos_db = pd.DataFrame({
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe', 'Mar Vermelho'],
+    'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0, 20.0],
+    'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0, 38.0]
+})
+
+menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
+
+def mostrar_animais(dados, prefixo):
+    cols = st.columns(3)
+    for i, a in enumerate(dados):
+        with cols[i%3]:
+            st.markdown(f"""
+            <div class='cc-card'>
+                <img src='{a['foto']}' class='img-cc'>
+                <div class='common-name'>{a['nome']}</div>
+                <div class='sci-name'>{a['sci']}</div>
+                <div class='label-expert'>DIETA</div><div class='val-expert'>{a['dieta']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"⭐ Guardar", key=f"{prefixo}_{i}"):
+                if a not in st.session_state.meus_favs: st.session_state.meus_favs.append(a)
 
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério Bio-Interativo")
@@ -79,44 +107,45 @@ if menu == "🌍 Planisfério":
     if sel:
         st.markdown(f'<div class="cutscene-overlay"><h1>🌍 A viajar para...</h1><h2>{sel}</h2></div>', unsafe_allow_html=True)
         loc = paises_db[paises_db['nome'] == sel].iloc[0]
-        dados = buscar_fauna(loc['lat'], loc['lon'])
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: st.markdown(f"<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div class='sci-name'>{a['sci']}</div><div class='label-expert'>DIETA</div><div class='val-expert'>{a['dieta']}</div></div>", unsafe_allow_html=True)
+        mostrar_animais(buscar_fauna(loc['lat'], loc['lon']), "pla")
 
 elif menu == "🌲 Florestas":
-    st.title("🌲 Selvas e Florestas")
+    st.title("🌲 Selvas e Florestas do Mundo")
+    st.map(florestas_db, color='#2ea043')
     f_sel = st.selectbox("Escolha a Selva:", [""] + list(florestas_db['nome']))
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
         loc = florestas_db[florestas_db['nome'] == f_sel].iloc[0]
-        dados = buscar_fauna(loc['lat'], loc['lon'], "floresta")
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: st.markdown(f"<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div class='sci-name'>{a['sci']}</div></div>", unsafe_allow_html=True)
+        mostrar_animais(buscar_fauna(loc['lat'], loc['lon'], "floresta"), "for")
 
 elif menu == "🌊 Oceanos":
-    st.title("🌊 Mares e Oceanos")
-    o_sel = st.selectbox("Escolha o Mar:", [""] + list(oceanos_db['nome']))
+    st.title("🌊 Mares e Oceanos do Planeta")
+    st.map(oceanos_db, color='#0077be')
+    o_sel = st.selectbox("Escolha o Mar/Oceano:", [""] + list(oceanos_db['nome']))
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay"><h1>🌊 A entrar no oceano...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
         loc = oceanos_db[oceanos_db['nome'] == o_sel].iloc[0]
-        dados = buscar_fauna(loc['lat'], loc['lon'], "marinho")
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: st.markdown(f"<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div class='sci-name'>{a['sci']}</div></div>", unsafe_allow_html=True)
+        mostrar_animais(buscar_fauna(loc['lat'], loc['lon'], "marinho"), "oce")
 
 elif menu == "🔬 Laboratório":
     st.title("🔬 Laboratório de Pesquisas")
     p = st.text_input("Pesquisar Espécie:")
     if p:
-        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=9&locale=pt-BR").json()
-        cols = st.columns(3)
-        for i, obs in enumerate(res.get('results', [])):
+        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=12&locale=pt-BR").json()
+        dados_lab = []
+        for obs in res.get('results', []):
             t = obs.get('taxon')
             if t and t.get('default_photo'):
-                with cols[i%3]: st.markdown(f"<div class='cc-card'><img src='{t['default_photo']['medium_url']}' class='img-cc'><div class='common-name'>{t.get('preferred_common_name', t['name'])}</div></div>", unsafe_allow_html=True)
+                dados_lab.append({'nome': t.get('preferred_common_name', t['name']).title(), 'sci': t['name'], 'foto': t['default_photo']['medium_url'], 'dieta': "Pesquisa Lab"})
+        mostrar_animais(dados_lab, "lab")
 
 elif menu == "📝 Diário":
     st.title("📝 Diário")
     st.text_area("Notas de Observação:", height=400)
+
+elif menu == "⭐ Favoritos":
+    st.title("⭐ Espécies Favoritas")
+    if not st.session_state.meus_favs:
+        st.info("Ainda não guardaste nenhum animal.")
+    else:
+        mostrar_animais(st.session_state.meus_favs, "fav_page")
