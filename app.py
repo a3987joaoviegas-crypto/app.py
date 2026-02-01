@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Configurado para instalação como "MundoVivo")
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
 # Estilo visual dos Cartões
@@ -72,13 +73,30 @@ locais = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, -62.21, 34.83, 133.77, -8.0, -89.11, 105.31, 46.86, 57.55, -157.86, 34.85, 178.07, 73.22, -102.55, -63.61, 25.74, 28.36, 19.14]
 })
 
+# FLORESTAS DO MUNDO
+florestas_db = pd.DataFrame({
+    'nome': ['Floresta Amazónica', 'Floresta do Congo', 'Taiga Siberiana', 'Floresta Nacional de Tongass', 'Daintree Rainforest', 'Selva de Bornéu', 'Floresta Negra'],
+    'lat': [-3.46, -0.22, 61.52, 57.17, -16.17, 1.35, 48.0],
+    'lon': [-62.21, 23.61, 105.31, -134.58, 145.41, 113.8, 8.0]
+})
+
+# OCEANOS DO MUNDO
+oceanos_db = locais[locais['nome'].str.contains('Oceano')]
+
 # GESTÃO DE FAVORITOS
 if 'meus_favs_objetos' not in st.session_state:
     st.session_state.meus_favs_objetos = []
 
 # NAVEGADOR
 st.sidebar.title("📑 Navegador")
-menu = st.sidebar.radio("Ir para:", ["🌍 Planisfério e Animais", "🔬 Laboratório Global", "📝 Bloco de Notas", "⭐ Favoritos"])
+menu = st.sidebar.radio("Ir para:", [
+    "🌍 Planisfério e Animais", 
+    "🌲 Florestas do Mundo", 
+    "🌊 Todos os Oceanos", 
+    "🔬 Laboratório Global", 
+    "📝 Bloco de Notas", 
+    "⭐ Favoritos"
+])
 
 def desenhar_cartao(animal):
     st.markdown(f"""
@@ -100,26 +118,53 @@ def desenhar_cartao(animal):
 if menu == "🌍 Planisfério e Animais":
     st.title("🌍 EXPLORAÇÃO POR REGIÃO E CLASSE")
     st.map(locais, color='#2ea043')
-    
     col1, col2 = st.columns(2)
     with col1:
         regiao = st.selectbox("📍 1. Escolha o País/Região:", [""] + list(locais['nome']))
     with col2:
         classe_filtro = st.selectbox("🐾 2. Filtrar por Classe:", ["Todas", "Mammalia", "Aves", "Reptilia", "Amphibia", "Actinopterygii", "Insecta"])
-
     if regiao:
         sel = locais[locais['nome'] == regiao].iloc[0]
         dados = buscar_fauna("", sel['lat'], sel['lon'])
-        if classe_filtro != "Todas":
-            dados = [a for a in dados if a['classe'] == classe_filtro]
-        
+        if classe_filtro != "Todas": dados = [a for a in dados if a['classe'] == classe_filtro]
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i%3]:
                 desenhar_cartao(a)
                 if st.button(f"⭐ Guardar Favorito", key=f"reg_{i}"):
-                    if a not in st.session_state.meus_favs_objetos:
-                        st.session_state.meus_favs_objetos.append(a)
+                    if a not in st.session_state.meus_favs_objetos: st.session_state.meus_favs_objetos.append(a)
+
+elif menu == "🌲 Florestas do Mundo":
+    # CUTSCENE FLORESTA
+    st.video("https://assets.mixkit.co/videos/preview/mixkit-walking-through-a-dense-green-forest-4286-large.mp4", format="video/mp4", start_time=0)
+    time.sleep(1) # Simula o tempo da cutscene
+    st.title("🌲 Grandes Florestas do Mundo")
+    st.map(florestas_db, color='#2ea043')
+    f_escolha = st.selectbox("Escolha uma Floresta para explorar:", [""] + list(florestas_db['nome']))
+    if f_escolha:
+        sel = florestas_db[florestas_db['nome'] == f_escolha].iloc[0]
+        dados = buscar_fauna("", sel['lat'], sel['lon'])
+        cols = st.columns(3)
+        for i, a in enumerate(dados):
+            with cols[i%3]:
+                desenhar_cartao(a)
+                if st.button(f"⭐ Guardar", key=f"for_{i}"): st.session_state.meus_favs_objetos.append(a)
+
+elif menu == "🌊 Todos os Oceanos":
+    # CUTSCENE BOLHAS/OCEANO
+    st.video("https://assets.mixkit.co/videos/preview/mixkit-bubbles-rising-to-the-surface-of-the-ocean-34753-large.mp4", format="video/mp4")
+    time.sleep(1)
+    st.title("🌊 Vida Marinha nos Oceanos")
+    st.map(oceanos_db, color='#0077be')
+    o_escolha = st.selectbox("Escolha um Oceano:", [""] + list(oceanos_db['nome']))
+    if o_escolha:
+        sel = oceanos_db[oceanos_db['nome'] == o_escolha].iloc[0]
+        dados = buscar_fauna("", sel['lat'], sel['lon'])
+        cols = st.columns(3)
+        for i, a in enumerate(dados):
+            with cols[i%3]:
+                desenhar_cartao(a)
+                if st.button(f"⭐ Guardar", key=f"oce_{i}"): st.session_state.meus_favs_objetos.append(a)
 
 elif menu == "🔬 Laboratório Global":
     st.title("🔬 Pesquisa Livre")
@@ -131,8 +176,7 @@ elif menu == "🔬 Laboratório Global":
             with cols[i%3]:
                 desenhar_cartao(a)
                 if st.button(f"⭐ Guardar Favorito", key=f"lab_{i}"):
-                    if a not in st.session_state.meus_favs_objetos:
-                        st.session_state.meus_favs_objetos.append(a)
+                    if a not in st.session_state.meus_favs_objetos: st.session_state.meus_favs_objetos.append(a)
 
 elif menu == "📝 Bloco de Notas":
     st.title("📝 Notas")
