@@ -5,7 +5,7 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS, SEGURANÇA E ANIMAÇÕES
+# ESTILOS, SEGURANÇA E CUTSCENE (CANVA STYLE)
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -19,37 +19,42 @@ st.markdown("""
         border-left: 6px solid #2ea043; margin-bottom: 25px;
     }
     .img-cc { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; }
-    .label-expert { color: #2ea043; font-weight: bold; font-size: 13px; margin-top: 8px;}
-    .val-expert { color: white; font-size: 15px; margin-bottom: 4px; }
+    .common-name { color: #2ea043; font-size: 20px; font-weight: bold; margin-top: 10px; text-align: center; }
+    .sci-name { color: white; font-style: italic; font-size: 14px; text-align: center; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+    .label-expert { color: #2ea043; font-weight: bold; font-size: 12px; margin-top: 5px;}
+    .val-expert { color: white; font-size: 14px; margin-bottom: 8px; }
 
-    /* CUTSCENE GERAL */
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 9999; display: flex; align-items: center; justify-content: center;
         background: #0b1117; color: white;
         animation: slideAway 1.5s forwards; pointer-events: none;
     }
-    @keyframes slideAway {
-        0% { opacity: 1; }
-        80% { opacity: 1; }
-        100% { opacity: 0; visibility: hidden; }
-    }
+    @keyframes slideAway { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE FILTRAGEM POR AMBIENTE REAL
-def definir_ambiente(classe, nome, local_nome=""):
+# LÓGICA DE ALIMENTAÇÃO REALISTA
+def consultar_dieta_real(classe, nome):
     n = str(nome).lower()
-    local = str(local_nome).lower()
-    if any(x in local for x in ['saara', 'deserto']): return "Árido / Deserto"
-    if any(x in n for x in ['tubarão', 'peixe', 'orca', 'baleia', 'lula', 'coral']) or "oceano" in local: return "Marinho / Aquático"
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'raposa', 'gavião', 'polvo', 'coruja', 'sapo', 'rã', 'lagarto', 'aranha', 'cobra', 'lince', 'leopardo', 'crocodilo']):
+        return "Carnívoro (Predador)"
+    if any(x in n for x in ['elefante', 'veado', 'corça', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'coala', 'panda', 'tartaruga', 'papagaio', 'beija-flor', 'gazela', 'búfalo', 'capivara', 'veada']):
+        return "Herbívoro (Plantas/Frutos)"
+    return "Omnívoro / Dieta Variada"
+
+def definir_ambiente(classe, nome, local=""):
+    n, c, l = str(nome).lower(), str(classe).lower(), str(local).lower()
+    if any(x in l for x in ['atlântico', 'pacífico', 'índico', 'ártico', 'oceano', 'maldivas']): return "Marinho / Oceânico"
+    if any(x in l for x in ['saara', 'deserto']): return "Árido / Desértico"
     if any(x in n for x in ['sapo', 'rã', 'jacaré', 'crocodilo', 'hipopótamo']): return "Ambiente Húmido"
     return "Terrestre / Florestal"
 
+# MOTOR DE BUSCA
 def buscar_fauna(termo, lat=None, lon=None, local_nome=""):
     url = "https://api.inaturalist.org/v1/observations"
-    params = {"taxon_id": 1, "per_page": 24, "locale": "pt-BR"}
-    if lat and lon: params.update({"lat": lat, "lng": lon, "radius": 500})
+    params = {"taxon_id": 1, "per_page": 30, "locale": "pt-BR", "order": "desc", "order_by": "votes"}
+    if lat and lon: params.update({"lat": lat, "lng": lon, "radius": 600})
     else: params.update({"q": termo})
     try:
         res = requests.get(url, params=params).json()
@@ -57,16 +62,14 @@ def buscar_fauna(termo, lat=None, lon=None, local_nome=""):
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if t and t.get('default_photo'):
-                ambiente = definir_ambiente(t.get('iconic_taxon_name', ''), t.get('name'), local_nome)
-                # Filtro rigoroso para o Saara
-                if local_nome == "Saara" and ambiente != "Árido / Deserto": continue
-                
+                nome_pt = t.get('preferred_common_name') or t.get('name')
                 lista.append({
-                    'nome': (t.get('preferred_common_name') or t.get('name')).title(),
+                    'nome': nome_pt.title(),
                     'sci': t.get('name'),
                     'foto': t['default_photo']['medium_url'],
-                    'ambiente': ambiente,
-                    'dieta': "Específica da Espécie",
+                    'classe': t.get('iconic_taxon_name', 'Outros'),
+                    'ambiente': definir_ambiente(t.get('iconic_taxon_name', ''), nome_pt, local_nome),
+                    'dieta': consultar_dieta_real(t.get('iconic_taxon_name', ''), nome_pt),
                     'repro': "Vivíparo" if 'mammalia' in t.get('iconic_taxon_name','').lower() else "Ovíparo"
                 })
         return lista
@@ -79,22 +82,35 @@ paises_db = pd.DataFrame({
     'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]
 })
 
+florestas_db = pd.DataFrame({
+    'nome': ['Amazónia', 'Floresta do Congo', 'Taiga Siberiana', 'Tongass', 'Daintree Rainforest', 'Selva de Bornéu', 'Floresta Negra'],
+    'lat': [-3.46, -0.22, 61.52, 57.17, -16.17, 1.35, 48.0],
+    'lon': [-62.21, 23.61, 105.31, -134.58, 145.41, 113.8, 8.0]
+})
+
+oceanos_db = pd.DataFrame({
+    'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico'],
+    'lat': [0.0, -15.0, -20.0, 85.0], 'lon': [-25.0, -140.0, 70.0, 0.0]
+})
+
 if 'meus_favs_objetos' not in st.session_state: st.session_state.meus_favs_objetos = []
 if 'diario' not in st.session_state: st.session_state.diario = ""
 
-# SIDEBAR E CUTSCENE DE NAVEGAÇÃO
+# SIDEBAR E CUTSCENE
 st.sidebar.title("🌲 MundoVivo")
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas do Mundo", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
-st.markdown(f"<div class='cutscene-overlay'><h1>🚀 A carregar {menu}...</h1></div>", unsafe_allow_html=True)
+st.markdown(f"<div class='cutscene-overlay'><h1>🚀 A explorar {menu}...</h1></div>", unsafe_allow_html=True)
 
 def desenhar_cartao(a, i, key_prefix):
     st.markdown(f"""
     <div class='cc-card'>
         <img src='{a['foto']}' class='img-cc'>
-        <h3>{a['nome']}</h3>
-        <div class='label-expert'>AMBIENTE NATURAL</div><div class='val-expert'>{a['ambiente']}</div>
-        <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>{a['repro']}</div>
-        <div class='label-expert'>CIENTÍFICO</div><div class='val-expert'><i>{a['sci']}</i></div>
+        <div class='common-name'>{a['nome']}</div>
+        <div class='sci-name'>{a['sci']}</div>
+        <div class='label-expert'>AMBIENTE NATURAL</div><div class='val-expert'>🏡 {a['ambiente']}</div>
+        <div class='label-expert'>ALIMENTAÇÃO REAL</div><div class='val-expert'>🍴 {a['dieta']}</div>
+        <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
+        <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a['classe']}</div>
     </div>
     """, unsafe_allow_html=True)
     if st.button(f"⭐ Guardar", key=f"{key_prefix}_{i}"):
@@ -104,7 +120,7 @@ def desenhar_cartao(a, i, key_prefix):
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério Global")
     st.map(paises_db, color='#2ea043')
-    sel_p = st.selectbox("Escolha o País:", [""] + list(paises_db['nome']))
+    sel_p = st.selectbox("Escolha um País:", [""] + list(paises_db['nome']))
     if sel_p:
         sel = paises_db[paises_db['nome'] == sel_p].iloc[0]
         dados = buscar_fauna("", sel['lat'], sel['lon'], sel_p)
@@ -113,26 +129,30 @@ if menu == "🌍 Planisfério":
             with cols[i%3]: desenhar_cartao(a, i, "pla")
 
 elif menu == "🌲 Florestas do Mundo":
-    st.title("🌲 Exploração Florestal")
-    f_sel = st.selectbox("Escolha a Floresta:", ["", "Amazónia", "Congo", "Taiga"])
+    st.title("🌲 Grandes Florestas")
+    st.map(florestas_db, color='#2ea043')
+    f_sel = st.selectbox("Selecione uma Floresta:", [""] + list(florestas_db['nome']))
     if f_sel:
-        dados = buscar_fauna(f_sel, local_nome="Floresta")
+        sel = florestas_db[florestas_db['nome'] == f_sel].iloc[0]
+        dados = buscar_fauna("", sel['lat'], sel['lon'], f_sel)
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i%3]: desenhar_cartao(a, i, "for")
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos")
-    o_sel = st.selectbox("Escolha o Oceano:", ["", "Oceano Atlântico", "Oceano Pacífico"])
+    st.map(oceanos_db, color='#0077be')
+    o_sel = st.selectbox("Selecione um Oceano:", [""] + list(oceanos_db['nome']))
     if o_sel:
-        dados = buscar_fauna("", local_nome="Oceano")
+        sel = oceanos_db[oceanos_db['nome'] == o_sel].iloc[0]
+        dados = buscar_fauna("", sel['lat'], sel['lon'], o_sel)
         cols = st.columns(3)
         for i, a in enumerate(dados):
             with cols[i%3]: desenhar_cartao(a, i, "oce")
 
 elif menu == "🔬 Laboratório":
     st.title("🔬 Laboratório")
-    p = st.text_input("Pesquisar:")
+    p = st.text_input("Pesquisar animal (Português):")
     if p:
         dados = buscar_fauna(p)
         cols = st.columns(3)
@@ -140,7 +160,7 @@ elif menu == "🔬 Laboratório":
             with cols[i%3]: desenhar_cartao(a, i, "lab")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário")
+    st.title("📝 Diário de Observação")
     st.session_state.diario = st.text_area("Notas:", value=st.session_state.diario, height=400)
 
 elif menu == "⭐ Favoritos":
