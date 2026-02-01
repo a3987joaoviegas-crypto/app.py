@@ -5,7 +5,7 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS, SEGURANÇA E CUTSCENE REFORÇADA
+# ESTILOS, SEGURANÇA E CUTSCENE DE ALTA PRIORIDADE
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -14,50 +14,53 @@ st.markdown("""
     .stDeployButton {display:none;}
     .stApp { background-color: #0b1117; color: #adbac7; }
     
+    /* CARTÃO DE CIDADÃO REFINADO */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
+        transition: transform 0.2s;
     }
-    .img-cc { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; }
-    .common-name { color: #2ea043; font-size: 20px; font-weight: bold; margin-top: 10px; text-align: center; }
-    .sci-name { color: white; font-style: italic; font-size: 14px; text-align: center; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-    .label-expert { color: #2ea043; font-weight: bold; font-size: 12px; margin-top: 5px;}
-    .val-expert { color: white; font-size: 14px; margin-bottom: 8px; }
+    .cc-card:hover { transform: translateY(-5px); }
+    .img-cc { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }
+    .common-name { color: #2ea043; font-size: 22px; font-weight: bold; margin-top: 10px; text-align: center; }
+    .sci-name { color: #8b949e; font-style: italic; font-size: 14px; text-align: center; margin-bottom: 15px; }
+    
+    .label-expert { color: #2ea043; font-weight: bold; font-size: 12px; margin-top: 5px; text-transform: uppercase;}
+    .val-expert { color: white; font-size: 15px; margin-bottom: 8px; border-bottom: 1px solid #30363d; padding-bottom: 2px;}
 
-    /* FIX: CUTSCENE QUE APARECE SEMPRE */
+    /* CUTSCENE AUTOMÁTICA (ESTILO CANVA/TECNOLÓGICO) */
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        z-index: 99999; display: flex; align-items: center; justify-content: center;
-        background: #0b1117; color: #2ea043;
-        animation: fadeAway 2.2s forwards; pointer-events: none;
+        z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: radial-gradient(circle, #062814 0%, #0b1117 100%);
+        color: #2ea043; font-family: sans-serif;
+        animation: fadeOutScene 2.5s forwards; pointer-events: none;
     }
-    @keyframes fadeAway { 
+    @keyframes fadeOutScene { 
         0% { opacity: 1; visibility: visible; } 
-        85% { opacity: 1; } 
+        70% { opacity: 1; } 
         100% { opacity: 0; visibility: hidden; } 
     }
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE DADOS (BIOLOGIA E FILTRAGEM)
-def consultar_dieta_real(nome):
+# LÓGICA DE BIOLOGIA PRECISA
+def dieta_realista(nome, classe):
     n = str(nome).lower()
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'falcão', 'orca', 'serpente', 'tigre', 'jacaré', 'polvo', 'coruja', 'sapo', 'cobra', 'lince', 'crocodilo']):
-        return "Carnívoro (Predador)"
-    if any(x in n for x in ['elefante', 'veado', 'vaca', 'zebra', 'girafa', 'coelho', 'cavalo', 'ovelha', 'cabra', 'hipopótamo', 'rinoceronte', 'canguru', 'panda', 'tartaruga', 'gazela']):
-        return "Herbívoro (Plantas/Frutos)"
-    return "Omnívoro / Dieta Variada"
+    carnivoros = ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'polvo', 'serpente', 'crocodilo', 'falcão', 'lince', 'leopardo']
+    if any(x in n for x in carnivoros): return "Carnívoro (Predador)"
+    if classe == 'Mammalia' and any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']): return "Herbívoro"
+    return "Omnívoro / Variada"
 
-def buscar_fauna(termo, lat=None, lon=None, local_tipo="geral"):
+def buscar_fauna_v2(lat, lon, local_tipo):
     url = "https://api.inaturalist.org/v1/observations"
-    params = {"taxon_id": 1, "per_page": 45, "locale": "pt-BR", "order_by": "votes"}
-    if lat and lon: params.update({"lat": lat, "lng": lon, "radius": 700})
-    else: params.update({"q": termo})
+    # Aumentado para 100 resultados para garantir que temos "animais suficientes" após o filtro
+    params = {"lat": lat, "lng": lon, "radius": 800, "taxon_id": 1, "per_page": 100, "locale": "pt-BR", "order_by": "votes"}
     
     try:
         res = requests.get(url, params=params).json()
         lista = []
-        vistos = set() # FIX: EVITAR REPETIDOS
+        vistos = set()
         
         for obs in res.get('results', []):
             t = obs.get('taxon')
@@ -68,36 +71,33 @@ def buscar_fauna(termo, lat=None, lon=None, local_tipo="geral"):
             
             classe = t.get('iconic_taxon_name', 'Outros')
             
-            # FIX: FILTRO DE BIOMA (NADA DE ANIMAIS "NADA A VER")
+            # FILTRO DE REGIAO RIGOROSO
             if local_tipo == "marinho":
-                if classe not in ['Actinopterygii', 'Mollusca', 'Amphibia', 'Reptilia'] and 'Baleia' not in nome_pt and 'Orca' not in nome_pt and 'Tubarão' not in nome_pt:
+                # Só aceita peixes, moluscos, mamíferos marinhos ou répteis aquáticos
+                if classe not in ['Actinopterygii', 'Mollusca', 'Amphibia'] and not any(x in nome_pt for x in ['Baleia', 'Orca', 'Tubarão', 'Foca', 'Tartaruga']):
                     continue
             elif local_tipo == "floresta":
-                if classe in ['Actinopterygii']: continue
+                # Bloqueia peixes e animais puramente marinhos
+                if classe in ['Actinopterygii'] or any(x in nome_pt for x in ['Tubarão', 'Polvo']):
+                    continue
 
             lista.append({
                 'nome': nome_pt, 'sci': t.get('name'),
                 'foto': t['default_photo']['medium_url'],
-                'classe': classe,
-                'ambiente': "Marinho" if local_tipo == "marinho" else "Terrestre",
-                'dieta': consultar_dieta_real(nome_pt),
+                'ambiente': "Aquático" if local_tipo == "marinho" else "Terrestre / Húmido",
+                'dieta': dieta_realista(nome_pt, classe),
                 'repro': "Vivíparo" if classe == 'Mammalia' else "Ovíparo"
             })
             vistos.add(nome_pt)
-        return lista[:12]
+            if len(lista) >= 18: break # Garante pelo menos 18 animais diferentes
+        return lista
     except: return []
 
-# BASES DE DATA
-paises_db = pd.DataFrame({
-    'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'],
-    'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41],
-    'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]
-})
-
+# BASES DE DADOS AMPLIADAS
 florestas_db = pd.DataFrame({
-    'nome': ['Amazónia', 'Congo', 'Bornéu', 'Taiga Siberiana', 'Floresta Negra', 'Daintree', 'Tongass', 'Mata Atlântica'],
-    'lat': [-3.46, -0.22, 1.35, 61.52, 48.0, -16.17, 57.17, -23.55],
-    'lon': [-62.21, 23.61, 113.8, 105.31, 8.0, 145.41, -134.58, -46.63]
+    'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Floresta Negra', 'Mata Atlântica', 'Daintree Rainforest'],
+    'lat': [-3.46, -0.22, 1.35, 61.52, 48.0, -23.55, -16.17],
+    'lon': [-62.21, 23.61, 113.8, 105.31, 8.0, -46.63, 145.41]
 })
 
 oceanos_db = pd.DataFrame({
@@ -106,77 +106,69 @@ oceanos_db = pd.DataFrame({
     'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]
 })
 
-# SESSÃO E NAVEGAÇÃO
+# LÓGICA DE NAVEGAÇÃO E CUTSCENE
+if 'menu_atual' not in st.session_state: st.session_state.menu_atual = ""
 if 'favs' not in st.session_state: st.session_state.favs = []
-if 'last_menu' not in st.session_state: st.session_state.last_menu = ""
 
-menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas e Selvas", "🌊 Oceanos e Mares", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
+menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas do Mundo", "🌊 Oceanos e Mares", "📝 Diário", "⭐ Favoritos"])
 
-# FIX: GATILHO DA CUTSCENE
-if menu != st.session_state.last_menu:
-    st.markdown(f"<div class='cutscene-overlay'><h1>🚀 A explorar {menu}...</h1></div>", unsafe_allow_html=True)
-    st.session_state.last_menu = menu
-
-def desenhar_cartao(a, i, key_prefix):
+# DISPARAR CUTSCENE NA MUDANÇA
+if menu != st.session_state.menu_atual:
     st.markdown(f"""
-    <div class='cc-card'>
-        <img src='{a['foto']}' class='img-cc'>
-        <div class='common-name'>{a['nome']}</div>
-        <div class='sci-name'>{a['sci']}</div>
-        <div class='label-expert'>AMBIENTE NATURAL</div><div class='val-expert'>🏡 {a['ambiente']}</div>
-        <div class='label-expert'>ALIMENTAÇÃO REAL</div><div class='val-expert'>🍴 {a['dieta']}</div>
-        <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
-    </div>
+        <div class="cutscene-overlay">
+            <h1 style="font-size: 50px;">🌍 MundoVivo</h1>
+            <p style="font-size: 20px;">A sintonizar com {menu}...</p>
+        </div>
     """, unsafe_allow_html=True)
-    if st.button(f"⭐ Guardar", key=f"{key_prefix}_{i}"):
-        if a not in st.session_state.favs: st.session_state.favs.append(a)
+    st.session_state.menu_atual = menu
+
+def exibir_animais(lista, prefixo):
+    if not lista:
+        st.warning("Nenhum animal encontrado para esta região específica.")
+        return
+    cols = st.columns(3)
+    for i, a in enumerate(lista):
+        with cols[i % 3]:
+            st.markdown(f"""
+            <div class='cc-card'>
+                <img src='{a['foto']}' class='img-cc'>
+                <div class='common-name'>{a['nome']}</div>
+                <div class='sci-name'>{a['sci']}</div>
+                <div class='label-expert'>AMBIENTE REAL</div><div class='val-expert'>🏡 {a['ambiente']}</div>
+                <div class='label-expert'>ALIMENTAÇÃO</div><div class='val-expert'>🍴 {a['dieta']}</div>
+                <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"⭐ Guardar", key=f"{prefixo}_{i}"):
+                if a not in st.session_state.favs: st.session_state.favs.append(a)
 
 # INTERFACES
 if menu == "🌍 Planisfério":
-    st.title("🌍 Planisfério")
-    st.map(paises_db, color='#2ea043')
-    sel_p = st.selectbox("Escolha um País:", [""] + list(paises_db['nome']))
-    if sel_p:
-        dados = buscar_fauna("", *paises_db[paises_db['nome']==sel_p][['lat','lon']].values[0])
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: desenhar_cartao(a, i, "pla")
+    st.title("🌍 Planisfério Bio-Interativo")
+    st.map(pd.concat([florestas_db, oceanos_db]))
 
-elif menu == "🌲 Florestas e Selvas":
-    st.title("🌲 Florestas e Selvas")
-    st.map(florestas_db, color='#1e5631')
-    f_sel = st.selectbox("Selecione:", [""] + list(florestas_db['nome']))
+elif menu == "🌲 Florestas do Mundo":
+    st.title("🌲 Exploração de Florestas e Selvas")
+    st.map(florestas_db, color='#2ea043')
+    f_sel = st.selectbox("Selecione a Floresta:", [""] + list(florestas_db['nome']))
     if f_sel:
-        dados = buscar_fauna("", *florestas_db[florestas_db['nome']==f_sel][['lat','lon']].values[0], "floresta")
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: desenhar_cartao(a, i, "for")
+        local = florestas_db[florestas_db['nome'] == f_sel].iloc[0]
+        dados = buscar_fauna_v2(local['lat'], local['lon'], "floresta")
+        exibir_animais(dados, "for")
 
 elif menu == "🌊 Oceanos e Mares":
-    st.title("🌊 Oceanos e Mares")
+    st.title("🌊 Abismo Marinho")
     st.map(oceanos_db, color='#0077be')
-    o_sel = st.selectbox("Selecione:", [""] + list(oceanos_db['nome']))
+    o_sel = st.selectbox("Selecione o Oceano/Mar:", [""] + list(oceanos_db['nome']))
     if o_sel:
-        dados = buscar_fauna("", *oceanos_db[oceanos_db['nome']==o_sel][['lat','lon']].values[0], "marinho")
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: desenhar_cartao(a, i, "oce")
-
-elif menu == "🔬 Laboratório":
-    st.title("🔬 Laboratório")
-    p = st.text_input("Animal:")
-    if p:
-        dados = buscar_fauna(p)
-        cols = st.columns(3)
-        for i, a in enumerate(dados):
-            with cols[i%3]: desenhar_cartao(a, i, "lab")
+        local = oceanos_db[oceanos_db['nome'] == o_sel].iloc[0]
+        dados = buscar_fauna_v2(local['lat'], local['lon'], "marinho")
+        exibir_animais(dados, "oce")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário")
-    st.text_area("Notas:", height=400)
+    st.title("📝 Diário de Observação")
+    st.text_area("Escreve aqui as tuas notas sobre a fauna...", height=400)
 
 elif menu == "⭐ Favoritos":
-    st.title("⭐ Favoritos")
-    cols = st.columns(3)
-    for i, a in enumerate(st.session_state.favs):
-        with cols[i%3]: desenhar_cartao(a, i, "fav")
+    st.title("⭐ Espécies Guardadas")
+    exibir_animais(st.session_state.favs, "fav")
