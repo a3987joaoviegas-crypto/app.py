@@ -6,17 +6,16 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: CORREÇÃO DA SETA E CARTÕES
+# ESTILOS: SETA DA SIDEBAR E CARTÕES
 st.markdown("""
     <style>
-    /* Esconder menus desnecessários sem afetar a seta da sidebar */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
     
-    /* Garantir que a seta da sidebar (controlador) seja visível e clicável */
-    [data-testid="stSidebarNav"] {margin-top: 20px;}
+    /* Forçar visibilidade da seta da sidebar */
+    .stSidebar [data-testid="stSidebarNav"] {display: block !important;}
     
     .stApp { background-color: #0b1117; color: #adbac7; }
     
@@ -49,7 +48,7 @@ def definir_biologia(nome, classe, bioma_tipo):
     if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'serpente', 'crocodilo']):
         dieta = "Carnívoro (Predador)"
     elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']):
-        dieta = "Herbívoro (Plantas)"
+        dieta = "Herbíboro (Plantas)"
     repro = "Vivíparo" if classe == 'Mammalia' else "Ovíparo"
     ambiente = "Marinho / Aquático" if bioma_tipo == "marinho" else "Terrestre / Florestal"
     return dieta, repro, ambiente
@@ -67,10 +66,6 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
             nome_pt = (t.get('preferred_common_name') or t.get('name')).title()
             if nome_pt in vistos: continue
             classe = t.get('iconic_taxon_name', '')
-            if bioma_tipo == "marinho":
-                if classe not in ['Actinopterygii', 'Mollusca'] and 'Baleia' not in nome_pt and 'Tubarão' not in nome_pt: continue
-            elif bioma_tipo == "floresta":
-                if classe in ['Actinopterygii']: continue
             dieta, repro, ambiente = definir_biologia(nome_pt, classe, bioma_tipo)
             lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro, 'ambiente': ambiente})
             vistos.add(nome_pt)
@@ -79,15 +74,16 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
 
 # BASES DE DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
-florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest', 'Tongass', 'Floresta Negra'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17, 57.17, 48.0], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41, -134.58, 8.0]})
-oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe', 'Mar Vermelho', 'Mar de Bering'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0, 20.0, 58.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0, 38.0, -170.0]})
+florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
+oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
 
-if 'favs' not in st.session_state: st.session_state.favs = []
+if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
 
+# Sidebar com "Favoritos" conforme solicitado
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
-def exibir_cartao(dados, prefixo, is_fav_page=False):
+def exibir_cartao(dados, prefixo, is_zoo=False):
     cols = st.columns(3)
     for i, a in enumerate(dados):
         with cols[i%3]:
@@ -102,12 +98,12 @@ def exibir_cartao(dados, prefixo, is_fav_page=False):
                 <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a.get('classe', 'Desconhecida')}</div>
             </div>
             """, unsafe_allow_html=True)
-            if not is_fav_page:
-                if st.button("⭐ Guardar", key=f"add_{prefixo}_{i}"): 
-                    if a not in st.session_state.favs: st.session_state.favs.append(a)
+            if not is_zoo:
+                if st.button("⭐ Guardar no Zoo", key=f"add_{prefixo}_{i}"): 
+                    if a not in st.session_state.zoo: st.session_state.zoo.append(a)
             else:
-                if st.button("🗑️ Eliminar", key=f"del_{prefixo}_{i}"):
-                    st.session_state.favs.pop(i)
+                if st.button("🗑️ Eliminar do Zoo", key=f"del_{prefixo}_{i}"):
+                    st.session_state.zoo.pop(i)
                     st.rerun()
 
 if menu == "🌍 Planisfério":
@@ -121,7 +117,6 @@ if menu == "🌍 Planisfério":
 
 elif menu == "🌲 Florestas":
     st.title("🌲 Florestas e Selvas")
-    st.map(florestas_db, color='#2ea043')
     f_sel = st.selectbox("Escolha a Selva:", [""] + list(florestas_db['nome']))
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{f_sel}_{time.time()}"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
@@ -130,7 +125,6 @@ elif menu == "🌲 Florestas":
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos e Mares")
-    st.map(oceanos_db, color='#0077be')
     o_sel = st.selectbox("Escolha o Mar:", [""] + list(oceanos_db['nome']))
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{o_sel}_{time.time()}"><h1>🌊 A mergulhar no...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
@@ -141,7 +135,7 @@ elif menu == "🔬 Laboratório":
     st.title("🔬 Laboratório de Pesquisa")
     p = st.text_input("Nome do animal:")
     if p:
-        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=12&locale=pt-BR").json()
+        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=9&locale=pt-BR").json()
         dados_lab = []
         for obs in res.get('results', []):
             t = obs.get('taxon')
@@ -151,15 +145,16 @@ elif menu == "🔬 Laboratório":
         exibir_cartao(dados_lab, "lab")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário de Observação")
-    st.session_state.notas = st.text_area("Regista as tuas notas:", value=st.session_state.notas, height=450)
+    st.title("📝 Diário")
+    st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=400)
 
 elif menu == "⭐ Favoritos":
-    st.title("⭐ Espécies Favoritas")
-    if st.session_state.favs:
-        if st.button("🗑️ Limpar Todos os Favoritos"):
-            st.session_state.favs = []
+    # Mantive o título interno como "O Meu Pequeno Zoo" para manter a sua identidade
+    st.title("🐾 O Meu Pequeno Zoo")
+    if st.session_state.zoo:
+        if st.button("🗑️ Limpar Todo o Zoo"):
+            st.session_state.zoo = []
             st.rerun()
-        exibir_cartao(st.session_state.favs, "fav", is_fav_page=True)
+        exibir_cartao(st.session_state.zoo, "zoo_page", is_zoo=True)
     else:
-        st.info("Ainda não tens animais guardados.")
+        st.info("O teu zoo está vazio. Guarda animais nas outras secções!")
