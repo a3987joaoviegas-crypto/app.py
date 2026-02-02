@@ -61,16 +61,11 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if not t or not t.get('default_photo'): continue
-            
             taxon_id = t.get('id')
             nome_pt = (t.get('preferred_common_name') or t.get('name')).title()
-            
-            # EVITAR REPETIÇÃO POR ID E POR NOME
             if taxon_id in vistos_ids or nome_pt in vistos_nomes: continue
-            
             classe = t.get('iconic_taxon_name', '')
             dieta, repro, ambiente = definir_biologia(nome_pt, classe, bioma_tipo)
-            
             lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro, 'ambiente': ambiente})
             vistos_ids.add(taxon_id)
             vistos_nomes.add(nome_pt)
@@ -78,10 +73,10 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
         return lista
     except: return []
 
-# BASES DE DADOS
+# BASES DE DADOS (PLANISFÉRIOS CUSTOM)
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
-florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
-oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
+florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest', 'Tongass', 'Floresta Negra'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17, 57.17, 48.0], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41, -134.58, 8.0]})
+oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe', 'Mar Vermelho', 'Mar de Bering'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0, 20.0, 58.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0, 38.0, -170.0]})
 
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
@@ -92,17 +87,7 @@ def exibir_cartao(dados, prefixo, is_zoo=False):
     cols = st.columns(3)
     for i, a in enumerate(dados):
         with cols[i%3]:
-            st.markdown(f"""
-            <div class='cc-card'>
-                <img src='{a['foto']}' class='img-cc'>
-                <div class='common-name'>{a['nome']}</div>
-                <div class='sci-name'>{a['sci']}</div>
-                <div class='label-expert'>AMBIENTE</div><div class='val-expert'>🏡 {a['ambiente']}</div>
-                <div class='label-expert'>DIETA</div><div class='val-expert'>🍴 {a['dieta']}</div>
-                <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
-                <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a.get('classe', 'Desconhecida')}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div class='sci-name'>{a['sci']}</div><div class='label-expert'>AMBIENTE</div><div class='val-expert'>🏡 {a['ambiente']}</div><div class='label-expert'>DIETA</div><div class='val-expert'>🍴 {a['dieta']}</div><div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div><div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a.get('classe', 'Desconhecida')}</div></div>""", unsafe_allow_html=True)
             if not is_zoo:
                 if st.button("⭐ Guardar no Zoo", key=f"add_{prefixo}_{i}"): 
                     if a not in st.session_state.zoo: st.session_state.zoo.append(a)
@@ -112,7 +97,7 @@ def exibir_cartao(dados, prefixo, is_zoo=False):
                     st.rerun()
 
 if menu == "🌍 Planisfério":
-    st.title("🌍 Planisfério")
+    st.title("🌍 Planisfério Bio-Interativo")
     st.map(paises_db)
     sel = st.selectbox("Escolha a Região:", [""] + list(paises_db['nome']))
     if sel:
@@ -123,6 +108,7 @@ if menu == "🌍 Planisfério":
 
 elif menu == "🌲 Florestas":
     st.title("🌲 Florestas e Selvas")
+    st.map(florestas_db, color='#2ea043')
     f_sel = st.selectbox("Escolha a Selva:", [""] + list(florestas_db['nome']))
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{f_sel}_{time.time()}"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
@@ -132,6 +118,7 @@ elif menu == "🌲 Florestas":
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos e Mares")
+    st.map(oceanos_db, color='#0077be')
     o_sel = st.selectbox("Escolha o Mar:", [""] + list(oceanos_db['nome']))
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{o_sel}_{time.time()}"><h1>🌊 A mergulhar no...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
