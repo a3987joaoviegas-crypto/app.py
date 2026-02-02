@@ -6,17 +6,20 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: CARTÃO DE CIDADÃO COMPLETO E BARRA LATERAL COM SETA
+# ESTILOS: CORREÇÃO DA SETA E CARTÕES
 st.markdown("""
     <style>
+    /* Esconder menus desnecessários sem afetar a seta da sidebar */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
     
+    /* Garantir que a seta da sidebar (controlador) seja visível e clicável */
+    [data-testid="stSidebarNav"] {margin-top: 20px;}
+    
     .stApp { background-color: #0b1117; color: #adbac7; }
     
-    /* CARTÃO DE CIDADÃO COM TODOS OS CAMPOS */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -28,7 +31,6 @@ st.markdown("""
     .label-expert { color: #2ea043; font-weight: bold; font-size: 11px; margin-top: 5px; text-transform: uppercase;}
     .val-expert { color: white; font-size: 14px; margin-bottom: 6px; }
 
-    /* CUTSCENE ANIMADA */
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -48,7 +50,6 @@ def definir_biologia(nome, classe, bioma_tipo):
         dieta = "Carnívoro (Predador)"
     elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']):
         dieta = "Herbívoro (Plantas)"
-    
     repro = "Vivíparo" if classe == 'Mammalia' else "Ovíparo"
     ambiente = "Marinho / Aquático" if bioma_tipo == "marinho" else "Terrestre / Florestal"
     return dieta, repro, ambiente
@@ -66,12 +67,10 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
             nome_pt = (t.get('preferred_common_name') or t.get('name')).title()
             if nome_pt in vistos: continue
             classe = t.get('iconic_taxon_name', '')
-            
             if bioma_tipo == "marinho":
                 if classe not in ['Actinopterygii', 'Mollusca'] and 'Baleia' not in nome_pt and 'Tubarão' not in nome_pt: continue
             elif bioma_tipo == "floresta":
                 if classe in ['Actinopterygii']: continue
-            
             dieta, repro, ambiente = definir_biologia(nome_pt, classe, bioma_tipo)
             lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro, 'ambiente': ambiente})
             vistos.add(nome_pt)
@@ -88,7 +87,7 @@ if 'notas' not in st.session_state: st.session_state.notas = ""
 
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
-def exibir_cartao_cidadao(dados, prefixo):
+def exibir_cartao(dados, prefixo, is_fav_page=False):
     cols = st.columns(3)
     for i, a in enumerate(dados):
         with cols[i%3]:
@@ -103,8 +102,13 @@ def exibir_cartao_cidadao(dados, prefixo):
                 <div class='label-expert'>CLASSE</div><div class='val-expert'>🏷️ {a.get('classe', 'Desconhecida')}</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("⭐ Guardar", key=f"{prefixo}_{i}"): 
-                if a not in st.session_state.favs: st.session_state.favs.append(a)
+            if not is_fav_page:
+                if st.button("⭐ Guardar", key=f"add_{prefixo}_{i}"): 
+                    if a not in st.session_state.favs: st.session_state.favs.append(a)
+            else:
+                if st.button("🗑️ Eliminar", key=f"del_{prefixo}_{i}"):
+                    st.session_state.favs.pop(i)
+                    st.rerun()
 
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério")
@@ -113,7 +117,7 @@ if menu == "🌍 Planisfério":
     if sel:
         st.markdown(f'<div class="cutscene-overlay" key="{sel}_{time.time()}"><h1>🌍 A viajar para...</h1><h2>{sel}</h2></div>', unsafe_allow_html=True)
         loc = paises_db[paises_db['nome'] == sel].iloc[0]
-        exibir_cartao_cidadao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "geral"), "pla")
+        exibir_cartao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "geral"), "pla")
 
 elif menu == "🌲 Florestas":
     st.title("🌲 Florestas e Selvas")
@@ -122,7 +126,7 @@ elif menu == "🌲 Florestas":
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{f_sel}_{time.time()}"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
         loc = florestas_db[florestas_db['nome'] == f_sel].iloc[0]
-        exibir_cartao_cidadao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "floresta"), "for")
+        exibir_cartao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "floresta"), "for")
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos e Mares")
@@ -131,7 +135,7 @@ elif menu == "🌊 Oceanos":
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{o_sel}_{time.time()}"><h1>🌊 A mergulhar no...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
         loc = oceanos_db[oceanos_db['nome'] == o_sel].iloc[0]
-        exibir_cartao_cidadao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "marinho"), "oce")
+        exibir_cartao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "marinho"), "oce")
 
 elif menu == "🔬 Laboratório":
     st.title("🔬 Laboratório de Pesquisa")
@@ -144,12 +148,18 @@ elif menu == "🔬 Laboratório":
             if t and t.get('default_photo'):
                 d, r, amb = definir_biologia(t.get('preferred_common_name', t['name']), t.get('iconic_taxon_name',''), "geral")
                 dados_lab.append({'nome': t.get('preferred_common_name', t['name']).title(), 'sci': t['name'], 'foto': t['default_photo']['medium_url'], 'classe': t.get('iconic_taxon_name',''), 'dieta': d, 'repro': r, 'ambiente': amb})
-        exibir_cartao_cidadao(dados_lab, "lab")
+        exibir_cartao(dados_lab, "lab")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário")
-    st.session_state.notas = st.text_area("Notas:", value=st.session_state.notas, height=450)
+    st.title("📝 Diário de Observação")
+    st.session_state.notas = st.text_area("Regista as tuas notas:", value=st.session_state.notas, height=450)
 
 elif menu == "⭐ Favoritos":
-    st.title("⭐ Favoritos")
-    exibir_cartao_cidadao(st.session_state.favs, "fav")
+    st.title("⭐ Espécies Favoritas")
+    if st.session_state.favs:
+        if st.button("🗑️ Limpar Todos os Favoritos"):
+            st.session_state.favs = []
+            st.rerun()
+        exibir_cartao(st.session_state.favs, "fav", is_fav_page=True)
+    else:
+        st.info("Ainda não tens animais guardados.")
