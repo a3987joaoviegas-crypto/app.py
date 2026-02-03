@@ -6,14 +6,26 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: SETA DA SIDEBAR E CARTÕES
+# ESTILOS: CORREÇÃO DEFINITIVA DA SETA (SIDEBAR) E RESPONSIVIDADE MÓVEL
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
-    .stSidebar [data-testid="stSidebarNav"] {display: block !important;}
+    
+    /* FORÇAR VISIBILIDADE DA SETA E DO MENU NO TELEMÓVEL */
+    [data-testid="stSidebarCollapsedControl"] {
+        display: flex !important;
+        background-color: #2ea043 !important;
+        border-radius: 0 10px 10px 0 !important;
+        color: white !important;
+        width: 50px !important;
+        height: 50px !important;
+        left: 0 !important;
+        z-index: 9999999 !important;
+    }
+    
     .stApp { background-color: #0b1117; color: #adbac7; }
     
     .cc-card { 
@@ -29,7 +41,7 @@ st.markdown("""
 
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 99998; display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: radial-gradient(circle, #062814 0%, #0b1117 100%);
         color: #2ea043; text-align: center;
         animation: fadeOutScene 2.5s forwards; pointer-events: none;
@@ -73,10 +85,10 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
         return lista
     except: return []
 
-# BASES DE DADOS (PLANISFÉRIOS CUSTOM)
+# BASES DE DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
-florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest', 'Tongass', 'Floresta Negra'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17, 57.17, 48.0], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41, -134.58, 8.0]})
-oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe', 'Mar Vermelho', 'Mar de Bering'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0, 20.0, 58.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0, 38.0, -170.0]})
+florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
+oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
 
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
@@ -102,7 +114,7 @@ if menu == "🌍 Planisfério":
     sel = st.selectbox("Escolha a Região:", [""] + list(paises_db['nome']))
     if sel:
         st.markdown(f'<div class="cutscene-overlay" key="{sel}_{time.time()}"><h1>🌍 A viajar para...</h1><h2>{sel}</h2></div>', unsafe_allow_html=True)
-        st.subheader(f"🐾 Espécies encontradas em: {sel}")
+        st.subheader(f"🐾 Espécies em: {sel}")
         loc = paises_db[paises_db['nome'] == sel].iloc[0]
         exibir_cartao(buscar_fauna_filtrada(loc['lat'], loc['lon'], "geral"), "pla")
 
