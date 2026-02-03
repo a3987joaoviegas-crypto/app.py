@@ -6,41 +6,24 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: FORÇAR BOTÃO DA SIDEBAR E AJUSTES MÓVEIS
+# ESTILOS: RESTAURAR SIDEBAR E MANTER CARTÕES
 st.markdown("""
     <style>
-    /* Esconder elementos desnecessários */
+    /* Reset de visibilidade para garantir que a sidebar apareça */
+    [data-testid="stSidebar"] {
+        visibility: visible !important;
+        display: block !important;
+    }
+    
+    /* Limpeza de elementos desnecessários */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
     
-    /* REFORÇO TOTAL DA SETA DA SIDEBAR (PARA PC E TELEMÓVEL) */
-    button[kind="headerNoContext"] {
-        display: flex !important;
-        background-color: #2ea043 !important;
-        color: white !important;
-        border: 2px solid #ffffff !important;
-        border-radius: 50% !important;
-        width: 45px !important;
-        height: 45px !important;
-        position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        z-index: 1000000 !important;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.5) !important;
-    }
-
-    /* Garantir que o ícone dentro do botão seja visível */
-    button[kind="headerNoContext"] svg {
-        fill: white !important;
-        width: 25px !important;
-        height: 25px !important;
-    }
-
     .stApp { background-color: #0b1117; color: #adbac7; }
     
-    /* CARTÕES */
+    /* ESTILO DOS CARTÕES */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -82,13 +65,11 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
     try:
         res = requests.get(url, params=params).json()
         lista = []
-        v_ids = set()
-        v_nomes = set()
+        v_ids = set(); v_nomes = set()
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if not t or not t.get('default_photo'): continue
-            tid = t.get('id')
-            npt = (t.get('preferred_common_name') or t.get('name')).title()
+            tid = t.get('id'); npt = (t.get('preferred_common_name') or t.get('name')).title()
             if tid in v_ids or npt in v_nomes: continue
             classe = t.get('iconic_taxon_name', '')
             d, r, amb = definir_biologia(npt, classe, bioma_tipo)
@@ -98,7 +79,7 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
         return lista
     except: return []
 
-# DADOS
+# BASES DE DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
 florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
 oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
@@ -106,6 +87,7 @@ oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oc
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
 
+# SIDEBAR VOLTOU AO NORMAL
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
 def exibir_cartao(dados, prefixo, is_zoo=False):
