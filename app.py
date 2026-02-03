@@ -3,19 +3,18 @@ import pandas as pd
 import requests
 import time
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA (Sidebar sempre aberta por padrão)
+st.set_page_config(
+    page_title="MundoVivo", 
+    page_icon="🌍", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-# ESTILOS: RESTAURAR SIDEBAR E MANTER CARTÕES
+# ESTILOS: LIMPEZA E FOCO NOS CARTÕES
 st.markdown("""
     <style>
-    /* Reset de visibilidade para garantir que a sidebar apareça */
-    [data-testid="stSidebar"] {
-        visibility: visible !important;
-        display: block !important;
-    }
-    
-    /* Limpeza de elementos desnecessários */
+    /* Remover apenas o que é estritamente necessário para não quebrar a sidebar */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -79,7 +78,7 @@ def buscar_fauna_filtrada(lat, lon, bioma_tipo):
         return lista
     except: return []
 
-# BASES DE DADOS
+# DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
 florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
 oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
@@ -87,7 +86,7 @@ oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oc
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
 
-# SIDEBAR VOLTOU AO NORMAL
+# A SIDEBAR É DEFINIDA AQUI
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
 def exibir_cartao(dados, prefixo, is_zoo=False):
