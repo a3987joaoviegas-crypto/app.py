@@ -3,23 +3,16 @@ import pandas as pd
 import requests
 import time
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Sidebar sempre aberta por padrão)
+# 1. CONFIGURAÇÃO DA PÁGINA (Padrão total para evitar erros)
 st.set_page_config(
     page_title="MundoVivo", 
     page_icon="🌍", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# ESTILOS: LIMPEZA E FOCO NOS CARTÕES
+# ESTILOS: APENAS CORES E CARTÕES (SEM MEXER NA SIDEBAR)
 st.markdown("""
     <style>
-    /* Remover apenas o que é estritamente necessário para não quebrar a sidebar */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display:none;}
-    
     .stApp { background-color: #0b1117; color: #adbac7; }
     
     /* ESTILO DOS CARTÕES */
@@ -86,7 +79,7 @@ oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oc
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
 
-# A SIDEBAR É DEFINIDA AQUI
+# MENU SIMPLES
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
 def exibir_cartao(dados, prefixo, is_zoo=False):
@@ -113,7 +106,7 @@ if menu == "🌍 Planisfério":
 
 elif menu == "🌲 Florestas":
     st.title("🌲 Florestas e Selvas")
-    st.map(florestas_db, color='#2ea043')
+    st.map(florestas_db)
     f_sel = st.selectbox("Escolha a Selva:", [""] + list(florestas_db['nome']))
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{f_sel}_{time.time()}"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
@@ -123,7 +116,7 @@ elif menu == "🌲 Florestas":
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos e Mares")
-    st.map(oceanos_db, color='#0077be')
+    st.map(oceanos_db)
     o_sel = st.selectbox("Escolha o Mar:", [""] + list(oceanos_db['nome']))
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{o_sel}_{time.time()}"><h1>🌊 A mergulhar no...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
