@@ -6,28 +6,41 @@ import time
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: CORREÇÃO DEFINITIVA DA SETA (SIDEBAR) E RESPONSIVIDADE MÓVEL
+# ESTILOS: FORÇAR BOTÃO DA SIDEBAR E AJUSTES MÓVEIS
 st.markdown("""
     <style>
+    /* Esconder elementos desnecessários */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none;}
     
-    /* FORÇAR VISIBILIDADE DA SETA E DO MENU NO TELEMÓVEL */
-    [data-testid="stSidebarCollapsedControl"] {
+    /* REFORÇO TOTAL DA SETA DA SIDEBAR (PARA PC E TELEMÓVEL) */
+    button[kind="headerNoContext"] {
         display: flex !important;
         background-color: #2ea043 !important;
-        border-radius: 0 10px 10px 0 !important;
         color: white !important;
-        width: 50px !important;
-        height: 50px !important;
-        left: 0 !important;
-        z-index: 9999999 !important;
+        border: 2px solid #ffffff !important;
+        border-radius: 50% !important;
+        width: 45px !important;
+        height: 45px !important;
+        position: fixed !important;
+        top: 15px !important;
+        left: 15px !important;
+        z-index: 1000000 !important;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.5) !important;
     }
-    
+
+    /* Garantir que o ícone dentro do botão seja visível */
+    button[kind="headerNoContext"] svg {
+        fill: white !important;
+        width: 25px !important;
+        height: 25px !important;
+    }
+
     .stApp { background-color: #0b1117; color: #adbac7; }
     
+    /* CARTÕES */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -39,9 +52,10 @@ st.markdown("""
     .label-expert { color: #2ea043; font-weight: bold; font-size: 11px; margin-top: 5px; text-transform: uppercase;}
     .val-expert { color: white; font-size: 14px; margin-bottom: 6px; }
 
+    /* CUTSCENE */
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        z-index: 99998; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: radial-gradient(circle, #062814 0%, #0b1117 100%);
         color: #2ea043; text-align: center;
         animation: fadeOutScene 2.5s forwards; pointer-events: none;
@@ -64,28 +78,27 @@ def definir_biologia(nome, classe, bioma_tipo):
 
 def buscar_fauna_filtrada(lat, lon, bioma_tipo):
     url = "https://api.inaturalist.org/v1/observations"
-    params = {"lat": lat, "lng": lon, "radius": 1000, "taxon_id": 1, "per_page": 100, "locale": "pt-BR"}
+    params = {"lat": lat, "lng": lon, "radius": 1200, "taxon_id": 1, "per_page": 60, "locale": "pt-BR"}
     try:
         res = requests.get(url, params=params).json()
         lista = []
-        vistos_ids = set()
-        vistos_nomes = set()
+        v_ids = set()
+        v_nomes = set()
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if not t or not t.get('default_photo'): continue
-            taxon_id = t.get('id')
-            nome_pt = (t.get('preferred_common_name') or t.get('name')).title()
-            if taxon_id in vistos_ids or nome_pt in vistos_nomes: continue
+            tid = t.get('id')
+            npt = (t.get('preferred_common_name') or t.get('name')).title()
+            if tid in v_ids or npt in v_nomes: continue
             classe = t.get('iconic_taxon_name', '')
-            dieta, repro, ambiente = definir_biologia(nome_pt, classe, bioma_tipo)
-            lista.append({'nome': nome_pt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': dieta, 'repro': repro, 'ambiente': ambiente})
-            vistos_ids.add(taxon_id)
-            vistos_nomes.add(nome_pt)
+            d, r, amb = definir_biologia(npt, classe, bioma_tipo)
+            lista.append({'nome': npt, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'classe': classe, 'dieta': d, 'repro': r, 'ambiente': amb})
+            v_ids.add(tid); v_nomes.add(npt)
             if len(lista) >= 15: break
         return lista
     except: return []
 
-# BASES DE DADOS
+# DADOS
 paises_db = pd.DataFrame({'nome': ['Brasil', 'Portugal', 'México', 'Rússia', 'Angola', 'Estados Unidos', 'Canadá', 'Gronelândia', 'Inglaterra', 'Finlândia', 'Maldivas', 'Saara'], 'lat': [-14.23, 39.39, 23.63, 61.52, -11.20, 37.09, 56.13, 71.70, 52.35, 61.92, 3.20, 23.41], 'lon': [-51.92, -8.22, -102.55, 105.31, 17.87, -95.71, -106.34, -42.60, -1.17, 25.74, 73.22, 25.66]})
 florestas_db = pd.DataFrame({'nome': ['Amazónia', 'Congo', 'Selva de Bornéu', 'Taiga Siberiana', 'Mata Atlântica', 'Daintree Rainforest'], 'lat': [-3.46, -0.22, 1.35, 61.52, -23.55, -16.17], 'lon': [-62.21, 23.61, 113.8, 105.31, -46.63, 145.41]})
 oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oceano Índico', 'Oceano Ártico', 'Mar Mediterrâneo', 'Mar do Caribe'], 'lat': [0.0, -15.0, -20.0, 85.0, 35.0, 15.0], 'lon': [-25.0, -140.0, 70.0, 0.0, 18.0, -75.0]})
@@ -105,8 +118,7 @@ def exibir_cartao(dados, prefixo, is_zoo=False):
                     if a not in st.session_state.zoo: st.session_state.zoo.append(a)
             else:
                 if st.button("🗑️ Eliminar do Zoo", key=f"del_{prefixo}_{i}"):
-                    st.session_state.zoo.pop(i)
-                    st.rerun()
+                    st.session_state.zoo.pop(i); st.rerun()
 
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério Bio-Interativo")
@@ -143,8 +155,7 @@ elif menu == "🔬 Laboratório":
     p = st.text_input("Nome do animal:")
     if p:
         res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=12&locale=pt-BR").json()
-        dados_lab = []
-        v_n = set()
+        dados_lab = []; v_n = set()
         for obs in res.get('results', []):
             t = obs.get('taxon')
             if t and t.get('default_photo'):
@@ -163,8 +174,7 @@ elif menu == "⭐ Favoritos":
     st.title("🐾 O Meu Pequeno Zoo")
     if st.session_state.zoo:
         if st.button("🗑️ Limpar Todo o Zoo"):
-            st.session_state.zoo = []
-            st.rerun()
+            st.session_state.zoo = []; st.rerun()
         exibir_cartao(st.session_state.zoo, "zoo_page", is_zoo=True)
     else:
         st.info("O teu zoo está vazio!")
