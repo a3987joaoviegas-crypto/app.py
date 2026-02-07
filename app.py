@@ -3,19 +3,18 @@ import pandas as pd
 import requests
 import time
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Padrão total para evitar erros)
-st.set_page_config(
-    page_title="MundoVivo", 
-    page_icon="🌍", 
-    layout="wide"
-)
+# 1. CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# ESTILOS: APENAS CORES E CARTÕES (SEM MEXER NA SIDEBAR)
+# ESTILOS: LIMPEZA E FOCO NOS CARTÕES
 st.markdown("""
     <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none;}
     .stApp { background-color: #0b1117; color: #adbac7; }
     
-    /* ESTILO DOS CARTÕES */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -27,7 +26,6 @@ st.markdown("""
     .label-expert { color: #2ea043; font-weight: bold; font-size: 11px; margin-top: 5px; text-transform: uppercase;}
     .val-expert { color: white; font-size: 14px; margin-bottom: 6px; }
 
-    /* CUTSCENE */
     .cutscene-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -53,7 +51,8 @@ def definir_biologia(nome, classe, bioma_tipo):
 
 def buscar_fauna_filtrada(lat, lon, bioma_tipo):
     url = "https://api.inaturalist.org/v1/observations"
-    params = {"lat": lat, "lng": lon, "radius": 1200, "taxon_id": 1, "per_page": 60, "locale": "pt-BR"}
+    # ADICIONADO: taxon_id=1 para garantir que só apareçam ANIMAIS
+    params = {"lat": lat, "lng": lon, "radius": 1500, "taxon_id": 1, "per_page": 80, "locale": "pt-BR"}
     try:
         res = requests.get(url, params=params).json()
         lista = []
@@ -79,7 +78,6 @@ oceanos_db = pd.DataFrame({'nome': ['Oceano Atlântico', 'Oceano Pacífico', 'Oc
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'notas' not in st.session_state: st.session_state.notas = ""
 
-# MENU SIMPLES
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
 def exibir_cartao(dados, prefixo, is_zoo=False):
@@ -106,7 +104,7 @@ if menu == "🌍 Planisfério":
 
 elif menu == "🌲 Florestas":
     st.title("🌲 Florestas e Selvas")
-    st.map(florestas_db)
+    st.map(florestas_db, color='#2ea043')
     f_sel = st.selectbox("Escolha a Selva:", [""] + list(florestas_db['nome']))
     if f_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{f_sel}_{time.time()}"><h1>🌲 A entrar na selva...</h1><h2>{f_sel}</h2></div>', unsafe_allow_html=True)
@@ -116,7 +114,7 @@ elif menu == "🌲 Florestas":
 
 elif menu == "🌊 Oceanos":
     st.title("🌊 Oceanos e Mares")
-    st.map(oceanos_db)
+    st.map(oceanos_db, color='#0077be')
     o_sel = st.selectbox("Escolha o Mar:", [""] + list(oceanos_db['nome']))
     if o_sel:
         st.markdown(f'<div class="cutscene-overlay" key="{o_sel}_{time.time()}"><h1>🌊 A mergulhar no...</h1><h2>{o_sel}</h2></div>', unsafe_allow_html=True)
@@ -128,7 +126,8 @@ elif menu == "🔬 Laboratório":
     st.title("🔬 Laboratório de Pesquisa")
     p = st.text_input("Nome do animal:")
     if p:
-        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&per_page=12&locale=pt-BR").json()
+        # ADICIONADO: taxon_id=1 aqui também para o laboratório
+        res = requests.get(f"https://api.inaturalist.org/v1/observations?q={p}&taxon_id=1&per_page=12&locale=pt-BR").json()
         dados_lab = []; v_n = set()
         for obs in res.get('results', []):
             t = obs.get('taxon')
