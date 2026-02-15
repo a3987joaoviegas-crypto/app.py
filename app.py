@@ -5,14 +5,14 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# CSS ORIGINAL (O QUE TINHAS ANTES)
+# CSS ORIGINAL (ESTÁVEL E LIMPO)
 st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden;}
     .stDeployButton {display:none;}
     .stApp { background-color: #0b1117; color: #adbac7; }
 
-    /* CARTÃO ORIGINAL */
+    /* CARTÃO DE CIDADÃO BIOLÓGICO */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -23,17 +23,10 @@ st.markdown("""
     
     .label-expert { color: #2ea043; font-weight: bold; font-size: 11px; margin-top: 5px; text-transform: uppercase;}
     .val-expert { color: white; font-size: 14px; margin-bottom: 6px; }
-
-    /* ESTILO CHAT GEMINI (LIMPO) */
-    .stChatMessage { background-color: transparent !important; }
-    .stChatMessage [data-testid="stChatMessageContent"] {
-        background-color: #1c2128; border-radius: 15px; padding: 15px; border: 1px solid #30363d;
-    }
-    [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA BIOLÓGICA ORIGINAL
+# LÓGICA BIOLÓGICA DAS CARACTERÍSTICAS
 def definir_biologia(nome, classe):
     n = str(nome).lower()
     dieta = "Omnívoro / Variada"
@@ -46,34 +39,35 @@ def definir_biologia(nome, classe):
     ambiente = "Marinho / Aquático" if classe in ['Actinopterygii', 'Mollusca'] or "baleia" in n else "Terrestre / Florestal"
     return dieta, repro, ambiente
 
-def buscar_fauna(query, limite=1):
-    q = query.lower()
-    # Resposta direta para perguntas de recordes
-    if "pesado" in q: busca = "Baleia-azul"
-    elif "rápido" in q: busca = "Guepardo"
-    else: busca = query
-    
-    url = f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&locale=pt-BR"
+def buscar_fauna(query, limite=12):
+    url = f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&locale=pt-BR"
     try:
         res = requests.get(url).json()
         out = []
-        for t in res['results'][:limite]:
+        for t in res.get('results', [])[:limite]:
             if t.get('default_photo'):
                 nome = (t.get('preferred_common_name') or t.get('name')).title()
                 classe = t.get('iconic_taxon_name', 'Animal')
                 d, r, amb = definir_biologia(nome, classe)
-                out.append({'nome': nome, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': amb})
+                out.append({
+                    'nome': nome, 
+                    'sci': t.get('name'), 
+                    'foto': t['default_photo']['medium_url'], 
+                    'dieta': d, 
+                    'repro': r, 
+                    'ambiente': amb
+                })
         return out
     except: return []
 
 # ESTADOS
 if 'zoo' not in st.session_state: st.session_state.zoo = []
-if 'chat_hist' not in st.session_state: st.session_state.chat_hist = []
+if 'diario' not in st.session_state: st.session_state.diario = ""
 
-# MENU LATERAL
-menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🔬 Laboratório", "💬 Chat IA", "📝 Diário", "⭐ Favoritos"])
+# MENU LATERAL (CHAT REMOVIDO)
+menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
-def exibir_cartao(a, key):
+def exibir_cartao(a, key, is_zoo=False):
     if not a: return
     st.markdown(f"""
         <div class='cc-card'>
@@ -85,52 +79,57 @@ def exibir_cartao(a, key):
             <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
         </div>
     """, unsafe_allow_html=True)
-    if st.button("⭐ Guardar no Zoo", key=key):
-        st.session_state.zoo.append(a)
+    if not is_zoo:
+        if st.button("⭐ Guardar", key=key):
+            st.session_state.zoo.append(a)
+    else:
+        if st.button("🗑️ Eliminar", key=key):
+            st.session_state.zoo.remove(a)
+            st.rerun()
 
 # --- PÁGINAS ---
 
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério")
-    st.map(pd.DataFrame({'lat': [-14.2, 39.3], 'lon': [-51.9, -8.2]}))
-    animais = buscar_fauna("Brasil", 3)
+    st.map(pd.DataFrame({'lat': [-14.2, 39.3, -11.2, -18.6], 'lon': [-51.9, -8.2, 17.8, 35.5]}))
+    sel = st.selectbox("Escolha um País para ver a fauna:", ["Brasil", "Portugal", "Angola", "Moçambique"])
+    animais = buscar_fauna(sel, 3)
     cols = st.columns(3)
     for i, an in enumerate(animais):
         with cols[i]: exibir_cartao(an, f"map_{i}")
 
+elif menu == "🌲 Florestas":
+    st.title("🌲 Exploração de Florestas")
+    animais = buscar_fauna("Floresta", 9)
+    cols = st.columns(3)
+    for i, an in enumerate(animais):
+        with cols[i%3]: exibir_cartao(an, f"flo_{i}")
+
+elif menu == "🌊 Oceanos":
+    st.title("🌊 Exploração de Oceanos")
+    animais = buscar_fauna("Oceano", 9)
+    cols = st.columns(3)
+    for i, an in enumerate(animais):
+        with cols[i%3]: exibir_cartao(an, f"oce_{i}")
+
 elif menu == "🔬 Laboratório":
-    st.title("🔬 Laboratório de Pesquisa")
-    txt = st.text_input("🔍 Pesquisar animal ou grupo:")
+    st.title("🔬 Laboratório de Identificação")
+    txt = st.text_input("🔍 Pesquisar espécie ou grupo de animais:")
     if txt:
-        lista = buscar_fauna(txt, 12)
+        lista = buscar_fauna(txt, 15)
         cols = st.columns(3)
         for i, anim in enumerate(lista):
             with cols[i%3]: exibir_cartao(anim, f"lab_{i}")
 
-elif menu == "💬 Chat IA":
-    st.title("💬 Chat Biológico")
-    for i, msg in enumerate(st.session_state.chat_hist):
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-            if "data" in msg: exibir_cartao(msg["data"], f"chat_{i}")
-
-    if p := st.chat_input("Qual o animal mais pesado?"):
-        st.session_state.chat_hist.append({"role": "user", "content": p})
-        with st.chat_message("user"): st.write(p)
-        with st.chat_message("assistant"):
-            dados = buscar_fauna(p, 1)
-            if dados:
-                resp = f"O animal é o **{dados[0]['nome']}**. Aqui tens o cartão:"
-                st.write(resp)
-                exibir_cartao(dados[0], "chat_new")
-                st.session_state.chat_hist.append({"role": "assistant", "content": resp, "data": dados[0]})
-
 elif menu == "📝 Diário":
-    st.title("📝 Diário")
-    st.text_area("Notas:", height=400)
+    st.title("📝 Diário de Observações")
+    st.session_state.diario = st.text_area("Notas e descobertas:", value=st.session_state.diario, height=400)
 
 elif menu == "⭐ Favoritos":
-    st.title("🐾 Meu Zoo")
-    cols = st.columns(3)
-    for i, z in enumerate(st.session_state.zoo):
-        with cols[i%3]: exibir_cartao(z, f"zoo_{i}")
+    st.title("🐾 O Meu Zoo")
+    if not st.session_state.zoo:
+        st.info("O teu Zoo está vazio. Guarda alguns animais no Laboratório!")
+    else:
+        cols = st.columns(3)
+        for i, z in enumerate(st.session_state.zoo):
+            with cols[i%3]: exibir_cartao(z, f"zoo_{i}", is_zoo=True)
