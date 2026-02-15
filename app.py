@@ -5,14 +5,14 @@ import requests
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# CSS ORIGINAL (ESTÁVEL E LIMPO)
+# 2. ESTILO ORIGINAL (LIMPO E DIRETO)
 st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden;}
     .stDeployButton {display:none;}
     .stApp { background-color: #0b1117; color: #adbac7; }
 
-    /* CARTÃO DE CIDADÃO BIOLÓGICO */
+    /* CARTÃO DE CIDADÃO (PADRÃO 220px) */
     .cc-card { 
         background: #1c2128; border-radius: 12px; padding: 20px; 
         border-left: 6px solid #2ea043; margin-bottom: 25px;
@@ -26,11 +26,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA BIOLÓGICA DAS CARACTERÍSTICAS
+# 3. LÓGICA BIOLÓGICA (CARACTERÍSTICAS)
 def definir_biologia(nome, classe):
     n = str(nome).lower()
-    dieta = "Omnívoro / Variada"
-    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'serpente']):
+    dieta = "Omnívoro"
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'serpente', 'falcão']):
         dieta = "Carnívoro (Predador)"
     elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']):
         dieta = "Herbívoro (Plantas)"
@@ -49,25 +49,18 @@ def buscar_fauna(query, limite=12):
                 nome = (t.get('preferred_common_name') or t.get('name')).title()
                 classe = t.get('iconic_taxon_name', 'Animal')
                 d, r, amb = definir_biologia(nome, classe)
-                out.append({
-                    'nome': nome, 
-                    'sci': t.get('name'), 
-                    'foto': t['default_photo']['medium_url'], 
-                    'dieta': d, 
-                    'repro': r, 
-                    'ambiente': amb
-                })
+                out.append({'nome': nome, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': amb})
         return out
     except: return []
 
-# ESTADOS
+# SESSÕES
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'diario' not in st.session_state: st.session_state.diario = ""
 
-# MENU LATERAL (CHAT REMOVIDO)
+# MENU LATERAL
 menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "📝 Diário", "⭐ Favoritos"])
 
-def exibir_cartao(a, key, is_zoo=False):
+def exibir_cartao(a, key):
     if not a: return
     st.markdown(f"""
         <div class='cc-card'>
@@ -79,42 +72,38 @@ def exibir_cartao(a, key, is_zoo=False):
             <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
         </div>
     """, unsafe_allow_html=True)
-    if not is_zoo:
-        if st.button("⭐ Guardar", key=key):
-            st.session_state.zoo.append(a)
-    else:
-        if st.button("🗑️ Eliminar", key=key):
-            st.session_state.zoo.remove(a)
-            st.rerun()
+    if st.button("⭐ Guardar no Zoo", key=key):
+        st.session_state.zoo.append(a)
+        st.toast(f"{a['nome']} guardado!")
 
 # --- PÁGINAS ---
 
 if menu == "🌍 Planisfério":
-    st.title("🌍 Planisfério")
-    st.map(pd.DataFrame({'lat': [-14.2, 39.3, -11.2, -18.6], 'lon': [-51.9, -8.2, 17.8, 35.5]}))
-    sel = st.selectbox("Escolha um País para ver a fauna:", ["Brasil", "Portugal", "Angola", "Moçambique"])
+    st.title("🌍 Planisfério Bio-Interativo")
+    st.map(pd.DataFrame({'lat': [39.3, -14.2, -11.2, 37.0], 'lon': [-8.2, -51.9, 17.8, -95.7]}))
+    sel = st.selectbox("Ver fauna local:", ["Brasil", "Portugal", "Angola", "EUA"])
     animais = buscar_fauna(sel, 3)
     cols = st.columns(3)
     for i, an in enumerate(animais):
         with cols[i]: exibir_cartao(an, f"map_{i}")
 
 elif menu == "🌲 Florestas":
-    st.title("🌲 Exploração de Florestas")
-    animais = buscar_fauna("Floresta", 9)
+    st.title("🌲 Fauna das Florestas")
+    animais = buscar_fauna("Jaguar", 6)
     cols = st.columns(3)
     for i, an in enumerate(animais):
         with cols[i%3]: exibir_cartao(an, f"flo_{i}")
 
 elif menu == "🌊 Oceanos":
-    st.title("🌊 Exploração de Oceanos")
-    animais = buscar_fauna("Oceano", 9)
+    st.title("🌊 Fauna dos Oceanos")
+    animais = buscar_fauna("Tubarão", 6)
     cols = st.columns(3)
     for i, an in enumerate(animais):
         with cols[i%3]: exibir_cartao(an, f"oce_{i}")
 
 elif menu == "🔬 Laboratório":
-    st.title("🔬 Laboratório de Identificação")
-    txt = st.text_input("🔍 Pesquisar espécie ou grupo de animais:")
+    st.title("🔬 Laboratório de Pesquisa")
+    txt = st.text_input("🔍 Digite o nome de um animal ou grupo (ex: Felinos, Aves...):")
     if txt:
         lista = buscar_fauna(txt, 15)
         cols = st.columns(3)
@@ -122,14 +111,14 @@ elif menu == "🔬 Laboratório":
             with cols[i%3]: exibir_cartao(anim, f"lab_{i}")
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário de Observações")
-    st.session_state.diario = st.text_area("Notas e descobertas:", value=st.session_state.diario, height=400)
+    st.title("📝 Diário de Bordo")
+    st.session_state.diario = st.text_area("Notas sobre as tuas pesquisas:", value=st.session_state.diario, height=400)
 
 elif menu == "⭐ Favoritos":
     st.title("🐾 O Meu Zoo")
     if not st.session_state.zoo:
-        st.info("O teu Zoo está vazio. Guarda alguns animais no Laboratório!")
+        st.info("Ainda não guardaste animais nos favoritos.")
     else:
         cols = st.columns(3)
         for i, z in enumerate(st.session_state.zoo):
-            with cols[i%3]: exibir_cartao(z, f"zoo_{i}", is_zoo=True)
+            with cols[i%3]: exibir_cartao(z, f"zoo_{i}")
