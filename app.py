@@ -2,134 +2,135 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# 1. CONFIGURAÇÃO
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
 
-# CSS ESTILO GEMINI + GRELHA
+# CSS ORIGINAL (O QUE TINHAS ANTES)
 st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden;}
+    .stDeployButton {display:none;}
     .stApp { background-color: #0b1117; color: #adbac7; }
 
-    /* CHAT IDENTICO AO GEMINI */
+    /* CARTÃO ORIGINAL */
+    .cc-card { 
+        background: #1c2128; border-radius: 12px; padding: 20px; 
+        border-left: 6px solid #2ea043; margin-bottom: 25px;
+    }
+    .img-cc { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }
+    .common-name { color: #2ea043; font-size: 22px; font-weight: bold; margin-top: 10px; text-align: center; }
+    .sci-name { color: white; font-style: italic; font-size: 14px; text-align: center; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+    
+    .label-expert { color: #2ea043; font-weight: bold; font-size: 11px; margin-top: 5px; text-transform: uppercase;}
+    .val-expert { color: white; font-size: 14px; margin-bottom: 6px; }
+
+    /* ESTILO CHAT GEMINI (LIMPO) */
     .stChatMessage { background-color: transparent !important; }
     .stChatMessage [data-testid="stChatMessageContent"] {
-        background-color: #1c2128; border-radius: 20px; padding: 15px 25px; border: 1px solid #30363d;
+        background-color: #1c2128; border-radius: 15px; padding: 15px; border: 1px solid #30363d;
     }
     [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] { display: none; }
-
-    /* CARTÃO CHAT (PEQUENO) */
-    .chat-card { background: #1c2128; border-radius: 12px; padding: 15px; border: 1px solid #30363d; margin-top: 10px; max-width: 320px; }
-    .chat-img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
-    
-    /* CARTÃO LABORATÓRIO/MAPA (MÉDIO) */
-    .lab-card { background: #1c2128; border-radius: 12px; padding: 15px; border-left: 5px solid #2ea043; margin-bottom: 20px; height: 380px; }
-    .lab-img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; }
-    .name-txt { color: #2ea043; font-weight: bold; font-size: 18px; margin-top: 10px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# LÓGICA DE BUSCA MELHORADA
-def buscar_fauna(query, limite=1, taxon=1):
+# LÓGICA BIOLÓGICA ORIGINAL
+def definir_biologia(nome, classe):
+    n = str(nome).lower()
+    dieta = "Omnívoro / Variada"
+    if any(x in n for x in ['leão', 'tubarão', 'lobo', 'águia', 'orca', 'tigre', 'jacaré', 'serpente']):
+        dieta = "Carnívoro (Predador)"
+    elif any(x in n for x in ['elefante', 'zebra', 'girafa', 'vaca', 'coelho', 'canguru', 'panda']):
+        dieta = "Herbívoro (Plantas)"
+    
+    repro = "Vivíparo" if classe == 'Mammalia' else "Ovíparo"
+    ambiente = "Marinho / Aquático" if classe in ['Actinopterygii', 'Mollusca'] or "baleia" in n else "Terrestre / Florestal"
+    return dieta, repro, ambiente
+
+def buscar_fauna(query, limite=1):
     q = query.lower()
+    # Resposta direta para perguntas de recordes
     if "pesado" in q: busca = "Baleia-azul"
     elif "rápido" in q: busca = "Guepardo"
     else: busca = query
     
-    url = f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id={taxon}&locale=pt-BR"
+    url = f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&locale=pt-BR"
     try:
         res = requests.get(url).json()
         out = []
         for t in res['results'][:limite]:
             if t.get('default_photo'):
-                out.append({
-                    'nome': (t.get('preferred_common_name') or t.get('name')).title(),
-                    'sci': t.get('name'),
-                    'foto': t['default_photo']['medium_url'],
-                    'classe': t.get('iconic_taxon_name', 'Animal')
-                })
+                nome = (t.get('preferred_common_name') or t.get('name')).title()
+                classe = t.get('iconic_taxon_name', 'Animal')
+                d, r, amb = definir_biologia(nome, classe)
+                out.append({'nome': nome, 'sci': t.get('name'), 'foto': t['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': amb})
         return out
     except: return []
 
-# SESSÕES PARA NÃO PERDER DADOS
+# ESTADOS
 if 'zoo' not in st.session_state: st.session_state.zoo = []
 if 'chat_hist' not in st.session_state: st.session_state.chat_hist = []
-if 'diario_content' not in st.session_state: st.session_state.diario_content = ""
 
-# MENU
-menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "💬 Chat IA", "📝 Diário", "⭐ Favoritos"])
+# MENU LATERAL
+menu = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🔬 Laboratório", "💬 Chat IA", "📝 Diário", "⭐ Favoritos"])
 
-def mostrar_animal(a, key, mini=True):
-    card_cl = "chat-card" if mini else "lab-card"
-    img_cl = "chat-img" if mini else "lab-img"
-    st.markdown(f"""<div class='{card_cl}'><img src='{a['foto']}' class='{img_cl}'><div class='name-txt'>{a['nome']}</div>
-    <div style='color:#8b949e; font-size:12px; font-style:italic; text-align:center;'>{a['sci']}</div>
-    <div style='text-align:center; margin-top:5px;'>🏷️ {a['classe']}</div></div>""", unsafe_allow_html=True)
-    if st.button("⭐ Guardar", key=key): 
+def exibir_cartao(a, key):
+    if not a: return
+    st.markdown(f"""
+        <div class='cc-card'>
+            <img src='{a['foto']}' class='img-cc'>
+            <div class='common-name'>{a['nome']}</div>
+            <div class='sci-name'>{a['sci']}</div>
+            <div class='label-expert'>AMBIENTE</div><div class='val-expert'>🏡 {a['ambiente']}</div>
+            <div class='label-expert'>DIETA</div><div class='val-expert'>🍴 {a['dieta']}</div>
+            <div class='label-expert'>REPRODUÇÃO</div><div class='val-expert'>🧬 {a['repro']}</div>
+        </div>
+    """, unsafe_allow_html=True)
+    if st.button("⭐ Guardar no Zoo", key=key):
         st.session_state.zoo.append(a)
-        st.toast(f"{a['nome']} guardado!")
 
 # --- PÁGINAS ---
+
 if menu == "🌍 Planisfério":
     st.title("🌍 Planisfério")
-    st.map(pd.DataFrame({'lat': [-14.23, 39.39, -11.2, 37.09], 'lon': [-51.92, -8.22, 17.87, -95.71]}))
-    sel = st.selectbox("Ver país:", ["Brasil", "Portugal", "Angola", "EUA"])
-    res = buscar_fauna(sel, 3)
+    st.map(pd.DataFrame({'lat': [-14.2, 39.3], 'lon': [-51.9, -8.2]}))
+    animais = buscar_fauna("Brasil", 3)
     cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i]: mostrar_animal(an, f"map_{i}", False)
-
-elif menu == "🌲 Florestas":
-    st.title("🌲 Bioma: Florestas")
-    res = buscar_fauna("Amazonia", 6)
-    cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i%3]: mostrar_animal(an, f"flo_{i}", False)
-
-elif menu == "🌊 Oceanos":
-    st.title("🌊 Bioma: Oceanos")
-    res = buscar_fauna("Tubarao", 6)
-    cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i%3]: mostrar_animal(an, f"oce_{i}", False)
+    for i, an in enumerate(animais):
+        with cols[i]: exibir_cartao(an, f"map_{i}")
 
 elif menu == "🔬 Laboratório":
-    st.title("🔬 Laboratório")
-    txt = st.text_input("Pesquisar espécies (Grelha):")
+    st.title("🔬 Laboratório de Pesquisa")
+    txt = st.text_input("🔍 Pesquisar animal ou grupo:")
     if txt:
         lista = buscar_fauna(txt, 12)
         cols = st.columns(3)
         for i, anim in enumerate(lista):
-            with cols[i%3]: mostrar_animal(anim, f"lab_{i}", False)
+            with cols[i%3]: exibir_cartao(anim, f"lab_{i}")
 
 elif menu == "💬 Chat IA":
-    st.title("💬 Chat MundoVivo")
+    st.title("💬 Chat Biológico")
     for i, msg in enumerate(st.session_state.chat_hist):
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-            if "animal" in msg: mostrar_animal(msg["animal"], f"chat_{i}", True)
+            if "data" in msg: exibir_cartao(msg["data"], f"chat_{i}")
 
-    if p := st.chat_input("Diz o nome de um animal..."):
+    if p := st.chat_input("Qual o animal mais pesado?"):
         st.session_state.chat_hist.append({"role": "user", "content": p})
         with st.chat_message("user"): st.write(p)
         with st.chat_message("assistant"):
-            dados = buscar_animal_dados = buscar_fauna(p, 1)
+            dados = buscar_fauna(p, 1)
             if dados:
-                resp = f"Aqui tens a informação sobre o **{dados[0]['nome']}**:"
+                resp = f"O animal é o **{dados[0]['nome']}**. Aqui tens o cartão:"
                 st.write(resp)
-                mostrar_animal(dados[0], "chat_new", True)
-                st.session_state.chat_hist.append({"role": "assistant", "content": resp, "animal": dados[0]})
-            else:
-                resp = "Não encontrei esse animal na base de dados."
-                st.write(resp)
-                st.session_state.chat_hist.append({"role": "assistant", "content": resp})
+                exibir_cartao(dados[0], "chat_new")
+                st.session_state.chat_hist.append({"role": "assistant", "content": resp, "data": dados[0]})
 
 elif menu == "📝 Diário":
-    st.title("📝 Diário de Bordo")
-    st.session_state.diario_content = st.text_area("Escreve as tuas descobertas:", value=st.session_state.diario_content, height=400)
+    st.title("📝 Diário")
+    st.text_area("Notas:", height=400)
 
 elif menu == "⭐ Favoritos":
-    st.title("🐾 O Meu Zoo")
+    st.title("🐾 Meu Zoo")
     cols = st.columns(3)
     for i, z in enumerate(st.session_state.zoo):
-        with cols[i%3]: mostrar_animal(z, f"zoo_{i}", False)
+        with cols[i%3]: exibir_cartao(z, f"zoo_{i}")
