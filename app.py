@@ -47,7 +47,7 @@ with st.sidebar:
 
     menu = ["🌍 Explorar", "🐾 Meu Zoo", "⚙️ Definições"]
     if st.session_state.premium_ativo:
-        menu = ["🔬 Lab Especial", "🌀 Resgate", "❄️ Criogenia"] + menu
+        menu = ["🔬 Laboratório Especial", "🌀 Resgate", "❄️ Criogenia"] + menu
     aba = st.radio("Navegação", menu)
 
 # 4. DESIGN (IMAGENS VERTICAIS E GRELHA)
@@ -162,3 +162,4 @@ elif aba == "⚙️ Definições":
     st.session_state.c_mega = st.text_input("Mega", value=st.session_state.c_mega, type="password")
     st.session_state.c_24h = st.text_input("24h (6626)", value=st.session_state.c_24h, type="password")
     if st.button("Guardar"): st.rerun()
+
