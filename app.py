@@ -4,145 +4,125 @@ import requests
 import random
 
 # 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo Ultimate", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="MundoVivo Ultimate Pro", page_icon="🧬", layout="wide")
 
 # 2. ESTADOS
 for key, val in {
-    'luz': False, 'negrito': False, 'cor_fundo': "Preto", 
-    'cor_card': "Preto", 'lingua': "Português (Original)", 'zoo': [],
-    'codigo_inserido': "", 'expedicao': None
+    'luz': False, 'zoo': [], 'codigo': "", 'search_query': "Wildlife", 'cor_card': "Preto"
 }.items():
     if key not in st.session_state: st.session_state[key] = val
 
-is_premium = st.session_state.codigo_inserido == "6626"
+is_mestre = st.session_state.codigo == "6626"
+is_ai_unlocked = st.session_state.codigo == "33236"
+is_premium = is_mestre or is_ai_unlocked
 LIMITE = 80 if is_premium else 20
 
-# 3. DICIONÁRIO
-lang_map = {
-    "Português (Original)": {"code": "pt-BR", "env": "AMBIENTE", "diet": "DIETA", "rep": "REPRODUÇÃO", "save": "Guardar", "del": "Apagar", "clear": "Limpar Tudo", "nav": "Navegação", "forests": "Florestas", "oceans": "Oceanos", "favs": "Coleção", "defs": "Definições", "reg": "Região", "lab": "Laboratório", "tax": "Espécie", "all": "Todos", "mam": "Mamífero", "fish": "Peixe", "rep_t": "Réptil", "bird": "Ave"},
-    "Inglês": {"code": "en", "env": "ENVIRONMENT", "diet": "DIET", "rep": "REPRODUCTION", "save": "Save", "del": "Delete", "clear": "Clear All", "nav": "Navigation", "forests": "Forests", "oceans": "Oceans", "favs": "Collection", "defs": "Settings", "reg": "Region", "lab": "Laboratory", "tax": "Species", "all": "All", "mam": "Mammal", "fish": "Fish", "rep_t": "Reptile", "bird": "Bird"}
-}
-dic = lang_map.get(st.session_state.lingua, lang_map["Português (Original)"])
-cores_hex = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b", "Amarelo": "#f1c40f", "Roxo": "#4b0082", "Vermelho": "#8b0000"}
-
-# 4. CSS
-bg = "#e0e2e6" if st.session_state.luz else cores_hex[st.session_state.cor_fundo]
-c_bg = "#ffffff" if st.session_state.luz else cores_hex[st.session_state.cor_card]
-txt = "#000000" if (st.session_state.luz or st.session_state.cor_card in ["Branco", "Amarelo"]) else "#ffffff"
-border_color = "#ffd700" if is_premium else "#2ea043"
+# 3. CSS (Borda lateral AI, Estilo Mestre e Efeitos de Luta)
+cores_hex = {"Preto": "#1a1c23", "Branco": "#ffffff", "Verde": "#002b1b", "Azul": "#001f3f"}
+c_bg = cores_hex.get(st.session_state.cor_card, "#1a1c23") if not st.session_state.luz else "#ffffff"
+txt_color = "#000" if st.session_state.luz else "#fff"
+border_color = "#ffd700" if is_mestre else "#2ea043"
 
 st.markdown(f"""
     <style>
-    .stApp {{ background-color: {bg}; color: {txt}; }}
+    @keyframes battle-shake {{ 0% {{ transform: translate(1px, 1px) rotate(0deg); }} 10% {{ transform: translate(-1px, -2px) rotate(-1deg); }} 100% {{ transform: translate(1px, 1px) rotate(0deg); }} }}
+    .stApp {{ background-color: {"#f0f2f6" if st.session_state.luz else "#0b1117"}; color: {txt_color}; }}
     .cc-card {{ 
-        background-color: {c_bg} !important; border-radius: 12px; padding: 20px; 
-        border-left: 12px solid {border_color}; margin-bottom: 25px; 
-        { "animation: gold-glow 3s infinite; border: 2px solid #ffd700;" if is_premium else "" }
+        background: {c_bg} !important; border-radius: 15px; padding: 20px; 
+        border-left: 12px solid {border_color}; margin-bottom: 20px;
+        color: {txt_color} !important;
+        { "animation: gold-glow 3s infinite;" if is_mestre else "" }
     }}
-    .common-name {{ color: {border_color} !important; font-size: 22px; font-weight: bold; text-align: center; }}
-    @keyframes gold-glow {{ 0% {{ border-color: #ffd700; }} 50% {{ border-color: #ff8c00; box-shadow: 0 0 15px #ffd700; }} 100% {{ border-color: #ffd700; }} }}
+    .battle-card {{ border: 3px solid #ff4b4b; animation: battle-shake 0.5s infinite; }}
+    .winner-glow {{ box-shadow: 0 0 30px #ffd700; border: 4px solid #ffd700 !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# 5. BUSCA (FILTRANDO PLANTAS - taxon_id=1 é animais no iNaturalist)
-def buscar(q, taxon_key="all"):
-    taxons = {"all": 1, "mam": 40151, "fish": 47178, "rep_t": 26036, "bird": 3}
-    tid = taxons.get(taxon_key, 1)
-    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id={tid}&per_page=30&locale={dic['code']}"
+# 4. FUNÇÃO DE BUSCA
+def buscar(q):
+    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=10&locale=pt-PT"
     try:
         res = requests.get(url).json()
-        out = []
-        for item in res.get('results', []):
-            if item.get('default_photo') and item.get('iconic_taxon_name') != 'Plantae':
-                n = (item.get('preferred_common_name') or item.get('name')).title()
-                cl = item.get('iconic_taxon_name', 'Animal')
-                esp = dic['mam'] if cl == 'Mammalia' else dic['fish'] if cl in ['Actinopterygii', 'Elasmobranchii'] else dic['rep_t'] if cl == 'Reptilia' else dic['bird'] if cl == 'Aves' else dic['all']
-                out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 'esp': esp, 'amb': 'Natural', 'dieta': 'Variada', 'rep': 'Ovíparo/Vivíparo'})
-        return out
+        return [{'nome': i.get('preferred_common_name', i['name']).title(), 'sci': i['name'], 'foto': i['default_photo']['medium_url'], 'score': i.get('observations_count', 1)} for i in res['results'] if i.get('default_photo')]
     except: return []
 
-def render_card(an, k, fav=False):
-    st.markdown(f"""
-        <div class='cc-card'>
-            <img src='{an['foto']}' style='width:100%; height:200px; object-fit:cover; border-radius:8px;'>
-            <div class='common-name'>{an['nome']}</div>
-            <div style='text-align:center; font-style:italic; opacity:0.7; font-size: 0.9em;'>{an['sci']}</div>
-            <hr style='opacity:0.2;'>
-            <b>{dic['tax']}:</b> {an['esp']}
-        </div>
-    """, unsafe_allow_html=True)
-    if not fav:
-        if len(st.session_state.zoo) < LIMITE:
-            if st.button(f"⭐ {dic['save']}", key=f"sv_{k}"): 
-                st.session_state.zoo.append(an); st.rerun()
-        else: st.warning("Limite atingido!")
-    else:
-        if st.button(f"🗑️ {dic['del']}", key=f"dl_{k}"): st.session_state.zoo.pop(k); st.rerun()
+# 5. ASSISTENTE IA (BARRA LATERAL)
+st.sidebar.title("🎮 Painel")
+st.session_state.codigo = st.sidebar.text_input("Código:", type="password")
+
+if is_ai_unlocked:
+    st.sidebar.info("🤖 **Bio-Assistente IA**")
+    if st.sidebar.button("🌍 REGIÃO ALEATÓRIA"):
+        st.session_state.search_query = random.choice(["Amazonia", "Sahara", "Arctic", "Serengeti"])
+    duvida = st.sidebar.text_input("Pergunta à IA:")
+    if duvida:
+        if "rápido" in duvida.lower(): st.sidebar.write("⚡ Falcão-peregrino!")
+        else: st.sidebar.write("🔍 Analisando...")
 
 # 6. INTERFACE
-aba = st.sidebar.radio(dic['nav'], ["🌍 Planisfério", "🌲 " + dic['forests'], "🌊 " + dic['oceans'], "🔬 " + dic['lab'], "⭐ " + dic['favs'], "⚙️ " + dic['defs']])
+aba = st.sidebar.radio("Menu", ["🌍 Mundo", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"])
 
-# Seletor global de espécies
-if any(x in aba for x in ["Planisfério", "🌲", "🌊"]):
-    especie_sel = st.selectbox(dic['tax'], [dic['all'], dic['mam'], dic['fish'], dic['rep_t'], dic['bird']])
-    esp_key = "all"
-    if especie_sel == dic['mam']: esp_key = "mam"
-    elif especie_sel == dic['fish']: esp_key = "fish"
-    elif especie_sel == dic['rep_t']: esp_key = "rep_t"
-    elif especie_sel == dic['bird']: esp_key = "bird"
+if aba == "🔬 Laboratório":
+    st.title("⚔️ Arena de Duelos & Laboratório")
+    
+    tab1, tab2 = st.tabs(["🔎 Busca Avançada", "🥊 Luta de Animais"])
+    
+    with tab1:
+        search_lab = st.text_input("Pesquisa Genética:")
+        if search_lab:
+            res = buscar(search_lab)
+            cols = st.columns(3)
+            for i, an in enumerate(res):
+                with cols[i%3]:
+                    st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; border-radius:10px;'><h4>{an['nome']}</h4></div>", unsafe_allow_html=True)
+                    if st.button(f"Guardar {an['nome']}", key=f"lab_{i}"):
+                        if len(st.session_state.zoo) < LIMITE: st.session_state.zoo.append(an)
+    
+    with tab2:
+        st.subheader("Preparem-se para o combate!")
+        c1, c2 = st.columns(2)
+        p1 = c1.text_input("Desafiante 1:", "Leão")
+        p2 = c2.text_input("Desafiante 2:", "Tigre")
+        
+        if st.button("🔥 INICIAR LUTA"):
+            res1, res2 = buscar(p1), buscar(p2)
+            if res1 and res2:
+                a1, a2 = res1[0], res2[0]
+                s1, s2 = a1['score'], a2['score'] # Usa número de observações como 'poder'
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    win_class = "winner-glow" if s1 > s2 else ""
+                    st.markdown(f"<div class='cc-card battle-card {win_class}'><img src='{a1['foto']}' style='width:100%;'><h3>{a1['nome']}</h3><p>Poder: {s1}</p></div>", unsafe_allow_html=True)
+                with col2:
+                    win_class = "winner-glow" if s2 > s1 else ""
+                    st.markdown(f"<div class='cc-card battle-card {win_class}'><img src='{a2['foto']}' style='width:100%;'><h3>{a2['nome']}</h3><p>Poder: {s2}</p></div>", unsafe_allow_html=True)
+                
+                if s1 > s2: st.success(f"🏆 VENCEDOR: {a1['nome']}!")
+                elif s2 > s1: st.success(f"🏆 VENCEDOR: {a2['nome']}!")
+                else: st.warning("Empate Biológico!")
 
-if aba == "🌍 Planisfério":
-    st.map(pd.DataFrame({'lat': [38.7, -15.7, 60.0], 'lon': [-9.1, -47.8, 90.0]}))
-    p = st.selectbox(dic['reg'], ["Portugal", "Brasil", "Rússia", "Angola"])
-    res = buscar(p, esp_key)
+elif aba == "🌍 Mundo":
+    st.map(pd.DataFrame({'lat': [20.0], 'lon': [0.0]}))
+    q = st.text_input("Procurar:", value=st.session_state.search_query)
+    res = buscar(q)
     cols = st.columns(3)
     for i, an in enumerate(res):
-        with cols[i%3]: render_card(an, i)
+        with cols[i%3]:
+            st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; height:180px; object-fit:cover; border-radius:10px;'><h3>{an['nome']}</h3></div>", unsafe_allow_html=True)
+            if st.button(f"Guardar {an['nome']}", key=f"m_{i}"):
+                if len(st.session_state.zoo) < LIMITE: st.session_state.zoo.append(an)
 
-elif "🌲" in aba:
-    st.map(pd.DataFrame({'lat': [-3.4, 63.7, -23.5], 'lon': [-62.2, 95.8, -46.6]}))
-    op = st.selectbox(dic['reg'], ["Amazonia", "Taiga", "Atlantic Forest"])
-    res = buscar(op, esp_key)
-    cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i%3]: render_card(an, i)
-
-elif "🌊" in aba:
-    st.map(pd.DataFrame({'lat': [-8.7, 14.5, -18.2], 'lon': [-145.0, -30.0, 147.4]}))
-    op = st.selectbox(dic['reg'], ["Pacific Ocean", "Atlantic Ocean", "Coral Reef"])
-    res = buscar(op, esp_key)
-    cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i%3]: render_card(an, i)
-
-elif "🔬" in aba:
-    st.title(dic['lab'])
-    b = st.text_input("Pesquisar:")
-    if b:
-        res = buscar(b)
-        cols = st.columns(3)
-        for i, an in enumerate(res):
-            with cols[i%3]: render_card(an, i)
-
-elif "⭐" in aba:
-    st.title(("💎 " if is_premium else "⭐ ") + dic['favs'])
+elif aba == "⭐ Coleção":
+    if is_mestre: st.markdown("<div class='mestre-badge'>🏆 MESTRE ZOÓLOGO</div>", unsafe_allow_html=True)
     st.write(f"Capacidade: {len(st.session_state.zoo)} / {LIMITE}")
-    st.progress(min(len(st.session_state.zoo)/LIMITE, 1.0))
-    if st.button(dic['clear']): st.session_state.zoo = []; st.rerun()
     cols = st.columns(3)
     for i, an in enumerate(st.session_state.zoo):
-        with cols[i%3]: render_card(an, i, fav=True)
+        with cols[i%3]:
+            st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; border-radius:10px;'><h4>{an['nome']}</h4></div>", unsafe_allow_html=True)
+            if st.button("Remover", key=f"del_{i}"): st.session_state.zoo.pop(i); st.rerun()
 
-elif "⚙️" in aba:
-    st.subheader("Configurações Premium")
-    if not is_premium:
-        st.session_state.codigo_inserido = st.text_input("Inserir Código:", type="password")
-    else:
-        st.success("💎 MODO PREMIUM ATIVADO")
-        if st.button("❌ APAGAR PREMIUM (REMOVER CÓDIGO)"):
-            st.session_state.codigo_inserido = ""
-            st.rerun()
-    
+elif aba == "⚙️ Definições":
     st.session_state.luz = st.toggle("Modo Claro")
-    st.session_state.lingua = st.selectbox("Idioma", list(lang_map.keys()))
-    if st.button("Aplicar"): st.rerun()
+    if is_premium and st.button("❌ APAGAR PREMIUM"):
+        st.session_state.codigo = ""; st.rerun()
