@@ -14,7 +14,7 @@ chaves = {
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 2. LÓGICA DE ACESSO E CÓDIGOS
+# 2. LÓGICA DE ACESSO
 is_mega = st.session_state.c_mega == "67lucas62"
 is_neon = st.session_state.c_neon == "6676neon7secret"
 is_diamante = st.session_state.c_diamante == "77daimond8secret"
@@ -27,7 +27,7 @@ if st.session_state.exp_trava:
 is_24h = (st.session_state.c_24h == "6626" and pode_6626)
 vip_global = is_mega or is_24h
 
-# 3. SIDEBAR COM INTERRUPTOR
+# 3. SIDEBAR
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if vip_global:
@@ -39,7 +39,7 @@ with st.sidebar:
         menu = ["🌍 Explorar", "🐾 Meu Zoo", "⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
-# 4. DESIGN (NEON / DIAMANTE / MEGA)
+# 4. DESIGN
 cor_borda = "#2ecc71"
 if is_neon: cor_borda = "#00ff00"
 if is_diamante: cor_borda = "#00d4ff"
@@ -99,8 +99,7 @@ def card(an, modo="explorar"):
 # 6. ABAS
 if aba == "🌍 Explorar":
     st.header("🌍 Explorar Biomas")
-    st.write("### Camadas da Biodiversidade")
-    
+    st.write("### Ecossistemas Mundiais")
     tipo = st.selectbox("Local:", ["Amazónia", "Oceano Pacífico", "Savana Africana"])
     cols = st.columns(2)
     for i, an in enumerate(buscar_animais(tipo)):
@@ -122,16 +121,12 @@ elif aba == "🌀 Resgate":
 
 elif aba == "❄️ Criogenia":
     st.header("❄️ Criogenia")
-    st.info("Usa o menu Explorar com o código crio99 para enviar animais para aqui.")
+    st.info("Utiliza o menu 'Explorar' com o código crio99 para enviar animais para o armazenamento criogénico.")
 
 elif aba == "🔬 Lab Especial":
     st.header("🔬 Laboratório Premium")
-    st.write("### Sequenciamento Genético")
-    
-
-[Image of a DNA sequence model]
-
-    st.success("Estação de Fusão Pronta para uso VIP.")
+    st.write("### Estrutura de ADN e Fusão")
+    st.success("Acesso autorizado ao sequenciador genético.")
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
