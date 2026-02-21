@@ -1,5 +1,5 @@
 import streamlit as st
-import pd
+import pandas as pd
 import requests
 import random
 
@@ -147,3 +147,4 @@ elif aba == "⚙️ Definições":
     st.session_state.codigo_perm = st.text_input("Código Permanente:", type="password")
     st.session_state.cor_card = st.selectbox("Cor Cartão:", list(cores_hex.keys()))
     st.session_state.luz = st.toggle("Modo Dia")
+
