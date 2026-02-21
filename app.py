@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
 
-# 2. ESTADO DO SISTEMA
+# 2. ESTADO DO SISTEMA (CORRIGIDO: Cores em Hexadecimal para evitar erro)
 chaves = {
     'zoo': [], 'tanque_fusao': [], 'criogenia_storage': [],
     'codigo': "", 'codigo_perm': "", 'codigo_crio': "", 'codigo_neon': "", 'codigo_diamante': "",
-    'premium_ativo': False, 'cor_card': "Cinza Escuro", 'cor_fundo': "#0b1117", 
+    'premium_ativo': False, 'cor_card': "#1a1c23", 'cor_fundo': "#0b1117", 
     'luminosidade': 100, 'lingua': "Português", 'inicio_premium': None
 }
 for k, v in chaves.items():
@@ -24,13 +24,12 @@ tem_beneficios_premium = is_mega or is_premium_normal
 is_neon = st.session_state.codigo_neon == "6676neon7secret"
 is_diamante = st.session_state.codigo_diamante == "77daimond8secret"
 
-# Temporizador 24h
 if is_premium_normal and st.session_state.inicio_premium is None:
     st.session_state.inicio_premium = datetime.now()
 
-# 4. ESTILOS VISUAIS
+# 4. ESTILOS VISUAIS DINÂMICOS
 cor_borda = "#2ecc71"
-linha_separadora = "border-top: 2px solid #ffd700;" # Dourado padrão
+linha_separadora = "border-top: 2px solid #ffd700;"
 shadow = "none"
 
 if is_mega: 
@@ -47,18 +46,17 @@ st.markdown(f"""
 <style>
     .stApp {{ background-color: {st.session_state.cor_fundo}; filter: brightness({st.session_state.luminosidade}%); color: white; }}
     .cartao-cidadao {{
-        background: #1a1c23; border-radius: 15px; padding: 20px; border: 4px solid;
+        background: {st.session_state.cor_card}; border-radius: 15px; padding: 20px; border: 4px solid;
         border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
         border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
-        box-shadow: {shadow}; min-height: 650px; display: flex; flex-direction: column; margin-bottom: 25px;
+        box-shadow: {shadow}; min-height: 600px; display: flex; flex-direction: column; margin-bottom: 25px;
     }}
-    .img-container img {{ width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }}
-    .titulo-cartao {{ font-size: 1.4em; font-weight: bold; color: gold; text-align: center; margin-bottom: 10px; }}
-    .nome-comum {{ font-size: 1.5em; font-weight: 900; text-transform: uppercase; color: white; display: block; text-align: center; }}
-    .info-item {{ font-size: 1.0em; margin: 5px 0; text-align: left; }}
+    .img-container img {{ width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; }}
+    .nome-comum {{ font-size: 1.5em; font-weight: 900; text-transform: uppercase; color: white; text-align: center; display: block; margin: 10px 0; }}
+    .info-item {{ font-size: 1.05em; margin: 4px 0; text-align: left; }}
     .label {{ color: #1DB954; font-weight: bold; }}
     .linha-vip {{ {linha_separadora} margin: 15px 0; }}
-    .stats-vip {{ font-family: 'Courier New', monospace; color: #ffd700; font-size: 1.1em; }}
+    .stats-vip {{ color: #ffd700; font-weight: bold; font-size: 1.1em; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,35 +69,31 @@ def render_cartao(an, key_prefix):
     nome = an.get('preferred_common_name', an.get('name', 'Espécie Identificada')).title()
     especie = an.get('name', 'N/A')
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
-    classe = an.get('iconic_taxon_name', 'Biológica').upper()
     
-    # Gerar dados fixos para este cartão
+    # Dados Simulados
     random.seed(an['id'])
-    vel = random.randint(10, 150)
-    peso = random.randint(1, 2000)
     dieta = random.choice(["Herbívoro", "Carnívoro", "Omnívoro"])
     habitat = random.choice(["Terrestre", "Aquático", "Aéreo"])
+    repro = an.get('iconic_taxon_name', 'Biológica').upper()
 
     st.markdown(f"""
     <div class="cartao-cidadao">
-        <div class="titulo-cartao">💳 CARTÃO DE CIDADÃO VIVO</div>
+        <div style="color:gold; font-weight:bold; text-align:center;">💳 CARTÃO DE CIDADÃO</div>
         <div class="img-container"><img src="{foto}"></div>
         <span class="nome-comum">{nome}</span>
-        <div style="margin-top:10px;">
-            <div class="info-item"><span class="label">🧬 ESPÉCIE:</span> {especie}</div>
-            <div class="info-item"><span class="label">🌍 AMBIENTE:</span> {habitat}</div>
-            <div class="info-item"><span class="label">🥩 ALIMENTAÇÃO:</span> {dieta}</div>
-            <div class="info-item"><span class="label">🍼 REPRODUÇÃO:</span> {classe}</div>
-        </div>
+        <div class="info-item"><span class="label">🧬 ESPÉCIE:</span> {especie}</div>
+        <div class="info-item"><span class="label">🌍 AMBIENTE:</span> {habitat}</div>
+        <div class="info-item"><span class="label">🥩 ALIMENTAÇÃO:</span> {dieta}</div>
+        <div class="info-item"><span class="label">🍼 REPRODUÇÃO:</span> {repro}</div>
     """, unsafe_allow_html=True)
     
     if st.session_state.premium_ativo and tem_beneficios_premium:
         st.markdown(f"""
         <div class="linha-vip"></div>
         <div class="stats-vip">
-            <b>📊 ESTATÍSTICAS VIP</b><br>
-            🚀 VELOCIDADE: {vel} KM/H<br>
-            ⚖️ PESO MÉDIO: {peso} KG
+            📊 ESTATÍSTICAS VIP<br>
+            🚀 VELOCIDADE: {random.randint(10,160)} KM/H<br>
+            ⚖️ PESO: {random.randint(1,3000)} KG
         </div>
         """, unsafe_allow_html=True)
     
@@ -131,21 +125,21 @@ with st.sidebar:
         nav = ["🔬 Laboratório", "🧬 Fusão", "🚁 Missões", "📊 Estatísticas", "❄️ Criogenia", "⚙️ Definições"]
     aba = st.radio("Navegação", nav)
 
-# 7. CONTEÚDO DAS ABAS
+# 7. CONTEÚDO
 if aba == "🌍 Países":
-    p = st.selectbox("País:", ["Brasil", "Portugal", "México", "Finlândia", "Madagáscar"])
+    p = st.selectbox("País:", ["Brasil", "Portugal", "México", "Madagáscar", "Austrália"])
     cols = st.columns(3)
     for i, an in enumerate(buscar(p)):
         with cols[i%3]: render_cartao(an, "p")
 
 elif aba == "🌲 Florestas":
-    f = st.selectbox("Escolha a Floresta:", ["Amazónia", "Selva do Congo", "Taiga Siberiana", "Mata Atlântica", "Floresta Negra"])
+    f = st.selectbox("Floresta:", ["Amazónia", "Selva do Congo", "Mata Atlântica", "Taiga", "Floresta Negra"])
     cols = st.columns(3)
     for i, an in enumerate(buscar(f)):
         with cols[i%3]: render_cartao(an, "f")
 
 elif aba == "🌊 Oceanos":
-    o = st.selectbox("Escolha o Oceano:", ["Oceano Atlântico", "Oceano Pacífico", "Oceano Índico", "Mar Mediterrâneo", "Mar das Caraíbas"])
+    o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico", "Ártico", "Mar Mediterrâneo"])
     cols = st.columns(3)
     for i, an in enumerate(buscar(o)):
         with cols[i%3]: render_cartao(an, "o")
@@ -157,7 +151,7 @@ elif aba == "🔬 Laboratório":
         for i, an in enumerate(buscar(q)):
             with cols[i%3]: render_cartao(an, "lab")
     st.divider()
-    st.subheader("🦁 Inventário / Zoo")
+    st.subheader("🦁 Inventário (Zoo)")
     if st.session_state.zoo:
         cols_z = st.columns(3)
         for i, an in enumerate(st.session_state.zoo):
@@ -165,11 +159,12 @@ elif aba == "🔬 Laboratório":
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
-    with st.expander("🎨 VISUAL E IDIOMA"):
+    with st.expander("🎨 VISUAL"):
         st.session_state.cor_fundo = st.color_picker("Cor de Fundo", st.session_state.cor_fundo)
+        st.session_state.cor_card = st.color_picker("Cor dos Cartões", st.session_state.cor_card)
         st.session_state.luminosidade = st.slider("Brilho", 50, 150, 100)
 
-    st.markdown("### 👑 MEGA PREMIUM")
+    st.markdown("### 👑 RETÂNGULO MEGA")
     with st.container():
         st.session_state.codigo_perm = st.text_input("Código Mega", value=st.session_state.codigo_perm, type="password")
 
