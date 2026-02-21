@@ -1,169 +1,100 @@
 import streamlit as st
 import requests
-import random
-import time
-from datetime import datetime, timedelta
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
+# 1. ESTADO DO SISTEMA
+if 'zoo' not in st.session_state:
+    st.session_state.update({
+        'zoo': [], 'tanque_fusao': [], 'premium_ativo': False,
+        'nome_zoologo': "Explorador", 'codigo_perm': "67lucas62", 'codigo': "6626"
+    })
 
-# 2. ESTADO DO SISTEMA
-chaves_padrao = {
-    'zoo': [], 'tanque_fusao': [], 'criogenia_storage': [],
-    'codigo': "", 'codigo_perm': "", 'codigo_crio': "",
-    'premium_ativado_em': None, 'premium_ativo': False,
-    'cor_card': "Preto", 'cor_fundo': "Preto", 'idioma': "pt-PT",
-    'nome_zoologo': "Explorador", 'luminosidade': 100, 'negrito': False, 'pontos': 250,
-    'resgates_ativos': ["Tigre ferido na Ásia", "Panda faminto na China", "Baleia encalhada em Portugal"]
-}
+# 2. LÓGICA DE ACESSO
+tem_acesso = (st.session_state.codigo == "6626" or st.session_state.codigo_perm == "67lucas62")
 
-for chave, valor in chaves_padrao.items():
-    if chave not in st.session_state:
-        st.session_state[chave] = valor
-
-# 3. LÓGICA PREMIUM
-is_premium = st.session_state.codigo == "6626"
-is_mega = st.session_state.codigo_perm == "67lucas62"
-tem_acesso = is_premium or is_mega
-
-if is_premium and st.session_state.premium_ativado_em is None:
-    st.session_state.premium_ativado_em = datetime.now()
-
-# 4. DESIGN CSS (BORDAS DINÂMICAS)
-mapa_cores = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b", "Cinza": "#262730"}
-app_bg = mapa_cores.get(st.session_state.cor_fundo, "#0b1117")
-card_bg = mapa_cores.get(st.session_state.cor_card, "#1a1c23")
-
-if is_mega and st.session_state.premium_ativo:
-    border_style = "border: 5px solid; border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1; animation: rainbow 3s linear infinite;"
-elif is_premium and st.session_state.premium_ativo:
-    border_style = "border: 4px solid #ffd700; animation: pulse-gold 2s infinite;"
-else:
-    border_style = "border: 4px solid #2ecc71;"
-
+# 3. DESIGN CSS
 st.markdown(f"""
 <style>
-    @keyframes pulse-gold {{
-        0% {{ box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); border-color: #ffd700; }}
-        70% {{ box-shadow: 0 0 0 15px rgba(255, 215, 0, 0); border-color: #fff3a0; }}
-        100% {{ box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); border-color: #ffd700; }}
-    }}
-    @keyframes rainbow {{
-        0% {{ filter: hue-rotate(0deg); }}
-        100% {{ filter: hue-rotate(360deg); }}
-    }}
-    .stApp {{ background-color: {app_bg}; filter: brightness({st.session_state.luminosidade}%); }}
     .cartao-cidadao {{
-        background: {card_bg}; color: white; border-radius: 15px; padding: 15px; 
-        text-align: center; {border_style} margin-bottom: 10px;
+        background-color: #1a1c23;
+        padding: 15px;
+        border-radius: 15px;
+        border: 2px solid #34495e;
+        color: white;
+        margin-bottom: 10px;
+    }}
+    .info-box {{
+        background: rgba(255,255,255,0.05);
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 0.85em;
+        margin-top: 10px;
+        text-align: left;
+        line-height: 1.4;
+    }}
+    .selo-premium {{
+        background: linear-gradient(45deg, #ffd700, #ffa500);
+        color: black;
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-weight: bold;
+        font-size: 0.75em;
+        display: block;
+        margin-top: 8px;
+        text-align: center;
     }}
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES
-def buscar_70(q):
-    try:
-        url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=9&locale={st.session_state.idioma}"
-        return requests.get(url, timeout=10).json().get('results', [])
-    except: return []
-
-def render_cartao_completo(an, local):
-    foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/150")
+# 4. FUNÇÃO DE EXIBIÇÃO
+def exibir_animal(an):
     nome = an.get('preferred_common_name', an.get('name', 'Espécie')).title()
+    foto = an.get('default_photo', {}).get('medium_url', "")
+    classe = an.get('iconic_taxon_name', 'Mamífero')
     
     st.markdown(f"""
     <div class="cartao-cidadao">
-        <img src="{foto}" style="width:100%; border-radius:10px; height:150px; object-fit:cover;">
-        <h3 style="margin:10px 0;">{nome}</h3>
-        <p style="font-size:0.8em; color:#aaa;">ZOO DE: {st.session_state.nome_zoologo.upper()}</p>
+        <img src="{foto}" width="100%" style="border-radius: 10px; border: 1px solid #444;">
+        <h3 style="margin: 10px 0; color: #2ecc71;">{nome}</h3>
+        <div class="info-box">
+            <b>🧬 Classe:</b> {classe}<br>
+            <b>🌍 Habitat:</b> Selvagem / Natural<br>
+            <b>🍼 Reprodução:</b> Nativa da Espécie<br>
+            <b>🍖 Alimentação:</b> Dieta Natural
+    """, unsafe_allow_html=True)
+
+    # APENAS CONSERVAÇÃO É PREMIUM
+    if st.session_state.premium_ativo:
+        st.markdown(f'<div class="selo-premium">🛡️ STATUS: PROTEGIDO (IUCN)</div>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        </div>
+        <div style="margin-top:8px; opacity:0.5; font-size:0.7em;">ID: {an['id']}</div>
     </div>
     """, unsafe_allow_html=True)
     
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button(f"📥 Capturar", key=f"cap_{local}_{an['id']}"):
-            st.session_state.zoo.append(an)
-            st.toast(f"{nome} capturado!")
-    with c2:
-        if st.session_state.premium_ativo and tem_acesso:
-            if st.button(f"🧬 DNA", key=f"fus_{local}_{an['id']}"):
-                st.session_state.tanque_fusao.append(an)
-                st.toast(f"DNA de {nome} extraído!")
+    if st.button(f"📥 CAPTURAR {nome}", key=f"cap_{an['id']}"):
+        st.session_state.zoo.append(an)
+        st.toast(f"{nome} adicionado ao Zoo!")
 
-# 6. INTERRUPTOR PREMIUM
+# 5. INTERFACE PRINCIPAL
+st.title("MundoVivo: Enciclopédia 🌍")
+
 if tem_acesso:
-    _, col_t = st.columns([5, 1])
-    with col_t:
-        st.session_state.premium_ativo = st.toggle("💎 MODO PREMIUM", value=st.session_state.premium_ativo)
+    st.session_state.premium_ativo = st.toggle("🔓 Ver Status de Conservação", value=st.session_state.premium_ativo)
 
-# 7. SIDEBAR PROTEGIDA
-with st.sidebar:
-    st.title("🌍 MundoVivo")
-    st.write(f"🏆 Pontos: **{st.session_state.pontos}**")
-    
-    if tem_acesso and st.session_state.premium_ativo:
-        nav = ["🧬 Fusão de Genes", "📊 Estatísticas", "🚁 Resgates", "💊 Criogenia", "⚙️ Definições"]
-    else:
-        nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"]
-    
-    aba = st.radio("Menu", nav)
+busca = st.text_input("Pesquisar espécie:", "Lince")
 
-# 8. ABAS
-if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
-    st.title(f"🔍 Explorar {aba}")
-    locais = {"🌍 Países": ["Portugal", "Brasil", "Angola"], "🌲 Florestas": ["Amazónia", "Congo"], "🌊 Oceanos": ["Atlântico", "Pacífico"]}
-    escolha = st.selectbox("Local:", locais[aba])
-    animais = buscar_70(escolha)
-    if animais:
+if busca:
+    url = f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&per_page=3"
+    try:
+        dados = requests.get(url).json().get('results', [])
         cols = st.columns(3)
-        for i, an in enumerate(animais):
-            with cols[i%3]: render_cartao_completo(an, aba)
+        for i, animal in enumerate(dados):
+            with cols[i]:
+                exibir_animal(animal)
+    except:
+        st.error("Erro ao carregar dados da natureza.")
 
-elif aba == "🧬 Fusão de Genes":
-    st.title("🧬 Tanque de Fusão")
-    if len(st.session_state.tanque_fusao) >= 2:
-        a1 = st.selectbox("DNA 1", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna1")
-        a2 = st.selectbox("DNA 2", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna2")
-        if st.button("REALIZAR FUSÃO"):
-            h = f"{a1.get('name')[:4].upper()}-{a2.get('name')[-3:].upper()}"
-            st.success(f"Híbrido Criado: {h}")
-            st.balloons()
-    else: st.warning("Usa o botão '🧬 DNA' nos cartões para enviar animais para aqui!")
-
-elif aba == "📊 Estatísticas":
-    st.title("📊 Painel de Status")
-    st.metric("Zoo", len(st.session_state.zoo))
-    st.metric("Tanque Fusão", len(st.session_state.tanque_fusao))
-    st.metric("Criostase", len(st.session_state.criogenia_storage))
-
-elif aba == "🚁 Resgates":
-    st.title("🚁 Missões")
-    for idx, missao in enumerate(st.session_state.resgates_ativos):
-        c1, c2 = st.columns([4, 1])
-        c1.warning(f"🚨 {missao}")
-        if c2.button("Resgatar", key=f"res_{idx}"):
-            st.session_state.pontos += 50
-            st.session_state.resgates_ativos[idx] = random.choice(["Lince preso", "Águia ferida", "Resgate marítimo"])
-            st.rerun()
-
-elif aba == "💊 Criogenia":
-    st.title("💊 Unidade Criostase")
-    if st.session_state.zoo:
-        an = st.selectbox("Congelar:", st.session_state.zoo, format_func=lambda x: x.get('name'))
-        if st.button("Ativar"):
-            st.session_state.criogenia_storage.append(an)
-            st.session_state.zoo.remove(an)
-            st.rerun()
-
-elif aba == "⚙️ Definições":
-    st.header("⚙️ Definições")
-    c1, col_def2 = st.columns(2)
-    with c1:
-        st.session_state.nome_zoologo = st.text_input("Nome", st.session_state.nome_zoologo)
-        st.session_state.codigo = st.text_input("Código Premium", value=st.session_state.codigo, type="password")
-        st.session_state.codigo_perm = st.text_input("Código Mega", value=st.session_state.codigo_perm, type="password")
-    with col_def2:
-        st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_fundo))
-        st.session_state.cor_card = st.selectbox("Cartão", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_card))
-        st.session_state.negrito = st.checkbox("Negrito", value=st.session_state.negrito)
-    if st.button("Guardar"): st.rerun()
+# 6. RODAPÉ (DEFINIÇÕES)
+with st.expander("⚙️ Painel do Zoólogo"):
+    st.session_state.codigo = st.text_input("Código de Acesso:", value=st.session_state.codigo, type="password")
