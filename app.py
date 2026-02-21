@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 # 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo 🌍", layout="wide")
+st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
 
 # 2. ESTADO DO SISTEMA
 chaves_padrao = {
@@ -101,7 +101,6 @@ with st.sidebar:
     st.title("🌍 MundoVivo")
     st.write(f"🏆 Pontos: **{st.session_state.pontos}**")
     
-    # SÓ MOSTRA O MENU PREMIUM SE TIVER ACESSO E O BOTÃO LIGADO
     if tem_acesso and st.session_state.premium_ativo:
         nav = ["🧬 Fusão de Genes", "📊 Estatísticas", "🚁 Resgates", "💊 Criogenia", "⚙️ Definições"]
     else:
@@ -122,10 +121,6 @@ if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
 
 elif aba == "🧬 Fusão de Genes":
     st.title("🧬 Tanque de Fusão")
-    
-
-[Image of DNA structure]
-
     if len(st.session_state.tanque_fusao) >= 2:
         a1 = st.selectbox("DNA 1", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna1")
         a2 = st.selectbox("DNA 2", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna2")
