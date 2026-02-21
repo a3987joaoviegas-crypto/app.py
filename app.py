@@ -1,107 +1,141 @@
-import streamlit as st
+ import streamlit as st
 import requests
 import random
 import time
 from datetime import datetime, timedelta
 
-# 1. ESTADO (Memória do Zoo e Trava)
-chaves = {'zoo':[], 'crio':[], 'c_24h':"", 'c_mega':"", 'ini':None, 'exp':None}
+# 1. ESTADO DO SISTEMA
+chaves = {
+    'zoo': [], 'criogenia_storage': [],
+    'c_24h': "", 'c_mega': "", 'c_crio': "", 
+    'c_neon': "", 'c_diamante': "", 'premium_ativo': False, 
+    'ini_premium': None, 'exp_trava': None
+}
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 2. REGRAS DE ACESSO (Trava de 1 semana no 6626)
+# 2. LÓGICA DE ACESSO E CÓDIGOS
 is_mega = st.session_state.c_mega == "67lucas62"
+is_neon = st.session_state.c_neon == "6676neon7secret"
+is_diamante = st.session_state.c_diamante == "77daimond8secret"
+
+# Trava do 6626
 pode_6626 = True
-if st.session_state.exp:
-    if datetime.now() - st.session_state.exp < timedelta(weeks=1): pode_6626 = False
+if st.session_state.exp_trava:
+    if datetime.now() - st.session_state.exp_trava < timedelta(weeks=1): pode_6626 = False
 
 is_24h = (st.session_state.c_24h == "6626" and pode_6626)
-if is_24h and not st.session_state.ini: st.session_state.ini = datetime.now()
+vip_global = is_mega or is_24h
 
-# Verificação de Expiração
-if st.session_state.ini and datetime.now() - st.session_state.ini > timedelta(hours=24):
-    st.session_state.exp = datetime.now(); st.session_state.ini = None; st.session_state.c_24h = ""; st.rerun()
+# 3. SIDEBAR E INTERRUPTOR PREMIUM
+with st.sidebar:
+    st.title("🌍 MundoVivo")
+    
+    # Interruptor no topo da Sidebar
+    if vip_global:
+        st.session_state.premium_ativo = st.toggle("✨ SIDE BAR PREMIUM", value=st.session_state.premium_ativo)
+    
+    # Definição do Menu baseado no Interruptor
+    if st.session_state.premium_ativo and vip_global:
+        menu = ["🔬 Lab Especial", "🌀 Resgate", "❄️ Criogenia", "🐾 Meu Zoo", "🌍 Explorar", "⚙️ Definições"]
+    else:
+        menu = ["🌍 Explorar", "🐾 Meu Zoo", "⚙️ Definições"]
+    
+    aba = st.radio("Navegação", menu)
 
-vip = is_mega or is_24h
+# 4. ESTILOS (Neon e Diamante)
+cor_borda = "#2ecc71"
+if is_neon: cor_borda = "#00ff00"
+if is_diamante: cor_borda = "#00d4ff"
+if is_mega: cor_borda = "linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)"
 
-# 3. FUNÇÃO DE BUSCA E CARD
-def buscar(q):
+st.markdown(f"""
+<style>
+    .stApp {{ background-color: #0b1117; color: white; }}
+    .cartao {{
+        background: #1a1c23; border-radius: 15px; padding: 15px; border: 3px solid;
+        border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
+        border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
+        margin-bottom: 15px;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# 5. FUNÇÕES DE SUPORTE
+def buscar_animais(q):
     try:
         r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=6&locale=pt-PT")
         return r.json().get('results', [])
     except: return []
 
-def card(an, resgate=False):
+def card(an, modo="explorar"):
     nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     cientifico = an.get('name', 'N/A')
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/150")
     
-    st.markdown(f"""
-    <div style="background:#1a1c23; padding:15px; border-radius:15px; border:2px solid {'#ffd700' if vip else '#2ecc71'}; margin-bottom:10px;">
-        <img src="{foto}" style="width:100%; border-radius:10px;">
-        <h3 style="margin:10px 0 0 0; font-size:1.1em;">{nome}</h3>
-        <i style="color:#1DB954; font-size:0.9em;">{cientifico}</i>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="cartao"><img src="{foto}" style="width:100%; border-radius:10px;"><h3>{nome}</h3><i>{cientifico}</i></div>', unsafe_allow_html=True)
     
-    if resgate:
-        if st.button(f"🌀 Resgatar", key=f"res_{an['id']}"):
-            st.session_state.zoo.append(an); st.session_state.crio.remove(an); st.rerun()
-    else:
-        if st.button(f"📥 Capturar", key=f"cap_{an['id']}", use_container_width=True):
-            st.session_state.zoo.append(an); st.toast(f"{nome} capturado!")
+    limite = 80 if st.session_state.premium_ativo else 20
 
-# 4. SIDEBAR
-with st.sidebar:
-    st.title("🌍 MundoVivo")
-    op = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "⚙️ Definições"]
-    if vip: op = ["🔬 Zoo", "🌀 Resgate", "❄️ Criogenia"] + op
-    aba = st.radio("Navegação", op)
+    if modo == "explorar":
+        if st.session_state.premium_ativo:
+            if st.button(f"🧬 Fundir Genes", key=f"fus_{an['id']}"):
+                st.toast("Sequência de DNA obtida!")
+        else:
+            if st.button(f"📥 Capturar", key=f"cap_{an['id']}"):
+                if len(st.session_state.zoo) < limite:
+                    st.session_state.zoo.append(an)
+                    st.toast("Enviado para o Meu Zoo!")
+                else: st.error("Zoo cheio!")
+        
+        # Botão Criogenia (Bloqueado por código crio99)
+        if st.session_state.c_crio == "crio99":
+            if st.button(f"❄️ Enviar para Criogenia", key=f"crio_btn_{an['id']}"):
+                st.session_state.criogenia_storage.append(an)
+                st.success("Congelado!")
+        else:
+            st.button("🔒 Criogenia Bloqueada", key=f"lock_{an['id']}", disabled=True)
 
-# 5. CONTEÚDO DAS ABAS
-if aba == "🌲 Florestas":
-    st.header("🌲 Florestas do Mundo")
+    elif modo == "zoo":
+        if st.button(f"🗑️ Apagar Animal", key=f"del_{an['id']}", use_container_width=True):
+            st.session_state.zoo.remove(an)
+            st.rerun()
+
+    elif modo == "resgate":
+        if st.button(f"🌀 Resgatar", key=f"res_{an['id']}", use_container_width=True):
+            st.session_state.zoo.append(an)
+            st.session_state.criogenia_storage.remove(an)
+            st.rerun()
+
+# 6. PÁGINAS
+if aba == "🌍 Explorar":
+    tipo = st.selectbox("Local:", ["Amazónia", "Oceano Pacífico", "Savana"])
+    for an in buscar_animais(tipo): card(an, "explorar")
+
+elif aba == "🐾 Meu Zoo":
+    st.header("🐾 Meu Zoo")
+    if st.button("🔴 ELIMINAR TODO O ZOO"):
+        st.session_state.zoo = []
+        st.rerun()
     
-    tipo = st.selectbox("Escolha o Bioma:", ["Amazónia", "Floresta do Congo", "Taiga Siberiana", "Mata Atlântica", "Selva Tropical"])
-    animais = buscar(tipo)
-    cols = st.columns(2)
-    for i, an in enumerate(animais):
-        with cols[i%2]: card(an)
-
-elif aba == "🌊 Oceanos":
-    st.header("🌊 Oceanos e Mares")
-    
-    tipo = st.selectbox("Escolha o Oceano:", ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Mar Vermelho", "Abismo"])
-    animais = buscar(tipo)
-    cols = st.columns(2)
-    for i, an in enumerate(animais):
-        with cols[i%2]: card(an)
-
-elif aba == "🔬 Zoo":
-    st.header("🐾 O Teu Zoo")
-    if not st.session_state.zoo: st.info("Zoo vazio.")
+    st.write(f"Capacidade: {len(st.session_state.zoo)}/{80 if st.session_state.premium_ativo else 20}")
     cols = st.columns(2)
     for i, an in enumerate(st.session_state.zoo):
-        with cols[i%2]: card(an)
+        with cols[i%2]: card(an, "zoo")
 
 elif aba == "🌀 Resgate":
-    st.header("🌀 Centro de Resgate")
-    if not st.session_state.crio: st.info("Nada para resgatar.")
-    cols = st.columns(2)
-    for i, an in enumerate(st.session_state.crio):
-        with cols[i%2]: card(an, resgate=True)
+    st.header("🌀 Unidade de Resgate")
+    for an in st.session_state.criogenia_storage: card(an, "resgate")
 
-elif aba == "❄️ Criogenia":
-    st.header("❄️ Congelar Animal")
-    if st.session_state.zoo:
-        alvo = st.selectbox("Animal:", st.session_state.zoo, format_func=lambda x: x.get('preferred_common_name', x.get('name')))
-        if st.button("❄️ Enviar para o Resgate"):
-            st.session_state.crio.append(alvo); st.session_state.zoo.remove(alvo); st.rerun()
-    else: st.warning("Não há animais no Zoo para congelar.")
+elif aba == "🔬 Lab Especial":
+    st.header("🔬 Laboratório Premium")
+    st.info("Aqui podes manipular genes de espécies raras e fundir ADNs.")
 
 elif aba == "⚙️ Definições":
-    st.header("⚙️ Definições de Acesso")
-    if not pode_6626: st.error("Trava de 1 semana ativa para o código 6626.")
+    st.header("⚙️ Configurações")
     st.session_state.c_mega = st.text_input("Código Mega", value=st.session_state.c_mega, type="password")
     st.session_state.c_24h = st.text_input("Código 24h", value=st.session_state.c_24h, type="password")
-    if st.button("Guardar Alterações"): st.rerun()
+    st.session_state.c_crio = st.text_input("Código Criogenia (crio99)", value=st.session_state.c_crio, type="password")
+    st.session_state.c_neon = st.text_input("Código Neon", value=st.session_state.c_neon, type="password")
+    st.session_state.c_diamante = st.text_input("Código Diamante", value=st.session_state.c_diamante, type="password")
+    if st.button("Guardar"): st.rerun()
