@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd
+import pd
 import requests
 
 # 1. CONFIGURAÇÃO
@@ -28,7 +28,7 @@ lang_map = {
 }
 dic = lang_map[st.session_state.lingua]
 
-# 4. CSS COM ANIMAÇÃO DE MOVIMENTO (ONDA/PARTÍCULAS)
+# 4. CSS COM ANIMAÇÃO
 bg = "#f0f2f6" if st.session_state.luz else cores_hex[st.session_state.cor_fundo]
 c_bg = "#ffffff" if st.session_state.luz else cores_hex[st.session_state.cor_card]
 t_color = "#000000" if (st.session_state.luz or st.session_state.cor_fundo in ["Branco", "Amarelo"]) else "#ffffff"
@@ -42,19 +42,24 @@ st.markdown(f"""
         background-size: 60px 60px; animation: move 120s linear infinite;
     }}
     [data-testid="stSidebar"] {{ min-width: 320px !important; }}
-    * {{ font-weight: {"bold" if st.session_state.negrito else "normal"} !important; }}
-    .cc-card {{ 
-        background: {c_bg}; border-radius: 12px; padding: 20px; 
-        border-left: 8px solid #2ea043; margin-bottom: 25px; color: {t_color};
-    }}
+    .cc-card {{ background: {c_bg}; border-radius: 12px; padding: 20px; border-left: 8px solid #2ea043; margin-bottom: 25px; color: {t_color}; }}
     .img-cc {{ width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }}
     .common-name {{ color: #2ea043; font-size: 22px; text-align: center; margin-top: 10px; }}
+    * {{ font-weight: {"bold" if st.session_state.negrito else "normal"} !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES
+# 5. MOTOR DE BUSCA MELHORADO
 def buscar(query):
-    url = f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale={dic['code']}"
+    # Dicionário de termos de busca otimizados para a API iNaturalist
+    q_map = {
+        "Amazónia": "Amazonia", "Mata Atlântica": "Atlantic Forest", "Taiga Siberiana": "Taiga",
+        "Floresta Russa": "Russia animals", "Savana": "Savanna", "Selva Tropical": "Rainforest",
+        "Oceano Atlântico": "Atlantic Ocean", "Oceano Pacífico": "Pacific Ocean", 
+        "Mar Mediterrâneo": "Mediterranean Sea", "Recifes de Coral": "Coral Reef", "Abismo Marinho": "Deep Sea"
+    }
+    q_final = q_map.get(query, query)
+    url = f"https://api.inaturalist.org/v1/taxa?q={q_final}&taxon_id=1&per_page=70&locale={dic['code']}"
     try:
         res = requests.get(url).json()
         out = []
@@ -62,9 +67,9 @@ def buscar(query):
             if item.get('default_photo'):
                 n = (item.get('preferred_common_name') or item.get('name')).title()
                 cl = item.get('iconic_taxon_name', 'Animal')
-                d = dic['carn'] if any(x in n.lower() for x in ['leão', 'lion', 'tubarão', 'shark', 'lobo']) else dic['herb'] if any(x in n.lower() for x in ['zebra', 'girafa']) else dic['omni']
+                d = dic['carn'] if any(x in n.lower() for x in ['leão', 'lion', 'tubarão', 'shark', 'lobo', 'orca']) else dic['herb'] if any(x in n.lower() for x in ['zebra', 'girafa', 'elefante']) else dic['omni']
                 r = dic['viv'] if cl == 'Mammalia' else dic['ovi']
-                a = dic['aqua'] if cl in ['Actinopterygii'] or any(x in n.lower() for x in ['baleia', 'whale', 'fish', 'marinho']) else dic['terr']
+                a = dic['aqua'] if cl in ['Actinopterygii', 'Mollusca'] or any(x in n.lower() for x in ['baleia', 'whale', 'peixe', 'marinho', 'ocean']) else dic['terr']
                 out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': a})
         return out
     except: return []
@@ -73,35 +78,32 @@ def card(a, k):
     st.markdown(f"""<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div style='text-align:center; font-style:italic;'>{a['sci']}</div><hr><b>{dic['env']}:</b> {a['ambiente']}<br><b>{dic['diet']}:</b> {a['dieta']}<br><b>{dic['rep']}:</b> {a['repro']}</div>""", unsafe_allow_html=True)
     if st.button(f"⭐ {dic['save']}", key=k): st.session_state.zoo.append(a)
 
-# 6. MENU LATERAL (ORGANIZADO POR PASTAS)
-st.sidebar.title("🌍 MundoVivo")
+# 6. INTERFACE
 aba = st.sidebar.radio("Navegação:", ["🌍 Planisfério", "🌲 Florestas do Mundo", "🌊 Oceanos e Mares", "🔬 Laboratório", "⭐ Favoritos", "⚙️ Definições"])
 
 if aba == "🌲 Florestas do Mundo":
-    tipo = st.sidebar.selectbox("Escolha a Floresta:", ["Amazónia", "Mata Atlântica", "Taiga Siberiana", "Floresta Russa", "Savana", "Selva Tropical"])
+    tipo = st.sidebar.selectbox("Região:", ["Amazónia", "Mata Atlântica", "Taiga Siberiana", "Floresta Russa", "Savana", "Selva Tropical"])
     res = buscar(tipo)
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]: card(an, f"fl_{i}")
 
 elif aba == "🌊 Oceanos e Mares":
-    tipo_oc = st.sidebar.selectbox("Escolha o Mar/Oceano:", ["Oceano Atlântico", "Oceano Pacífico", "Mar Mediterrâneo", "Recifes de Coral", "Abismo Marinho"])
+    tipo_oc = st.sidebar.selectbox("Região:", ["Oceano Atlântico", "Oceano Pacífico", "Mar Mediterrâneo", "Recifes de Coral", "Abismo Marinho"])
     res = buscar(tipo_oc)
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]: card(an, f"oc_{i}")
 
 elif aba == "🌍 Planisfério":
-    df = pd.DataFrame({'lat': [38.7, -15.7, 60.0, -25.2], 'lon': [-9.1, -47.8, 90.0, 133.7]})
-    st.map(df)
-    p = st.selectbox("Região:", ["Portugal", "Brasil", "Rússia", "Angola", "Austrália"])
+    p = st.selectbox("País:", ["Portugal", "Brasil", "Rússia", "Angola", "Austrália", "Japão"])
     res = buscar(p)
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]: card(an, f"pl_{i}")
 
 elif aba == "⭐ Favoritos":
-    if not st.session_state.zoo: st.write("Vazio.")
+    if not st.session_state.zoo: st.write("Lista vazia.")
     else:
         cols = st.columns(3)
         for i, an in enumerate(st.session_state.zoo):
@@ -116,7 +118,7 @@ elif aba == "🔬 Laboratório":
             with cols[i%3]: card(an, f"lb_{i}")
 
 elif aba == "⚙️ Definições":
-    st.session_state.luz = st.toggle("Luminosidade (Ovo)", value=st.session_state.luz)
+    st.session_state.luz = st.toggle("Luz"), value=st.session_state.luz)
     st.session_state.negrito = st.toggle("Negrito", value=st.session_state.negrito)
     st.session_state.cor_fundo = st.selectbox("Fundo", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_fundo))
     st.session_state.cor_card = st.selectbox("Cartões", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_card))
