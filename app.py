@@ -75,3 +75,4 @@ aba = st.sidebar.radio("Navegação", ["🌍 Mundo", "🌲 Florestas", "🌊 Oce
 # 6. INTERFACE PRINCIPAL
 if aba == "🔬 Laboratório":
     st.title("🔬 Centro de Pesquisa e Arena")
+
