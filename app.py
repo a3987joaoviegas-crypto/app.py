@@ -4,7 +4,7 @@ import requests
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="MundoVivo 🌍", layout="wide")
 
-# 2. TRADUÇÃO COMPLETA
+# 2. TRADUÇÃO COMPLETA (TUDO DE VOLTA)
 idiomas = {
     "Português": {"paises": "Países", "florestas": "Florestas", "oceanos": "Oceanos", "lab": "Laboratório", "col": "Coleção", "def": "Definições", "luta": "Lutar", "arena": "Arena de Luta", "guardar": "Guardar Alterações", "fav": "Favoritos", "grupo": "Filtrar Grupo"},
     "English": {"paises": "Countries", "florestas": "Forests", "oceanos": "Oceans", "lab": "Laboratory", "col": "Collection", "def": "Settings", "luta": "Fight", "arena": "Fight Arena", "guardar": "Save Changes", "fav": "Favorites", "grupo": "Filter Group"},
@@ -28,11 +28,10 @@ for key, val in {
 T = idiomas[st.session_state.lang_label]
 is_mestre = st.session_state.codigo == "6626" or st.session_state.codigo_perm == "67lucas62"
 
-# --- LIMITES DO ZOO ---
 LIMITE_ZOO = 80 if is_mestre else 20
 LIMITE_FAV = 40 if is_mestre else 10 
 
-# 4. DESIGN (CSS)
+# 4. DESIGN (CSS MEGA)
 cores_hex = {"Preto": "#1a1c23", "Branco": "#ffffff", "Verde": "#002b1b", "Azul": "#001f3f", "Amarelo": "#f1c40f"}
 c_bg = cores_hex.get(st.session_state.cor_card, "#1a1c23") if not st.session_state.luz else "#ffffff"
 app_bg = cores_hex.get(st.session_state.cor_fundo, "#0b1117") if not st.session_state.luz else "#f0f2f6"
@@ -46,7 +45,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES DE BUSCA (Ajustado para 70)
+# 5. FUNÇÕES DE BUSCA (REPARADA)
 def buscar(q, n=70):
     try:
         url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page={n}&locale={st.session_state.idioma}"
@@ -57,17 +56,9 @@ def buscar(q, n=70):
 def card(an, k, btn_txt="➕", show_fav=False):
     is_fav = an['id'] in st.session_state.favs
     fav_class = "fav-card" if is_fav else ""
-    
-    st.markdown(f"""
-    <div class='cc-card {fav_class}'>
-        <img src='{an['foto']}' style='width:100%; border-radius:15px; height:450px; object-fit:cover;'>
-        <h1 style='margin-top:15px; font-size: 2.5em;'>{"⭐ " if is_fav else ""}{an['nome']}</h1>
-        <p style='font-style:italic; font-size: 1.3em; opacity: 0.8;'>{an['sci']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_a, col_b = st.columns(2)
-    with col_a:
+    st.markdown(f"""<div class='cc-card {fav_class}'><img src='{an['foto']}' style='width:100%; border-radius:15px; height:450px; object-fit:cover;'><h1 style='margin-top:15px; font-size: 2.5em;'>{"⭐ " if is_fav else ""}{an['nome']}</h1><p style='font-style:italic; font-size: 1.3em; opacity: 0.8;'>{an['sci']}</p></div>""", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
         if st.button(btn_txt, key=f"btn_{k}", use_container_width=True):
             if "Libertar" in btn_txt:
                 st.session_state.zoo = [x for x in st.session_state.zoo if x['id'] != an['id']]
@@ -75,16 +66,13 @@ def card(an, k, btn_txt="➕", show_fav=False):
                 st.rerun()
             elif len(st.session_state.zoo) < LIMITE_ZOO:
                 if not any(x['id'] == an['id'] for x in st.session_state.zoo):
-                    st.session_state.zoo.append(an)
-                    st.toast(f"{an['nome']} capturado!")
-            else: st.error(f"Zoo cheio! ({LIMITE_ZOO})")
-    
+                    st.session_state.zoo.append(an); st.toast(f"{an['nome']} capturado!")
+            else: st.error("Zoo cheio!")
     if show_fav:
-        with col_b:
-            if st.button("⭐ Fav" if not is_fav else "🌟 Remover", key=f"fav_{k}", use_container_width=True):
+        with c2:
+            if st.button("⭐" if not is_fav else "🌟", key=f"fav_{k}", use_container_width=True):
                 if is_fav: st.session_state.favs.remove(an['id'])
                 elif len(st.session_state.favs) < LIMITE_FAV: st.session_state.favs.add(an['id'])
-                else: st.error(f"Limite Fav: {LIMITE_FAV}")
                 st.rerun()
 
 # 6. SIDEBAR
@@ -93,6 +81,8 @@ with st.sidebar:
     status = "🏆 Mestre" if is_mestre else "💳 Zoólogo"
     st.success(f"👤 **{st.session_state.nome_zoologo}**\n\n🐾 **Zoo:** {len(st.session_state.zoo)}/{LIMITE_ZOO}\n⭐ **Favs:** {len(st.session_state.favs)}/{LIMITE_FAV}")
     aba = st.radio("Menu", [f"🌍 {T['paises']}", f"🌲 {T['florestas']}", f"🌊 {T['oceanos']}", f"🔬 {T['lab']}", f"⭐ {T['col']}", f"⚙️ {T['def']}"])
+
+GRUPOS = ["Todos", "Mamíferos", "Aves", "Répteis", "Anfíbios", "Peixes", "Insetos", "Aracnídeos"]
 
 # 7. INTERFACE
 if f"🔬 {T['lab']}" in aba:
@@ -104,20 +94,23 @@ if f"🔬 {T['lab']}" in aba:
 elif f"🌍 {T['paises']}" in aba:
     st.title(T['paises'])
     p = st.selectbox("País:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália"])
+    g = st.selectbox(T['grupo'], GRUPOS)
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/WorldMap.svg/1000px-WorldMap.svg.png")
-    for i, a in enumerate(buscar(f"Animais de {p}", 70)): card(a, f"p_{i}")
+    for i, a in enumerate(buscar(f"{g} em {p}", 70)): card(a, f"p_{i}")
 
 elif f"🌲 {T['florestas']}" in aba:
     st.title(T['florestas'])
-    f = st.selectbox("Bioma:", ["Amazónia", "Taiga", "Savana"])
+    f = st.selectbox("Bioma:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
+    g = st.selectbox(T['grupo'], GRUPOS)
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/1000px-World_map_biomes.png")
-    for i, a in enumerate(buscar(f"Animais na {f}", 70)): card(a, f"f_{i}")
+    for i, a in enumerate(buscar(f"{g} na {f}", 70)): card(a, f"f_{i}")
 
 elif f"🌊 {T['oceanos']}" in aba:
     st.title(T['oceanos'])
-    o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico"])
+    o = st.selectbox("Região:", ["Oceano Atlântico", "Oceano Pacífico", "Oceano Índico", "Recife de Coral"])
+    g = st.selectbox(T['grupo'], GRUPOS)
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/1000px-World_ocean_map.png")
-    for i, a in enumerate(buscar(f"Animais no {o}", 70)): card(a, f"o_{i}")
+    for i, a in enumerate(buscar(f"{g} no {o}", 70)): card(a, f"o_{i}")
 
 elif f"⭐ {T['col']}" in aba:
     st.title(T['col'])
@@ -127,5 +120,10 @@ elif f"⭐ {T['col']}" in aba:
 elif f"⚙️ {T['def']}" in aba:
     st.title(T['def'])
     st.session_state.nome_zoologo = st.text_input("Nome:", value=st.session_state.nome_zoologo)
+    dic_lang = {"Português": "pt-PT", "English": "en-US", "Français": "fr", "Español": "es", "Deutsch": "de", "Russo (Русский)": "ru", "Finlandês (Suomi)": "fi"}
+    escolha = st.selectbox("Idioma:", list(dic_lang.keys()), index=list(dic_lang.keys()).index(st.session_state.lang_label))
+    st.session_state.idioma, st.session_state.lang_label = dic_lang[escolha], escolha
     st.session_state.codigo = st.text_input("Código Premium:", type="password")
+    st.session_state.cor_card = st.selectbox("Cor Cartão:", list(cores_hex.keys()))
+    st.session_state.cor_fundo = st.selectbox("Cor Fundo:", list(cores_hex.keys()))
     if st.button(T['guardar']): st.balloons(); st.rerun()
