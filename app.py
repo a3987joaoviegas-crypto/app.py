@@ -14,7 +14,7 @@ chaves_padrao = {
     'cor_card': "Preto", 'cor_fundo': "Preto", 'idioma': "pt-PT", 
     'nome_zoologo': "Explorador", 'luminosidade': 100, 'negrito': False,
     'resgates_ativos': ["Tigre ferido", "Panda faminto", "Baleia encalhada"],
-    'criogenia_storage': []
+    'criogenia_storage': [], 'pontos': 250
 }
 
 for chave, valor in chaves_padrao.items():
@@ -64,8 +64,8 @@ st.markdown(f"""
 
 # 5. INTERRUPTOR (O OVO) NO TOPO
 if tem_acesso:
-    c1, c2 = st.columns([5, 1])
-    with c2:
+    col_v1, col_v2 = st.columns([5, 1])
+    with col_v2:
         st.session_state.premium_ativo = st.toggle("🔄 MODO PREMIUM", value=st.session_state.premium_ativo)
 
 # 6. SIDEBAR DINÂMICA
@@ -79,7 +79,7 @@ with st.sidebar:
         nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"]
     aba = st.radio("Navegação", nav)
 
-# 7. LOGICA DAS ABAS DUPLICADAS
+# 7. LOGICA DAS ABAS
 if aba == "🔬 Laboratório":
     st.title("🔬 Laboratório de Observação (Grátis)")
     st.info("Este é o laboratório original. Faz as tuas análises básicas aqui.")
@@ -87,20 +87,22 @@ if aba == "🔬 Laboratório":
 elif aba == "🔬 Lab: Fusão e Stats":
     st.title("🔬 Centro Bio-Genético Premium")
     
-
-[Image of the structure of DNA double helix]
-
+    # O marcador de imagem deve estar fora do código ou em string/markdown
+    st.markdown("### 🧬 Manipulação Genética Ativa")
+    
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         st.markdown("<div class='lab-premium-box'>", unsafe_allow_html=True)
-        st.subheader("🧬 Fusão de Genes")
+        st.subheader("🧬 Fusão de DNA")
         if len(st.session_state.zoo) >= 2:
-            a1 = st.selectbox("DNA do Animal 1", [x.get('name', '???') for x in st.session_state.zoo], key="f1")
-            a2 = st.selectbox("DNA do Animal 2", [x.get('name', '???') for x in st.session_state.zoo], key="f2")
+            lista_nomes = [x.get('preferred_common_name', x.get('name', 'Desconhecido')) for x in st.session_state.zoo]
+            a1 = st.selectbox("DNA do Animal 1", lista_nomes, key="f1")
+            a2 = st.selectbox("DNA do Animal 2", lista_nomes, key="f2")
             if st.button("FUNDIR DNA"):
-                st.success(f"Híbrido criado: {a1[:4]}{a2[-3:].lower()}")
+                st.success(f"Híbrido criado: **{a1[:4]}{a2[-3:].lower()}**")
+                st.balloons()
         else:
-            st.warning("Captura pelo menos 2 animais para fundir genes.")
+            st.warning("Captura pelo menos 2 animais no Zoo para fundir genes.")
         st.markdown("</div>", unsafe_allow_html=True)
     
     with col_f2:
@@ -108,6 +110,7 @@ elif aba == "🔬 Lab: Fusão e Stats":
         st.subheader("📊 Estatísticas Reais")
         st.metric("Ocupação do Zoo (Total)", f"{ocupacao_total} / {LIMITE_ZOO}")
         st.metric("Na Criogenia", len(st.session_state.criogenia_storage))
+        st.metric("Pontos Atuais", st.session_state.pontos)
         st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "⚙️ Definições":
@@ -122,4 +125,4 @@ elif aba == "⚙️ Definições":
     st.session_state.negrito = st.checkbox("Negrito", value=st.session_state.negrito)
     if st.button("GUARDAR"): st.rerun()
 
-# Lógica de Países/Florestas/Oceanos mantida conforme versões anteriores.
+# Resto das abas (Países, Florestas, Oceanos, Coleção) seguiriam o padrão habitual.
