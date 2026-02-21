@@ -40,12 +40,17 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES
+# 5. FUNÇÕES DE BUSCA MELHORADAS
 def buscar(q, n=12):
     try:
+        # Tenta buscar com o idioma selecionado
         url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page={n}&locale={st.session_state.idioma}"
         r = requests.get(url).json()
-        return [{'nome': x.get('preferred_common_name', x['name']).title(), 'sci': x['name'], 'foto': x['default_photo']['medium_url'] if x.get('default_photo') else "https://via.placeholder.com/400x300?text=Sem+Foto"} for x in r['results']]
+        if not r['results']: # Se não houver resultados, tenta busca geral
+            url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page={n}"
+            r = requests.get(url).json()
+            
+        return [{'nome': x.get('preferred_common_name', x['name']).title(), 'sci': x['name'], 'foto': x['default_photo']['medium_url'] if x.get('default_photo') else "https://via.placeholder.com/400x300?text=Animal"} for x in r['results']]
     except: return []
 
 def card(an, k, btn_txt="➕"):
@@ -78,7 +83,7 @@ if f"🔬 {T['lab']}" in aba:
     with c1:
         if st.session_state.arena_ativa:
             st.subheader(f"🏟️ {T['arena']}")
-            if st.button("⬅️ Sair da Arena"): st.session_state.arena_ativa = False; st.rerun()
+            if st.button("⬅️ Sair"): st.session_state.arena_ativa = False; st.rerun()
             ca, cb = st.columns(2)
             for i, cx in enumerate([ca, cb]):
                 with cx:
@@ -87,45 +92,54 @@ if f"🔬 {T['lab']}" in aba:
                         res = buscar(busca_ar, 1)
                         if res: card(res[0], f"bt_ar_{i}", f"⚔️ {T['luta']}")
         else:
-            txt_lab = st.text_input("Análise Livre:")
+            txt_lab = st.text_input("Análise Livre (Ex: Leão, Urso):")
             if txt_lab:
                 for i, a in enumerate(buscar(txt_lab)): card(a, f"lab_{i}")
     with c2:
         if is_mestre:
-            st.markdown("<div class='premium-box'><h3>⭐ Premium Control</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='premium-box'><h3>⭐ Premium</h3>", unsafe_allow_html=True)
             if st.button("🏟️ ENTRAR NA ARENA"): st.session_state.arena_ativa = True; st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
 elif f"🌍 {T['paises']}" in aba:
     st.title(T['paises'])
-    p = st.selectbox("País:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália", "Canadá"])
+    p = st.selectbox("País:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/WorldMap.svg/800px-WorldMap.svg.png", caption="Mapa Geográfico Global", width=500)
-    for i, a in enumerate(buscar(f"{g} em {p}")): card(a, f"p_{i}")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/WorldMap.svg/1000px-WorldMap.svg.png", caption="Mapa Global")
+    # Busca simplificada para garantir resultados
+    for i, a in enumerate(buscar(f"{p} {g}")): card(a, f"p_{i}")
 
 elif f"🌲 {T['florestas']}" in aba:
     st.title(T['florestas'])
     f = st.selectbox("Floresta:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/800px-World_map_biomes.png", caption="Distribuição de Biomas", width=500)
-    for i, a in enumerate(buscar(f"{g} na {f}")): card(a, f"f_{i}")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/1000px-World_map_biomes.png")
+    
+
+[Image of world forest distribution map]
+
+    for i, a in enumerate(buscar(f"{f} {g}")): card(a, f"f_{i}")
 
 elif f"🌊 {T['oceanos']}" in aba:
     st.title(T['oceanos'])
-    o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico", "Recife de Coral", "Mar Profundo"])
+    o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico", "Recife de Coral"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/800px-World_ocean_map.png", caption="Mapa dos Oceanos", width=500)
-    for i, a in enumerate(buscar(f"{g} no {o}")): card(a, f"o_{i}")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/1000px-World_ocean_map.png")
+    
+
+[Image of world map showing ocean basins]
+
+    for i, a in enumerate(buscar(f"{o} {g}")): card(a, f"o_{i}")
 
 elif f"⚙️ {T['def']}" in aba:
     st.title(T['def'])
     st.session_state.nome_zoologo = st.text_input("Nome:", value=st.session_state.nome_zoologo)
     dic_lang = {"Português": "pt-PT", "English": "en-US", "Français": "fr", "Español": "es", "Deutsch": "de", "Russo (Русский)": "ru", "Finlandês (Suomi)": "fi"}
-    escolha = st.selectbox("Idioma da App:", list(dic_lang.keys()), index=list(dic_lang.keys()).index(st.session_state.lang_label))
+    escolha = st.selectbox("Idioma:", list(dic_lang.keys()), index=list(dic_lang.keys()).index(st.session_state.lang_label))
     st.session_state.idioma = dic_lang[escolha]
     st.session_state.lang_label = escolha
-    st.session_state.codigo = st.text_input("Código Profissional:", type="password")
-    st.session_state.codigo_perm = st.text_input("Código Permanente:", type="password")
+    st.session_state.codigo = st.text_input("Código:", type="password")
+    st.session_state.codigo_perm = st.text_input("Código Perm:", type="password")
     st.session_state.cor_card = st.selectbox("Cor:", list(cores_hex.keys()))
     if st.button(T['guardar']):
         st.balloons()
