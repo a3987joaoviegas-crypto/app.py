@@ -42,11 +42,11 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # 5. FUNÇÕES
-def buscar_api(termo, qtd=12):
+def buscar_api(termo, qtd=15):
     try:
         url = f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page={qtd}&locale={st.session_state.idioma}"
         r = requests.get(url).json()
-        return [{'nome': i.get('preferred_common_name', i['name']).title(), 'sci': i['name'], 'foto': i['default_photo']['medium_url'] if i.get('default_photo') else "", 'id': i['id']} for i in r['results']]
+        return [{'nome': i.get('preferred_common_name', i['name']).title(), 'sci': i['name'], 'foto': i['default_photo']['medium_url'] if i.get('default_photo') else "", 'id': i['id']} for i in r['results'] if i.get('default_photo')]
     except: return []
 
 def render_cartao(an, k, l_btn="➕"):
@@ -106,19 +106,35 @@ elif f"🌍 {T['paises']}" in aba:
     st.title(T['paises'])
     p = st.selectbox("Escolha o País:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália"])
     g = st.selectbox(T['grupo'], GRUPOS, key="g_p")
-    for i, a in enumerate(buscar_api(f"Animais {g} de {p}")): render_cartao(a, f"p_c_{i}")
+    
+    # MAPA DO PAÍS
+    mapas_p = {"Portugal": "https://www.mapas-mundo.pt/mapas/europa/portugal/mapa-portugal.jpg", "Brasil": "https://www.mapas-mundo.pt/mapas/america-sul/brasil/mapa-brasil.jpg", "Angola": "https://www.mapas-mundo.pt/mapas/africa/angola/mapa-angola.jpg", "Moçambique": "https://www.mapas-mundo.pt/mapas/africa/mocambique/mapa-mocambique.jpg"}
+    if p in mapas_p: st.image(mapas_p[p], caption=f"Mapa de {p}", width=400)
+    
+    res = buscar_api(f"Animais {g} de {p}")
+    for i, a in enumerate(res): render_cartao(a, f"p_c_{i}")
 
 elif f"🌲 {T['florestas']}" in aba:
     st.title(T['florestas'])
     f = st.selectbox("Bioma:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
     g = st.selectbox(T['grupo'], GRUPOS, key="g_f")
-    for i, a in enumerate(buscar_api(f"Animais {g} da {f}")): render_cartao(a, f"f_c_{i}")
+    
+    # MAPA DO BIOMA
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/800px-World_map_biomes.png", caption="Distribuição Global de Biomas", width=500)
+    
+    res = buscar_api(f"Animais {g} da {f}")
+    for i, a in enumerate(res): render_cartao(a, f"f_c_{i}")
 
 elif f"🌊 {T['oceanos']}" in aba:
     st.title(T['oceanos'])
-    o = st.selectbox("Região Marinha:", ["Oceano Atlântico", "Recife de Coral", "Mar Profundo"])
+    o = st.selectbox("Região Marinha:", ["Oceano Atlântico", "Oceano Pacífico", "Recife de Coral", "Mar Profundo"])
     g = st.selectbox(T['grupo'], GRUPOS, key="g_o")
-    for i, a in enumerate(buscar_api(f"Animais {g} do {o}")): render_cartao(a, f"o_c_{i}")
+    
+    # MAPA DOS OCEANOS
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/800px-World_ocean_map.png", caption="Mapa dos Oceanos", width=500)
+    
+    res = buscar_api(f"Animais {g} do {o}")
+    for i, a in enumerate(res): render_cartao(a, f"o_c_{i}")
 
 elif f"⚙️ {T['def']}" in aba:
     st.title(T['def'])
@@ -142,5 +158,4 @@ elif f"⚙️ {T['def']}" in aba:
 elif f"⭐ {T['col']}" in aba:
     st.title(T['col'])
     for i, a in enumerate(st.session_state.zoo):
-        st.markdown(f"<div class='cc-card'><h2>{a['nome']}</h2></div>", unsafe_allow_html=True)
-        if st.button(f"Libertar", key=f"rel_{i}"): st.session_state.zoo.pop(i); st.rerun()
+        render_cartao(a, f"rel_{i}", l_btn="Libertar")
