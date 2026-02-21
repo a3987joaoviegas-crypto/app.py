@@ -21,7 +21,7 @@ for chave, valor in chaves_padrao.items():
     if chave not in st.session_state:
         st.session_state[chave] = valor
 
-# 3. LÓGICA PREMIUM & TEMPO
+# 3. LÓGICA PREMIUM
 is_premium = st.session_state.codigo == "6626"
 is_mega = st.session_state.codigo_perm == "67lucas62"
 tem_acesso = is_premium or is_mega
@@ -41,7 +41,7 @@ if is_premium and st.session_state.premium_ativado_em:
         minutos, segundos = divmod(rem, 60)
         tempo_restante_str = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
 
-# 4. DESIGN CSS (CARTÃO DE CIDADÃO)
+# 4. DESIGN CSS
 mapa_cores = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b"}
 app_bg = mapa_cores.get(st.session_state.cor_fundo, "#0b1117")
 card_bg = mapa_cores.get(st.session_state.cor_card, "#1a1c23")
@@ -62,7 +62,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES DE SUPORTE
+# 5. FUNÇÕES
 def buscar_70(q):
     try:
         url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=9&locale={st.session_state.idioma}"
@@ -72,26 +72,20 @@ def buscar_70(q):
 def render_cartao(an, local):
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/150")
     nome = an.get('preferred_common_name', an.get('name', 'Espécie')).title()
-    
-    st.markdown(f"""
-    <div class="cartao-cidadao">
-        <img src="{foto}" style="width:100%; border-radius:12px; height:150px; object-fit:cover;">
-        <h4 style="margin:10px 0;">{nome}</h4>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="cartao-cidadao"><img src="{foto}" style="width:100%; border-radius:12px; height:150px; object-fit:cover;"><h4>{nome}</h4></div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
     with c1:
         if st.button(f"Capturar", key=f"cap_{local}_{an['id']}"):
             st.session_state.zoo.append(an)
-            st.toast(f"{nome} capturado!")
+            st.toast(f"{nome} guardado!")
     with c2:
         if st.session_state.premium_ativo and tem_acesso:
             if st.button(f"🧬 Fusão", key=f"fus_{local}_{an['id']}"):
                 st.session_state.tanque_fusao.append(an)
-                st.toast("Mando para o Tanque de Fusão!")
+                st.toast("Enviado para o Tanque!")
 
-# 6. INTERRUPTOR (O OVO)
+# 6. INTERRUPTOR PREMIUM
 if tem_acesso:
     _, col_t = st.columns([5, 1])
     with col_t:
@@ -104,17 +98,13 @@ with st.sidebar:
         nav = ["🧬 Fusão de Genes", "📊 Estatísticas", "🚁 Resgates", "💊 Criogenia", "⚙️ Definições"]
     else:
         nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"]
-    aba = st.radio("Navegação", nav)
+    aba = st.radio("Menu", nav)
 
-# 8. LOGICA DAS ABAS
+# 8. ABAS
 if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
     st.title(f"🔍 {aba}")
-    locais = {
-        "🌍 Países": ["Portugal", "Brasil", "Angola", "Espanha"],
-        "🌲 Florestas": ["Amazónia", "Floresta Boreal", "Selva Negra"],
-        "🌊 Oceanos": ["Oceano Índico", "Mar Morto", "Fossa das Marianas"]
-    }
-    escolha = st.selectbox("Localização:", locais[aba])
+    locais = {"🌍 Países": ["Portugal", "Brasil", "Angola"], "🌲 Florestas": ["Amazónia", "Selva Congo"], "🌊 Oceanos": ["Atlântico", "Índico"]}
+    escolha = st.selectbox("Local:", locais[aba])
     animais = buscar_70(escolha)
     if animais:
         cols = st.columns(3)
@@ -122,60 +112,29 @@ if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
             with cols[i%3]: render_cartao(an, aba)
 
 elif aba == "🧬 Fusão de Genes":
-    st.title("🧬 Tanque de Manipulação Genética")
-    
-
-[Image of the structure of DNA double helix]
-
+    st.title("🧬 Tanque de Fusão de DNA")
     st.markdown("<div class='lab-box'>", unsafe_allow_html=True)
     if len(st.session_state.tanque_fusao) >= 2:
-        a1 = st.selectbox("Hospedeiro 1", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna1")
-        a2 = st.selectbox("Hospedeiro 2", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna2")
-        if st.button("INICIAR FUSÃO"):
-            hibrido = f"{a1.get('name')[:4].upper()}-{a2.get('name')[-3:].upper()}"
-            st.success(f"FUSÃO CONCLUÍDA: {hibrido}")
-            st.balloons()
-    else:
-        st.warning(f"O Tanque tem apenas {len(st.session_state.tanque_fusao)} espécimes. Manda animais para aqui usando o botão '🧬 Fusão' nos cartões!")
+        a1 = st.selectbox("DNA 1", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna1")
+        a2 = st.selectbox("DNA 2", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna2")
+        if st.button("FUNDIR DNA"):
+            h = f"{a1.get('name')[:4].upper()}-{a2.get('name')[-3:].upper()}"
+            st.success(f"NOVO HÍBRIDO: {h}")
+    else: st.warning("O tanque precisa de pelo menos 2 animais.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "📊 Estatísticas":
-    st.title("📊 Painel de Dados do Zoólogo")
+    st.title("📊 Estatísticas")
     st.markdown("<div class='lab-box'>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Espécimes no Zoo", len(st.session_state.zoo))
-    col2.metric("Em Criostase", len(st.session_state.criogenia_storage))
-    col3.metric("Pontos de Zoólogo", st.session_state.pontos)
-    st.write("---")
-    st.write(f"Utilizador Ativo: **{st.session_state.nome_zoologo}**")
+    st.metric("No Zoo", len(st.session_state.zoo))
+    st.metric("No Tanque de Fusão", len(st.session_state.tanque_fusao))
+    st.metric("Em Criostase", len(st.session_state.criogenia_storage))
     st.markdown("</div>", unsafe_allow_html=True)
-
-elif aba == "🚁 Resgates":
-    st.title("🚁 Centro de Resgate")
-    for idx, missao in enumerate(st.session_state.resgates_ativos):
-        c1, c2 = st.columns([4, 1])
-        c1.warning(f"🚨 EMERGÊNCIA: {missao}")
-        if c2.button("Resgatar", key=f"res_{idx}"):
-            st.session_state.pontos += 50
-            st.session_state.resgates_ativos[idx] = random.choice(["Animal preso", "Cria perdida", "Espécie ferida"])
-            st.rerun()
-
-elif aba == "💊 Criogenia":
-    st.title("💊 Criostase Avançada")
-    if st.session_state.zoo:
-        an_c = st.selectbox("Mandar para Criogenia:", st.session_state.zoo, format_func=lambda x: x.get('name'))
-        if st.button("Congelar Espécime"):
-            st.session_state.criogenia_storage.append(an_c)
-            st.session_state.zoo.remove(an_c)
-            st.rerun()
-    st.write(f"Total em Stase: {len(st.session_state.criogenia_storage)}")
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
-    if is_premium: st.info(f"⏳ Tempo Premium: {tempo_restante_str}")
-    st.session_state.nome_zoologo = st.text_input("Nome:", st.session_state.nome_zoologo)
-    st.session_state.codigo = st.text_input("Código Premium:", value=st.session_state.codigo)
-    st.session_state.codigo_perm = st.text_input("Código Mega:", value=st.session_state.codigo_perm)
-    st.session_state.cor_card = st.selectbox("Cor Cartão:", list(mapa_cores.keys()))
-    st.session_state.luminosidade = st.slider("Brilho:", 50, 150, st.session_state.luminosidade)
+    st.session_state.codigo = st.text_input("Código Premium", value=st.session_state.codigo)
+    st.session_state.cor_card = st.selectbox("Cor Cartão", list(mapa_cores.keys()))
+    st.session_state.luminosidade = st.slider("Brilho", 50, 150, st.session_state.luminosidade)
+    st.session_state.negrito = st.checkbox("Negrito", value=st.session_state.negrito)
     if st.button("Guardar"): st.rerun()
