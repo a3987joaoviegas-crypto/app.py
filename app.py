@@ -69,7 +69,7 @@ st.markdown(f"""
         border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
         border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
         margin-bottom: 15px; font-size: 0.75em;
-        min-height: 420px;
+        min-height: 440px;
     }}
     .img-vertical {{
         width: 100%; border-radius: 5px; height: 180px; 
@@ -89,6 +89,7 @@ def card(an, prefixo, idx=0):
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/150x200")
     ukey = f"{prefixo}_{animal_id}_{idx}"
     
+    # Simulação de Bio
     classe = random.choice(["Mamífero", "Réptil", "Ave", "Peixe", "Anfíbio"])
     repro = random.choice(["Ovíparo", "Vivíparo"])
     alimen = random.choice(["Herbívoro", "Carnívoro", "Omnívoro"])
@@ -131,8 +132,6 @@ def card(an, prefixo, idx=0):
 # 6. ABAS
 if aba == "🌍 Explorar":
     st.header("🌍 Explorar Biomas")
-    st.write("Estruturas e Camadas:")
-    # 
     tipo = st.selectbox("Região:", ["Amazónia", "Fossa das Marianas", "Floresta Negra", "Grande Barreira de Coral", "Savana Africana", "Ártico", "Oceano Índico"])
     
     try:
@@ -156,10 +155,6 @@ elif aba == "🐾 Meu Zoo":
 
 elif aba == "🔬 Lab Especial":
     st.header("🔬 Laboratório")
-    # 
-
-[Image of a DNA sequence model]
-
     st.success("Sequenciador VIP Ativo.")
 
 elif aba == "⚙️ Definições":
