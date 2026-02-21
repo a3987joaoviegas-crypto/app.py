@@ -3,12 +3,13 @@ import pandas as pd
 import requests
 import random
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo Ultimate Pro", page_icon="🧬", layout="wide")
+# 1. CONFIGURAÇÃO (Símbolo da App definido como Planeta Terra)
+st.set_page_config(page_title="MundoVivo 🌍", page_icon="🌍", layout="wide")
 
 # 2. ESTADOS
 for key, val in {
-    'luz': False, 'zoo': [], 'codigo': "", 'search_query': "Wildlife", 'cor_card': "Preto"
+    'luz': False, 'zoo': [], 'codigo': "", 'search_query': "Wildlife", 
+    'cor_card': "Preto", 'cor_fundo': "Preto", 'chat_pos': "sidebar"
 }.items():
     if key not in st.session_state: st.session_state[key] = val
 
@@ -17,112 +18,106 @@ is_ai_unlocked = st.session_state.codigo == "33236"
 is_premium = is_mestre or is_ai_unlocked
 LIMITE = 80 if is_premium else 20
 
-# 3. CSS (Borda lateral AI, Estilo Mestre e Efeitos de Luta)
-cores_hex = {"Preto": "#1a1c23", "Branco": "#ffffff", "Verde": "#002b1b", "Azul": "#001f3f"}
+# 3. CSS (Estilo das Definições Originais)
+cores_hex = {"Preto": "#1a1c23", "Branco": "#ffffff", "Verde": "#002b1b", "Azul": "#001f3f", "Amarelo": "#f1c40f"}
 c_bg = cores_hex.get(st.session_state.cor_card, "#1a1c23") if not st.session_state.luz else "#ffffff"
-txt_color = "#000" if st.session_state.luz else "#fff"
+bg_app = cores_hex.get(st.session_state.cor_fundo, "#0b1117") if not st.session_state.luz else "#f0f2f6"
+txt_color = "#000" if (st.session_state.luz or st.session_state.cor_card == "Branco") else "#fff"
 border_color = "#ffd700" if is_mestre else "#2ea043"
 
 st.markdown(f"""
     <style>
-    @keyframes battle-shake {{ 0% {{ transform: translate(1px, 1px) rotate(0deg); }} 10% {{ transform: translate(-1px, -2px) rotate(-1deg); }} 100% {{ transform: translate(1px, 1px) rotate(0deg); }} }}
-    .stApp {{ background-color: {"#f0f2f6" if st.session_state.luz else "#0b1117"}; color: {txt_color}; }}
+    .stApp {{ background-color: {bg_app}; color: {txt_color}; }}
     .cc-card {{ 
         background: {c_bg} !important; border-radius: 15px; padding: 20px; 
         border-left: 12px solid {border_color}; margin-bottom: 20px;
-        color: {txt_color} !important;
-        { "animation: gold-glow 3s infinite;" if is_mestre else "" }
+        { "animation: gold-glow 3s infinite; border: 2px solid #ffd700;" if is_mestre else "" }
     }}
-    .battle-card {{ border: 3px solid #ff4b4b; animation: battle-shake 0.5s infinite; }}
-    .winner-glow {{ box-shadow: 0 0 30px #ffd700; border: 4px solid #ffd700 !important; }}
+    .code-box {{ 
+        background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; 
+        border: 2px dashed {border_color}; margin: 15px 0; 
+    }}
+    @keyframes gold-glow {{ 0% {{ border-color: #ffd700; }} 50% {{ border-color: #ff8c00; box-shadow: 0 0 15px #ffd700; }} 100% {{ border-color: #ffd700; }} }}
     </style>
     """, unsafe_allow_html=True)
 
-# 4. FUNÇÃO DE BUSCA
+# 4. MOTOR DE BUSCA
 def buscar(q):
-    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=10&locale=pt-PT"
+    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=12"
     try:
         res = requests.get(url).json()
         return [{'nome': i.get('preferred_common_name', i['name']).title(), 'sci': i['name'], 'foto': i['default_photo']['medium_url'], 'score': i.get('observations_count', 1)} for i in res['results'] if i.get('default_photo')]
     except: return []
 
-# 5. ASSISTENTE IA (BARRA LATERAL)
-st.sidebar.title("🎮 Painel")
-st.session_state.codigo = st.sidebar.text_input("Código:", type="password")
+# 5. SIDEBAR COM O SÍMBOLO DA APP E ASSISTENTE
+st.sidebar.markdown(f"# 🌍 MundoVivo")
 
 if is_ai_unlocked:
-    st.sidebar.info("🤖 **Bio-Assistente IA**")
-    if st.sidebar.button("🌍 REGIÃO ALEATÓRIA"):
-        st.session_state.search_query = random.choice(["Amazonia", "Sahara", "Arctic", "Serengeti"])
-    duvida = st.sidebar.text_input("Pergunta à IA:")
-    if duvida:
-        if "rápido" in duvida.lower(): st.sidebar.write("⚡ Falcão-peregrino!")
-        else: st.sidebar.write("🔍 Analisando...")
-
-# 6. INTERFACE
-aba = st.sidebar.radio("Menu", ["🌍 Mundo", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"])
-
-if aba == "🔬 Laboratório":
-    st.title("⚔️ Arena de Duelos & Laboratório")
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🤖 Assistente Pessoal")
+    if st.sidebar.button("⬅️ Mandar chat para a esquerda"):
+        st.session_state.chat_pos = "left"
     
-    tab1, tab2 = st.tabs(["🔎 Busca Avançada", "🥊 Luta de Animais"])
-    
-    with tab1:
-        search_lab = st.text_input("Pesquisa Genética:")
-        if search_lab:
-            res = buscar(search_lab)
-            cols = st.columns(3)
-            for i, an in enumerate(res):
-                with cols[i%3]:
-                    st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; border-radius:10px;'><h4>{an['nome']}</h4></div>", unsafe_allow_html=True)
-                    if st.button(f"Guardar {an['nome']}", key=f"lab_{i}"):
-                        if len(st.session_state.zoo) < LIMITE: st.session_state.zoo.append(an)
-    
-    with tab2:
-        st.subheader("Preparem-se para o combate!")
-        c1, c2 = st.columns(2)
-        p1 = c1.text_input("Desafiante 1:", "Leão")
-        p2 = c2.text_input("Desafiante 2:", "Tigre")
-        
-        if st.button("🔥 INICIAR LUTA"):
-            res1, res2 = buscar(p1), buscar(p2)
-            if res1 and res2:
-                a1, a2 = res1[0], res2[0]
-                s1, s2 = a1['score'], a2['score'] # Usa número de observações como 'poder'
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    win_class = "winner-glow" if s1 > s2 else ""
-                    st.markdown(f"<div class='cc-card battle-card {win_class}'><img src='{a1['foto']}' style='width:100%;'><h3>{a1['nome']}</h3><p>Poder: {s1}</p></div>", unsafe_allow_html=True)
-                with col2:
-                    win_class = "winner-glow" if s2 > s1 else ""
-                    st.markdown(f"<div class='cc-card battle-card {win_class}'><img src='{a2['foto']}' style='width:100%;'><h3>{a2['nome']}</h3><p>Poder: {s2}</p></div>", unsafe_allow_html=True)
-                
-                if s1 > s2: st.success(f"🏆 VENCEDOR: {a1['nome']}!")
-                elif s2 > s1: st.success(f"🏆 VENCEDOR: {a2['nome']}!")
-                else: st.warning("Empate Biológico!")
+    with st.sidebar.container():
+        duvida = st.text_input("Dúvida biológica:", key="ai_chat")
+        if duvida:
+            if "rápido" in duvida.lower(): st.info("⚡ O Falcão-peregrino é o animal mais veloz!")
+            elif "bico" in duvida.lower(): st.info("🦜 O Tucano-toco possui um bico térmico gigante.")
+            if st.button("Sugerir Local Aleatório"):
+                st.session_state.search_query = random.choice(["Amazonia", "Sahara", "Arctic", "Serengeti"])
 
-elif aba == "🌍 Mundo":
-    st.map(pd.DataFrame({'lat': [20.0], 'lon': [0.0]}))
-    q = st.text_input("Procurar:", value=st.session_state.search_query)
-    res = buscar(q)
+st.sidebar.markdown("---")
+aba = st.sidebar.radio("Navegação", ["🌍 Mundo", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"])
+
+# 6. INTERFACE PRINCIPAL
+if aba == "🌍 Mundo": st.map(pd.DataFrame({'lat': [20.0], 'lon': [0.0]}))
+elif aba == "🌲 Florestas": st.map(pd.DataFrame({'lat': [-3.4, 63.7], 'lon': [-62.2, 95.8]}))
+elif aba == "🌊 Oceanos": st.map(pd.DataFrame({'lat': [-8.7, 14.5], 'lon': [-145.0, -30.0]}))
+
+if aba in ["🌍 Mundo", "🌲 Florestas", "🌊 Oceanos"]:
+    st.title(f"Navegação: {aba}")
+    q = st.text_input("Procurar espécie:", value=st.session_state.search_query if aba == "🌍 Mundo" else "")
+    res = buscar(q if q else "Animal")
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]:
             st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; height:180px; object-fit:cover; border-radius:10px;'><h3>{an['nome']}</h3></div>", unsafe_allow_html=True)
-            if st.button(f"Guardar {an['nome']}", key=f"m_{i}"):
+            if st.button(f"Guardar {an['nome']}", key=f"btn_{aba}_{i}"):
                 if len(st.session_state.zoo) < LIMITE: st.session_state.zoo.append(an)
 
+elif aba == "🔬 Laboratório":
+    st.title("🔬 Arena de Combate")
+    c1, c2 = st.columns(2)
+    p1 = c1.text_input("Lutador 1:", "Leão")
+    p2 = c2.text_input("Lutador 2:", "Hiena")
+    if st.button("💥 INICIAR LUTA"):
+        r1, r2 = buscar(p1), buscar(p2)
+        if r1 and r2:
+            venc = r1[0]['nome'] if r1[0]['score'] > r2[0]['score'] else r2[0]['nome']
+            st.success(f"🏆 O vencedor por força evolutiva é: {venc}!")
+
 elif aba == "⭐ Coleção":
-    if is_mestre: st.markdown("<div class='mestre-badge'>🏆 MESTRE ZOÓLOGO</div>", unsafe_allow_html=True)
-    st.write(f"Capacidade: {len(st.session_state.zoo)} / {LIMITE}")
+    st.title("⭐ Minha Reserva")
+    if is_mestre: st.markdown("<div class='code-box' style='text-align:center; color:#ffd700;'>🏆 CERTIFICADO DE MESTRE ZOÓLOGO</div>", unsafe_allow_html=True)
+    st.write(f"Ocupação: {len(st.session_state.zoo)} / {LIMITE}")
     cols = st.columns(3)
     for i, an in enumerate(st.session_state.zoo):
         with cols[i%3]:
             st.markdown(f"<div class='cc-card'><img src='{an['foto']}' style='width:100%; border-radius:10px;'><h4>{an['nome']}</h4></div>", unsafe_allow_html=True)
-            if st.button("Remover", key=f"del_{i}"): st.session_state.zoo.pop(i); st.rerun()
+            if st.button("Soltar Animal", key=f"del_{i}"): st.session_state.zoo.pop(i); st.rerun()
 
 elif aba == "⚙️ Definições":
-    st.session_state.luz = st.toggle("Modo Claro")
+    st.title("⚙️ Painel de Configurações")
+    
+    st.markdown("<div class='code-box'>", unsafe_allow_html=True)
+    st.session_state.codigo = st.text_input("Inserir Código Premium (6626 ou 33236):", type="password", value=st.session_state.codigo)
+    if is_premium: st.success("💎 Acesso Especial Ativado!")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.session_state.luz = st.toggle("Modo Dia", value=st.session_state.luz)
+    st.session_state.cor_card = st.selectbox("Cor do Cartão", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_card))
+    st.session_state.cor_fundo = st.selectbox("Cor do Fundo", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_fundo))
+    
     if is_premium and st.button("❌ APAGAR PREMIUM"):
-        st.session_state.codigo = ""; st.rerun()
+        st.session_state.codigo = ""
+        st.rerun()
