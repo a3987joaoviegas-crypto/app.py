@@ -100,54 +100,37 @@ elif f"🌍 {T['paises']}" in aba:
     st.title(T['paises'])
     p = st.selectbox("País:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália", "Canadá"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    
-    # Mapas Geográficos de Referência
-    mapas = {
-        "Portugal": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Portugal_location_map.svg/400px-Portugal_location_map.svg.png",
-        "Brasil": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Brazil_location_map.svg/400px-Brazil_location_map.svg.png"
-    }
-    if p in mapas: st.image(mapas[p], width=300)
-    
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/WorldMap.svg/800px-WorldMap.svg.png", caption="Mapa Geográfico Global", width=500)
     for i, a in enumerate(buscar(f"{g} em {p}")): card(a, f"p_{i}")
 
 elif f"🌲 {T['florestas']}" in aba:
     st.title(T['florestas'])
     f = st.selectbox("Floresta:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    
-
-[Image of world forest distribution map]
-
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/800px-World_map_biomes.png", caption="Distribuição de Biomas", width=500)
     for i, a in enumerate(buscar(f"{g} na {f}")): card(a, f"f_{i}")
 
 elif f"🌊 {T['oceanos']}" in aba:
     st.title(T['oceanos'])
     o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico", "Recife de Coral", "Mar Profundo"])
     g = st.selectbox(T['grupo'], GRUPOS)
-    
-
-[Image of world map showing ocean basins]
-
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/800px-World_ocean_map.png", caption="Mapa dos Oceanos", width=500)
     for i, a in enumerate(buscar(f"{g} no {o}")): card(a, f"o_{i}")
 
 elif f"⚙️ {T['def']}" in aba:
     st.title(T['def'])
     st.session_state.nome_zoologo = st.text_input("Nome:", value=st.session_state.nome_zoologo)
-    
     dic_lang = {"Português": "pt-PT", "English": "en-US", "Français": "fr", "Español": "es", "Deutsch": "de", "Russo (Русский)": "ru", "Finlandês (Suomi)": "fi"}
     escolha = st.selectbox("Idioma da App:", list(dic_lang.keys()), index=list(dic_lang.keys()).index(st.session_state.lang_label))
     st.session_state.idioma = dic_lang[escolha]
     st.session_state.lang_label = escolha
-    
     st.session_state.codigo = st.text_input("Código Profissional:", type="password")
     st.session_state.codigo_perm = st.text_input("Código Permanente:", type="password")
     st.session_state.cor_card = st.selectbox("Cor:", list(cores_hex.keys()))
-    
     if st.button(T['guardar']):
         st.balloons()
         st.rerun()
 
 elif f"⭐ {T['col']}" in aba:
     st.title(T['col'])
-    for i, a in enumerate(st.session_state.zoo):
-        card(a, f"col_{i}", "Libertar")
+    for i, a in enumerate(st.session_state.zoo): card(a, f"col_{i}", "Libertar")
