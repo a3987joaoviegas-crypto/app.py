@@ -29,15 +29,20 @@ lang_map = {
 
 dic = lang_map[st.session_state.lingua]
 
-# 4. CSS
+# 4. CSS (COM A ANIMAÇÃO DE VOLTA)
 bg = "#f0f2f6" if st.session_state.luz else cores_hex[st.session_state.cor_fundo]
 c_bg = "#ffffff" if st.session_state.luz else cores_hex[st.session_state.cor_card]
 t_color = "#000000" if (st.session_state.luz or st.session_state.cor_fundo in ["Branco", "Amarelo"]) else "#ffffff"
 
 st.markdown(f"""
     <style>
+    @keyframes move {{ from {{ background-position: 0 0; }} to {{ background-position: 100% 100%; }} }}
+    .stApp {{ 
+        background-color: {bg}; color: {t_color}; 
+        background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 50px 50px; animation: move 60s linear infinite;
+    }}
     [data-testid="stSidebar"] {{ min-width: 300px !important; }}
-    .stApp {{ background-color: {bg}; color: {t_color}; }}
     * {{ font-weight: {"bold" if st.session_state.negrito else "normal"} !important; }}
     .cc-card {{ 
         background: {c_bg}; border-radius: 12px; padding: 20px; 
@@ -50,6 +55,7 @@ st.markdown(f"""
 
 # 5. BUSCA E TRADUÇÃO
 def buscar_ia(query):
+    # Mudança para garantir que Oceanos apareçam (usando taxon_id de peixes e mamíferos marinhos se necessário)
     url = f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale={dic['code']}"
     try:
         res = requests.get(url).json()
@@ -58,10 +64,9 @@ def buscar_ia(query):
             if item.get('default_photo'):
                 n = (item.get('preferred_common_name') or item.get('name')).title()
                 cl = item.get('iconic_taxon_name', 'Animal')
-                # Lógica biológica básica
                 d = dic['carn'] if any(x in n.lower() for x in ['leão', 'lion', 'tubarão', 'shark', 'lobo', 'wolf']) else dic['herb'] if any(x in n.lower() for x in ['zebra', 'girafa', 'elefante']) else dic['omni']
                 r = dic['viv'] if cl == 'Mammalia' else dic['ovi']
-                a = dic['aqua'] if cl in ['Actinopterygii'] or "baleia" in n.lower() or "ocean" in query.lower() else dic['terr']
+                a = dic['aqua'] if cl in ['Actinopterygii', 'Mollusca'] or any(x in n.lower() for x in ['whale', 'baleia', 'shark', 'fish', 'marinho', 'marine']) else dic['terr']
                 out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': a})
         return out
     except: return []
@@ -70,16 +75,15 @@ def card(a, k):
     st.markdown(f"""<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div style='text-align:center; font-style:italic;'>{a['sci']}</div><hr><b>{dic['env']}:</b> {a['ambiente']}<br><b>{dic['diet']}:</b> {a['dieta']}<br><b>{dic['rep']}:</b> {a['repro']}</div>""", unsafe_allow_html=True)
     if st.button(f"⭐ {dic['save']}", key=k): st.session_state.zoo.append(a)
 
-# 6. MENU EXPANDIDO
+# 6. MENU ATUALIZADO
 menu = st.sidebar.radio("Navegação:", [
     "🌍 Planisfério", "🐆 Savana", "🌳 Amazónia", "🌿 Mata Atlântica", 
-    "❄️ Taiga Siberiana", "🌲 Floresta Russa", "🌊 Oceanos", "🔬 Laboratório", "⚙️ Definições"
+    "❄️ Taiga Siberiana", "🌲 Floresta Russa", "🌊 Oceanos e Mares", "🔬 Laboratório", "⭐ Favoritos", "⚙️ Definições"
 ])
 
-# MAPA DE QUERIES PARA A API
 queries = {
-    "🐆 Savana": "Savanna", "🌳 Amazónia": "Amazon Rainforest", "🌿 Mata Atlântica": "Atlantic Forest",
-    "❄️ Taiga Siberiana": "Siberian Taiga", "🌲 Floresta Russa": "Russian Forest", "🌊 Oceanos": "Marine Animals"
+    "🐆 Savana": "Savanna", "🌳 Amazónia": "Amazon Forest", "🌿 Mata Atlântica": "Atlantic Forest",
+    "❄️ Taiga Siberiana": "Siberian Taiga", "🌲 Floresta Russa": "Russian Forest", "🌊 Oceanos e Mares": "Fish" # Mudado para "Fish" para garantir resultados
 }
 
 if menu in queries:
@@ -87,6 +91,15 @@ if menu in queries:
     cols = st.columns(3)
     for i, an in enumerate(animais):
         with cols[i%3]: card(an, f"anim_{i}")
+
+elif menu == "⭐ Favoritos":
+    st.title("⭐ " + dic['save'] + "s")
+    if not st.session_state.zoo:
+        st.write("Vazio.")
+    else:
+        cols = st.columns(3)
+        for i, an in enumerate(st.session_state.zoo):
+            with cols[i%3]: card(an, f"fav_{i}")
 
 elif menu == "🌍 Planisfério":
     df_mapa = pd.DataFrame({'lat': [38.7, -15.7, -23.5, 60.0, -1.0], 'lon': [-9.1, -47.8, -46.6, 90.0, -60.0]})
