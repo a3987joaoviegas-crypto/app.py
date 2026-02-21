@@ -6,7 +6,7 @@ import random
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="MundoVivo 🌍", page_icon="🌍", layout="wide")
 
-# 2. ESTADOS (Persistem durante a sessão)
+# 2. ESTADOS
 for key, val in {
     'luz': False, 'zoo': [], 'codigo': "", 'codigo_perm': "", 
     'search_query': "", 'cor_card': "Preto", 'cor_fundo': "Preto", 
@@ -21,34 +21,24 @@ is_mestre = st.session_state.codigo == "6626" or is_perm_active
 is_ai_unlocked = st.session_state.codigo == "33236" or is_perm_active
 LIMITE = 80 if is_mestre else 20
 
-# 3. CSS (Cartão de Cidadão Visível para TODOS)
+# 3. CSS (Cartão de Cidadão para Todos)
 cores_hex = {"Preto": "#1a1c23", "Branco": "#ffffff", "Verde": "#002b1b", "Azul": "#001f3f", "Amarelo": "#f1c40f"}
 c_bg = cores_hex.get(st.session_state.cor_card, "#1a1c23") if not st.session_state.luz else "#ffffff"
 bg_app = cores_hex.get(st.session_state.cor_fundo, "#0b1117") if not st.session_state.luz else "#f0f2f6"
 txt_color = "#000" if (st.session_state.luz or st.session_state.cor_card == "Branco") else "#fff"
-
-# A cor da borda muda conforme o status, mas o estilo do cartão é fixo
 border_color = "#b9f2ff" if is_perm_active else ("#ffd700" if is_mestre else "#2ea043")
 
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {bg_app}; color: {txt_color}; }}
-    
-    /* ESTILO CARTÃO DE CIDADÃO - PADRÃO PARA TODOS */
     .cc-card {{ 
-        background: {c_bg} !important; 
-        border-radius: 15px; 
-        padding: 20px; 
-        border-left: 15px solid {border_color}; 
-        border-right: 5px solid {border_color};
-        box-shadow: 8px 8px 20px rgba(0,0,0,0.5); 
-        margin-bottom: 20px;
+        background: {c_bg} !important; border-radius: 15px; padding: 20px; 
+        border-left: 15px solid {border_color}; border-right: 5px solid {border_color};
+        box-shadow: 8px 8px 20px rgba(0,0,0,0.5); margin-bottom: 20px;
         color: {txt_color} !important;
-        position: relative;
         { "animation: gold-glow 3s infinite;" if is_mestre else "" }
     }}
-    
-    .code-box {{ background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; border: 2px dashed gray; margin: 15px 0; }}
+    .code-box {{ background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; border: 2px dashed gray; }}
     @keyframes gold-glow {{ 0% {{ box-shadow: 0 0 5px #ffd700; }} 50% {{ box-shadow: 0 0 20px {border_color}; }} 100% {{ box-shadow: 0 0 5px #ffd700; }} }}
     </style>
     """, unsafe_allow_html=True)
@@ -64,24 +54,18 @@ def buscar(q):
 
 # 5. SIDEBAR
 st.sidebar.markdown(f"# 🌍 MundoVivo")
-
 if is_ai_unlocked:
-    st.sidebar.markdown("---")
     st.sidebar.subheader("🤖 Assistente Pessoal")
-    if st.sidebar.button("⬅️ Mandar chat para a esquerda"):
-        st.session_state.chat_pos = "left"
-    
+    if st.sidebar.button("⬅️ Mandar chat para a esquerda"): st.session_state.chat_pos = "left"
     chat_area = st.sidebar if st.session_state.chat_pos == "sidebar" else st
     with chat_area:
         duvida = st.text_input("Dúvida biológica:", key="chat_ia")
-        if duvida:
-            st.session_state.search_query = duvida
-            st.info(f"🤖 Assistente: Analisando características de '{duvida}'...")
+        if duvida: st.info(f"🤖 Assistente: Analisando características de '{duvida}'...")
 
 st.sidebar.markdown("---")
 aba = st.sidebar.radio("Navegação", ["🌍 Mundo", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"])
 
-# 6. INTERFACE (TUDO VISÍVEL COM CARTÃO DE CIDADÃO)
+# 6. INTERFACE
 
 if aba == "🌍 Mundo":
     st.title("🌍 Planisfério")
@@ -91,25 +75,27 @@ if aba == "🌍 Mundo":
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]:
-            st.markdown(f"""
-            <div class='cc-card'>
-                <img src='{an['foto']}' style='width:100%; border-radius:10px; margin-bottom:10px;'>
-                <h3 style='margin:0;'>{an['nome']}</h3>
-                <p style='font-style:italic; font-size:0.8em;'>ID: {an['sci']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div class='cc-card'><img src='{an['foto']}' width='100%' style='border-radius:10px;'><h3>{an['nome']}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Guardar {an['nome']}", key=f"w_{i}"):
                 if len(st.session_state.zoo) < LIMITE: st.session_state.zoo.append(an)
 
 elif aba == "🌲 Florestas":
-    st.title("🌲 Biomas Terrestres")
-    for an in buscar("Forest"):
-        st.markdown(f"<div class='cc-card'><h4>{an['nome']}</h4><p>{an['sci']}</p></div>", unsafe_allow_html=True)
+    st.title("🌲 Regiões Florestais")
+    st.map(pd.DataFrame({'lat': [-3.0, 60.0, 45.0], 'lon': [-60.0, 100.0, -5.0]}))
+    st.markdown("---")
+    res = buscar("Forest mammals")
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: st.markdown(f"<div class='cc-card'><h4>{an['nome']}</h4><img src='{an['foto']}' width='100%'></div>", unsafe_allow_html=True)
 
 elif aba == "🌊 Oceanos":
-    st.title("🌊 Biomas Marinhos")
-    for an in buscar("Ocean"):
-        st.markdown(f"<div class='cc-card'><h4>{an['nome']}</h4><p>{an['sci']}</p></div>", unsafe_allow_html=True)
+    st.title("🌊 Explorador de Oceanos")
+    st.map(pd.DataFrame({'lat': [0.0, -20.0, 30.0], 'lon': [-150.0, -20.0, -40.0]}))
+    st.markdown("---")
+    res = buscar("Ocean animals")
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: st.markdown(f"<div class='cc-card'><h4>{an['nome']}</h4><img src='{an['foto']}' width='100%'></div>", unsafe_allow_html=True)
 
 elif aba == "🔬 Laboratório":
     st.title("🔬 Laboratório")
@@ -142,16 +128,19 @@ elif aba == "⭐ Coleção":
 elif aba == "⚙️ Definições":
     st.title("⚙️ Definições")
     st.markdown("<div class='code-box'>", unsafe_allow_html=True)
-    st.session_state.codigo = st.text_input("inserir codigo premium 6626 ou 33236", type="password", value=st.session_state.codigo)
+    st.session_state.codigo = st.text_input("Inserir código premium:", type="password", value=st.session_state.codigo)
     if st.session_state.codigo != "" and st.button("❌ APAGAR PREMIUM"):
         st.session_state.codigo = ""; st.rerun()
     st.markdown("---")
-    st.session_state.codigo_perm = st.text_input("Novo Código Permanente (67lucas62):", type="password", value=st.session_state.codigo_perm)
+    st.session_state.codigo_perm = st.text_input("Novo Código Permanente:", type="password", value=st.session_state.codigo_perm)
     if is_perm_active and st.button("❌ APAGAR PREMIUM PERMANENTE"):
         st.session_state.codigo_perm = ""; st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
     
-    if st.button("Aplicar Definições"): st.balloons()
+    # O BOTÃO AGORA DIZ "INSERIR"
+    if st.button("Inserir"):
+        st.balloons()
+        st.success("Configurações Aplicadas!")
     
     st.session_state.luz = st.toggle("Modo Dia", value=st.session_state.luz)
     st.session_state.cor_card = st.selectbox("Cor do Cartão", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_card))
