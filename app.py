@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 
 # 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="MundoVivo Ultimate", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="MundoVivo Ultimate Pro", page_icon="🌍", layout="wide")
 
 # 2. ESTADOS DE SESSÃO
 for key, val in {
@@ -36,7 +36,7 @@ t_color = "#000000" if (st.session_state.luz or st.session_state.cor_fundo in ["
 
 st.markdown(f"""
     <style>
-    [data-testid="stSidebar"] {{ min-width: 280px !important; }}
+    [data-testid="stSidebar"] {{ min-width: 300px !important; }}
     .stApp {{ background-color: {bg}; color: {t_color}; }}
     * {{ font-weight: {"bold" if st.session_state.negrito else "normal"} !important; }}
     .cc-card {{ 
@@ -44,21 +44,12 @@ st.markdown(f"""
         border-left: 8px solid #2ea043; margin-bottom: 25px; color: {t_color};
     }}
     .img-cc {{ width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }}
-    .common-name {{ color: #2ea043; font-size: 22px; text-align: center; }}
+    .common-name {{ color: #2ea043; font-size: 22px; text-align: center; margin-top: 10px; }}
     </style>
     """, unsafe_allow_html=True)
 
-# 5. LÓGICA
-def traduzir_bio(nome, classe):
-    n = str(nome).lower()
-    dieta = dic['omni']
-    if any(x in n for x in ['leão', 'lion', 'tubarão', 'shark', 'tiger', 'lobo']): dieta = dic['carn']
-    elif any(x in n for x in ['elefante', 'elephant', 'zebra', 'giraffe']): dieta = dic['herb']
-    repro = dic['viv'] if classe == 'Mammalia' else dic['ovi']
-    amb = dic['aqua'] if classe in ['Actinopterygii'] or "whale" in n or "baleia" in n else dic['terr']
-    return dieta, repro, amb
-
-def buscar(query):
+# 5. BUSCA E TRADUÇÃO
+def buscar_ia(query):
     url = f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale={dic['code']}"
     try:
         res = requests.get(url).json()
@@ -66,61 +57,58 @@ def buscar(query):
         for item in res.get('results', []):
             if item.get('default_photo'):
                 n = (item.get('preferred_common_name') or item.get('name')).title()
-                d, r, a = traduzir_bio(n, item.get('iconic_taxon_name'))
+                cl = item.get('iconic_taxon_name', 'Animal')
+                # Lógica biológica básica
+                d = dic['carn'] if any(x in n.lower() for x in ['leão', 'lion', 'tubarão', 'shark', 'lobo', 'wolf']) else dic['herb'] if any(x in n.lower() for x in ['zebra', 'girafa', 'elefante']) else dic['omni']
+                r = dic['viv'] if cl == 'Mammalia' else dic['ovi']
+                a = dic['aqua'] if cl in ['Actinopterygii'] or "baleia" in n.lower() or "ocean" in query.lower() else dic['terr']
                 out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 'dieta': d, 'repro': r, 'ambiente': a})
         return out
     except: return []
-
-# 6. INTERFACE
-menu = st.sidebar.radio("Navegação", ["🌍 Planisfério", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Favoritos", "⚙️ Definições"])
 
 def card(a, k):
     st.markdown(f"""<div class='cc-card'><img src='{a['foto']}' class='img-cc'><div class='common-name'>{a['nome']}</div><div style='text-align:center; font-style:italic;'>{a['sci']}</div><hr><b>{dic['env']}:</b> {a['ambiente']}<br><b>{dic['diet']}:</b> {a['dieta']}<br><b>{dic['rep']}:</b> {a['repro']}</div>""", unsafe_allow_html=True)
     if st.button(f"⭐ {dic['save']}", key=k): st.session_state.zoo.append(a)
 
-# --- PÁGINAS ---
-if menu == "🌍 Planisfério":
-    st.title("🌍 Planisfério Global")
-    df_mapa = pd.DataFrame({
-        'lat': [38.7, -15.7, -8.8, -18.6, 37.0, -25.2],
-        'lon': [-9.1, -47.8, 13.2, 35.5, -95.7, 133.7],
-        'País': ["Portugal", "Brasil", "Angola", "Moçambique", "EUA", "Austrália"]
-    })
+# 6. MENU EXPANDIDO
+menu = st.sidebar.radio("Navegação:", [
+    "🌍 Planisfério", "🐆 Savana", "🌳 Amazónia", "🌿 Mata Atlântica", 
+    "❄️ Taiga Siberiana", "🌲 Floresta Russa", "🌊 Oceanos", "🔬 Laboratório", "⚙️ Definições"
+])
+
+# MAPA DE QUERIES PARA A API
+queries = {
+    "🐆 Savana": "Savanna", "🌳 Amazónia": "Amazon Rainforest", "🌿 Mata Atlântica": "Atlantic Forest",
+    "❄️ Taiga Siberiana": "Siberian Taiga", "🌲 Floresta Russa": "Russian Forest", "🌊 Oceanos": "Marine Animals"
+}
+
+if menu in queries:
+    animais = buscar_ia(queries[menu])
+    cols = st.columns(3)
+    for i, an in enumerate(animais):
+        with cols[i%3]: card(an, f"anim_{i}")
+
+elif menu == "🌍 Planisfério":
+    df_mapa = pd.DataFrame({'lat': [38.7, -15.7, -23.5, 60.0, -1.0], 'lon': [-9.1, -47.8, -46.6, 90.0, -60.0]})
     st.map(df_mapa)
-    p = st.selectbox("Selecione o local para ver os 70 animais:", df_mapa['País'])
-    res = buscar(p)
+    p = st.selectbox("Região:", ["Portugal", "Brasil", "Rússia", "África", "EUA"])
+    res = buscar_ia(p)
     cols = st.columns(3)
-    for i, anim in enumerate(res):
-        with cols[i%3]: card(anim, f"p_{i}")
-
-elif menu == "🌲 Florestas":
-    st.title("🌲 Fauna das Florestas (70 Espécies)")
-    res = buscar("Forest")
-    cols = st.columns(3)
-    for i, anim in enumerate(res):
-        with cols[i%3]: card(anim, f"f_{i}")
-
-elif menu == "🌊 Oceanos":
-    st.title("🌊 Fauna dos Oceanos (70 Espécies)")
-    res = buscar("Ocean")
-    cols = st.columns(3)
-    for i, anim in enumerate(res):
-        with cols[i%3]: card(anim, f"o_{i}")
+    for i, an in enumerate(res):
+        with cols[i%3]: card(an, f"p_{i}")
 
 elif menu == "🔬 Laboratório":
-    st.title("🔬 Laboratório")
-    b = st.text_input("Pesquisar:")
+    b = st.text_input("🔬:")
     if b:
-        res = buscar(b)
+        res = buscar_ia(b)
         cols = st.columns(3)
-        for i, anim in enumerate(res):
-            with cols[i%3]: card(anim, f"l_{i}")
+        for i, an in enumerate(res):
+            with cols[i%3]: card(an, f"l_{i}")
 
 elif menu == "⚙️ Definições":
-    st.title("⚙️ Definições")
-    st.session_state.luz = st.toggle("Luminosidade (Ovo)", st.session_state.luz)
-    st.session_state.negrito = st.toggle("Negrito", st.session_state.negrito)
+    st.session_state.luz = st.toggle("Luminosidade (Ovo)", value=st.session_state.luz)
+    st.session_state.negrito = st.toggle("Negrito", value=st.session_state.negrito)
     st.session_state.cor_fundo = st.selectbox("Cor de Fundo", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_fundo))
     st.session_state.cor_card = st.selectbox("Cor dos Cartões", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_card))
     st.session_state.lingua = st.selectbox("Idioma", list(lang_map.keys()), index=list(lang_map.keys()).index(st.session_state.lingua))
-    if st.button("Aplicar"): st.rerun()
+    if st.button("OK"): st.rerun()
