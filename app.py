@@ -94,7 +94,7 @@ with st.sidebar:
     st.success(f"👤 **{st.session_state.nome_zoologo}**\n\n🐾 **Zoo:** {len(st.session_state.zoo)}/{LIMITE_ZOO}\n⭐ **Favs:** {len(st.session_state.favs)}/{LIMITE_FAV}")
     aba = st.radio("Menu", [f"🌍 {T['paises']}", f"🌲 {T['florestas']}", f"🌊 {T['oceanos']}", f"🔬 {T['lab']}", f"⭐ {T['col']}", f"⚙️ {T['def']}"])
 
-# 7. INTERFACE (70 Resultados)
+# 7. INTERFACE
 if f"🔬 {T['lab']}" in aba:
     st.title(T['lab'])
     txt_lab = st.text_input("Procurar (70 animais):")
@@ -110,17 +110,12 @@ elif f"🌍 {T['paises']}" in aba:
 elif f"🌲 {T['florestas']}" in aba:
     st.title(T['florestas'])
     f = st.selectbox("Bioma:", ["Amazónia", "Taiga", "Savana"])
-    
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/World_map_biomes.png/1000px-World_map_biomes.png")
     for i, a in enumerate(buscar(f"Animais na {f}", 70)): card(a, f"f_{i}")
 
 elif f"🌊 {T['oceanos']}" in aba:
     st.title(T['oceanos'])
     o = st.selectbox("Oceano:", ["Atlântico", "Pacífico", "Índico"])
-    
-
-[Image of world map showing ocean basins]
-
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/World_ocean_map.png/1000px-World_ocean_map.png")
     for i, a in enumerate(buscar(f"Animais no {o}", 70)): card(a, f"o_{i}")
 
