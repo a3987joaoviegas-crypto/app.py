@@ -34,7 +34,7 @@ else:
     estilo_borda = "border: 5px solid #2ecc71;"
     linha_separadora = "background: #2ecc71; height: 2px; margin: 15px 0;"
 
-# 4. DESIGN CSS (TEXTO AUMENTADO)
+# 4. DESIGN CSS (TEXTO GIGANTE E IMAGEM ORIGINAL)
 mapa_cores = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b", "Cinza": "#262730"}
 app_bg = mapa_cores.get(st.session_state.cor_fundo, "#0b1117")
 card_bg = mapa_cores.get(st.session_state.cor_card, "#1a1c23")
@@ -45,19 +45,17 @@ st.markdown(f"""
     
     .cartao-cidadao {{
         background: {card_bg}; color: white; border-radius: 20px; padding: 25px; 
-        text-align: center; {estilo_borda} 
-        min-height: 750px; 
-        display: flex; flex-direction: column; justify-content: space-between; 
-        margin-bottom: 30px;
+        text-align: center; {estilo_borda} min-height: 750px;
+        display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 30px;
     }}
     
-    .nome-comum {{ font-size: 2.2em; font-weight: 900; margin-bottom: 2px; color: #ffffff; text-transform: uppercase; }}
-    .nome-cientifico {{ font-size: 1.4em; font-style: italic; color: #1DB954; margin-bottom: 15px; display: block; letter-spacing: 1px; }}
+    .nome-comum {{ font-size: 2.2em; font-weight: 900; color: #ffffff; text-transform: uppercase; }}
+    .nome-cientifico {{ font-size: 1.4em; font-style: italic; color: #1DB954; margin-bottom: 15px; display: block; }}
     
     .img-box img {{ width: 100%; height: 210px; object-fit: cover; border-radius: 15px; }}
     
     .info-bio {{ background: rgba(255,255,255,0.08); padding: 20px; border-radius: 12px; font-size: 1.2em; text-align: left; line-height: 1.5; }}
-    .stats-vip {{ font-size: 1.25em; text-align: left; color: #ffd700; font-family: 'Arial Black', Gadget, sans-serif; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border-left: 5px solid #ffd700; }}
+    .stats-vip {{ font-size: 1.25em; text-align: left; color: #ffd700; font-family: 'Arial Black', sans-serif; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border-left: 5px solid #ffd700; }}
     
     @keyframes fly {{ from {{ transform: translateX(-150%); }} to {{ transform: translateX(250%); }} }}
     .helicoptero {{ font-size: 90px; position: fixed; top: 25%; z-index: 9999; animation: fly 4s linear forwards; }}
@@ -103,30 +101,87 @@ def render_cartao(an, key_prefix, mostrar_stats=False):
             ⚖️ PESO MÉDIO: {an['peso']} KG
         </div>
         """, unsafe_allow_html=True)
-
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Botões maiores com ícones
     c1, c2 = st.columns(2)
     with c1:
-        if st.button(f"📥 CAPTURAR {nome_comum.upper()}", key=f"c_{key_prefix}_{an['id']}", use_container_width=True):
+        if st.button(f"📥 CAPTURAR", key=f"c_{key_prefix}_{an['id']}", use_container_width=True):
             st.session_state.zoo.append(an); st.toast(f"{nome_comum} guardado!")
     with c2:
         if st.session_state.premium_ativo and tem_acesso:
-            if st.button("🧬 EXTRAIR DNA", key=f"d_{key_prefix}_{an['id']}", use_container_width=True):
-                st.session_state.tanque_fusao.append(an); st.toast("DNA Sequenciado!")
+            if st.button("🧬 DNA", key=f"d_{key_prefix}_{an['id']}", use_container_width=True):
+                st.session_state.tanque_fusao.append(an); st.toast("DNA extraído!")
 
-# ... (Manter o restante das lógicas de Sidebar, Países, Florestas, Oceanos e Definições conforme o código anterior)
-
-# [Abaixo está a parte final da lógica de navegação]
+# 6. SIDEBAR
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if tem_acesso:
-        st.session_state.premium_ativo = st.toggle("🔄 ATIVAR MODO VIP", value=st.session_state.premium_ativo)
+        st.session_state.premium_ativo = st.toggle("🔄 MODO VIP", value=st.session_state.premium_ativo)
     
     nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⚙️ Definições"]
     if st.session_state.premium_ativo and tem_acesso:
         nav = ["🔬 Laboratório", "🧬 Fusão", "🚁 Missões", "📊 Estatísticas", "❄️ Criogenia", "⚙️ Definições"]
     aba = st.radio("Navegação", nav)
 
-# Lógica das abas segue a mesma estrutura, chamando render_cartao com mostrar_stats=True no laboratório.
+# 7. CONTEÚDO DAS ABAS
+if aba == "🌍 Países":
+    p = st.selectbox("Escolha o País:", ["Brasil", "Portugal", "México", "Finlândia", "Rússia", "Maldivas", "Madagáscar"])
+    res = buscar(p)
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: render_cartao(an, "pais")
+
+elif aba == "🌲 Florestas":
+    f = st.selectbox("Escolha a Floresta/Selva:", ["Amazónia", "Selva do Congo", "Floresta Negra", "Taiga Siberiana", "Daintree Rainforest", "Selva Lacandona", "Mata Atlântica", "Borealis"])
+    res = buscar(f)
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: render_cartao(an, "flor")
+
+elif aba == "🌊 Oceanos":
+    o = st.selectbox("Escolha o Oceano:", ["Oceano Atlântico", "Oceano Pacífico", "Oceano Índico", "Oceano Ártico", "Oceano Antártico", "Mar Mediterrâneo", "Mar Vermelho", "Mar das Caraíbas"])
+    res = buscar(o)
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: render_cartao(an, "oce")
+
+elif aba == "🔬 Laboratório":
+    query = st.text_input("🔍 Pesquisar Espécie:")
+    res = buscar(query) if query else []
+    if res:
+        cols = st.columns(3)
+        for i, an in enumerate(res):
+            with cols[i%3]: render_cartao(an, "lab", mostrar_stats=True)
+    if st.session_state.zoo:
+        st.divider()
+        st.subheader("🦁 O Teu Zoo")
+        cols_zoo = st.columns(3)
+        for i, an in enumerate(st.session_state.zoo):
+            with cols_zoo[i%3]: render_cartao(an, "zoo", mostrar_stats=True)
+
+elif aba == "❄️ Criogenia":
+    if not is_crio_auth: st.error("Insira o código 'crio969' nas Definições.")
+    else:
+        st.success("SISTEMA ONLINE")
+        an_crio = st.selectbox("Animal:", st.session_state.zoo, format_func=lambda x: x.get('name', 'N/A'))
+        if st.button("❄️ CONGELAR"):
+            st.session_state.criogenia_storage.append(an_crio)
+            st.session_state.zoo.remove(an_crio); st.rerun()
+
+elif aba == "🚁 Missões":
+    st.image("https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg")
+    if st.button("🚀 INICIAR RESGATE"):
+        st.markdown('<audio autoplay><source src="https://www.soundjay.com/transportation/helicopter-fly-over-1.mp3"></audio>', unsafe_allow_html=True)
+        st.markdown('<div class="helicoptero">🚁</div>', unsafe_allow_html=True)
+        time.sleep(4); st.session_state.pontos += 100; st.rerun()
+
+elif aba == "📊 Estatísticas":
+    st.table([{"Animal": a.get('name'), "Vel": f"{a.get('vel')}km/h", "Peso": f"{a.get('peso')}kg"} for a in st.session_state.zoo])
+
+elif aba == "⚙️ Definições":
+    st.session_state.codigo = st.text_input("Premium (6626)", value=st.session_state.codigo, type="password")
+    st.session_state.codigo_perm = st.text_input("Mega (67lucas62)", value=st.session_state.codigo_perm, type="password")
+    st.session_state.codigo_crio = st.text_input("Crio (crio969)", value=st.session_state.codigo_crio, type="password")
+    st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()))
+    st.session_state.luminosidade = st.slider("Brilho", 50, 150, 100)
+    if st.button("Guardar"): st.rerun()
