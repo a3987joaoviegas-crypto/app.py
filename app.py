@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 # 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
+st.set_page_config(page_title="MundoVivo 🌍", layout="wide")
 
 # 2. ESTADO DO SISTEMA
 chaves_padrao = {
@@ -29,12 +29,11 @@ tem_acesso = is_premium or is_mega
 if is_premium and st.session_state.premium_ativado_em is None:
     st.session_state.premium_ativado_em = datetime.now()
 
-# 4. DESIGN CSS AVANÇADO (ANIMAÇÕES)
+# 4. DESIGN CSS (BORDAS DINÂMICAS)
 mapa_cores = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b", "Cinza": "#262730"}
 app_bg = mapa_cores.get(st.session_state.cor_fundo, "#0b1117")
 card_bg = mapa_cores.get(st.session_state.cor_card, "#1a1c23")
 
-# Definição da Borda Baseada no Nível
 if is_mega and st.session_state.premium_ativo:
     border_style = "border: 5px solid; border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1; animation: rainbow 3s linear infinite;"
 elif is_premium and st.session_state.premium_ativo:
@@ -58,10 +57,6 @@ st.markdown(f"""
         background: {card_bg}; color: white; border-radius: 15px; padding: 15px; 
         text-align: center; {border_style} margin-bottom: 10px;
     }}
-    .lab-box {{ 
-        background: linear-gradient(135deg, #001f3f, #000); 
-        border: 2px solid #00ffff; border-radius: 15px; padding: 20px; color: white;
-    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -72,14 +67,15 @@ def buscar_70(q):
         return requests.get(url, timeout=10).json().get('results', [])
     except: return []
 
-def render_cartao(an, local):
+def render_cartao_completo(an, local):
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/150")
     nome = an.get('preferred_common_name', an.get('name', 'Espécie')).title()
+    
     st.markdown(f"""
     <div class="cartao-cidadao">
         <img src="{foto}" style="width:100%; border-radius:10px; height:150px; object-fit:cover;">
         <h3 style="margin:10px 0;">{nome}</h3>
-        <p style="font-size:0.8em; color:#aaa;">ID: {an['id']} | {st.session_state.nome_zoologo}</p>
+        <p style="font-size:0.8em; color:#aaa;">ZOO DE: {st.session_state.nome_zoologo.upper()}</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -100,17 +96,20 @@ if tem_acesso:
     with col_t:
         st.session_state.premium_ativo = st.toggle("💎 MODO PREMIUM", value=st.session_state.premium_ativo)
 
-# 7. SIDEBAR
+# 7. SIDEBAR PROTEGIDA
 with st.sidebar:
     st.title("🌍 MundoVivo")
     st.write(f"🏆 Pontos: **{st.session_state.pontos}**")
-    if st.session_state.premium_ativo and tem_acesso:
+    
+    # SÓ MOSTRA O MENU PREMIUM SE TIVER ACESSO E O BOTÃO LIGADO
+    if tem_acesso and st.session_state.premium_ativo:
         nav = ["🧬 Fusão de Genes", "📊 Estatísticas", "🚁 Resgates", "💊 Criogenia", "⚙️ Definições"]
     else:
         nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"]
-    aba = st.radio("Navegação", nav)
+    
+    aba = st.radio("Menu", nav)
 
-# 8. LOGICA DAS ABAS
+# 8. ABAS
 if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
     st.title(f"🔍 Explorar {aba}")
     locais = {"🌍 Países": ["Portugal", "Brasil", "Angola"], "🌲 Florestas": ["Amazónia", "Congo"], "🌊 Oceanos": ["Atlântico", "Pacífico"]}
@@ -119,32 +118,28 @@ if aba in ["🌍 Países", "🌲 Florestas", "🌊 Oceanos"]:
     if animais:
         cols = st.columns(3)
         for i, an in enumerate(animais):
-            with cols[i%3]: render_cartao(an, aba)
+            with cols[i%3]: render_cartao_completo(an, aba)
 
 elif aba == "🧬 Fusão de Genes":
     st.title("🧬 Tanque de Fusão")
     
 
-[Image of the structure of DNA double helix]
+[Image of DNA structure]
 
-    st.markdown("<div class='lab-box'>", unsafe_allow_html=True)
     if len(st.session_state.tanque_fusao) >= 2:
         a1 = st.selectbox("DNA 1", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna1")
         a2 = st.selectbox("DNA 2", st.session_state.tanque_fusao, format_func=lambda x: x.get('name'), key="dna2")
         if st.button("REALIZAR FUSÃO"):
             h = f"{a1.get('name')[:4].upper()}-{a2.get('name')[-3:].upper()}"
-            st.success(f"Híbrido Estável: {h}")
+            st.success(f"Híbrido Criado: {h}")
             st.balloons()
-    else: st.warning("Extrai DNA de pelo menos 2 animais primeiro!")
-    st.markdown("</div>", unsafe_allow_html=True)
+    else: st.warning("Usa o botão '🧬 DNA' nos cartões para enviar animais para aqui!")
 
 elif aba == "📊 Estatísticas":
     st.title("📊 Painel de Status")
-    st.markdown("<div class='lab-box'>", unsafe_allow_html=True)
     st.metric("Zoo", len(st.session_state.zoo))
     st.metric("Tanque Fusão", len(st.session_state.tanque_fusao))
     st.metric("Criostase", len(st.session_state.criogenia_storage))
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "🚁 Resgates":
     st.title("🚁 Missões")
@@ -153,11 +148,11 @@ elif aba == "🚁 Resgates":
         c1.warning(f"🚨 {missao}")
         if c2.button("Resgatar", key=f"res_{idx}"):
             st.session_state.pontos += 50
-            st.session_state.resgates_ativos[idx] = "Missão Concluída! Próxima em breve..."
+            st.session_state.resgates_ativos[idx] = random.choice(["Lince preso", "Águia ferida", "Resgate marítimo"])
             st.rerun()
 
 elif aba == "💊 Criogenia":
-    st.title("💊 Criostase")
+    st.title("💊 Unidade Criostase")
     if st.session_state.zoo:
         an = st.selectbox("Congelar:", st.session_state.zoo, format_func=lambda x: x.get('name'))
         if st.button("Ativar"):
@@ -167,13 +162,13 @@ elif aba == "💊 Criogenia":
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
-    c1, c2 = st.columns(2)
+    c1, col_def2 = st.columns(2)
     with c1:
         st.session_state.nome_zoologo = st.text_input("Nome", st.session_state.nome_zoologo)
         st.session_state.codigo = st.text_input("Código Premium", value=st.session_state.codigo, type="password")
         st.session_state.codigo_perm = st.text_input("Código Mega", value=st.session_state.codigo_perm, type="password")
-    with c2:
-        st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()))
-        st.session_state.cor_card = st.selectbox("Cartão", list(mapa_cores.keys()))
+    with col_def2:
+        st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_fundo))
+        st.session_state.cor_card = st.selectbox("Cartão", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_card))
         st.session_state.negrito = st.checkbox("Negrito", value=st.session_state.negrito)
     if st.button("Guardar"): st.rerun()
