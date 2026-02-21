@@ -12,20 +12,17 @@ for key, val in {
 }.items():
     if key not in st.session_state: st.session_state[key] = val
 
-# 3. DICIONÁRIO COMPLETO DE LÍNGUAS
+# 3. DICIONÁRIO DE LÍNGUAS
 lang_map = {
-    "Português (Original)": {"code": "pt-BR", "env": "AMBIENTE", "diet": "DIETA", "rep": "REPRODUÇÃO", "save": "Guardar", "del": "Apagar", "clear": "Limpar Tudo", "nav": "Navegação", "forests": "Florestas do Mundo", "oceans": "Oceanos e Mares", "favs": "Favoritos", "defs": "Definições", "reg": "Região"},
-    "Inglês": {"code": "en", "env": "ENVIRONMENT", "diet": "DIET", "rep": "REPRODUCTION", "save": "Save", "del": "Delete", "clear": "Clear All", "nav": "Navigation", "forests": "World Forests", "oceans": "Oceans and Seas", "favs": "Favorites", "defs": "Settings", "reg": "Region"},
-    "Espanhol": {"code": "es", "env": "AMBIENTE", "diet": "DIETA", "rep": "REPRODUCCIÓN", "save": "Guardar", "del": "Borrar", "clear": "Limpiar Todo", "nav": "Navegación", "forests": "Bosques del Mundo", "oceans": "Océanos y Mares", "favs": "Favoritos", "defs": "Ajustes", "reg": "Región"},
-    "Russo": {"code": "ru", "env": "ОКРУЖАЮЩАЯ СРЕДА", "diet": "ПИТАНИЕ", "rep": "РЕПРОДУКЦИЯ", "save": "Сохранить", "del": "Удалить", "clear": "Очистить все", "nav": "Навигация", "forests": "Леса мира", "oceans": "Океаны и моря", "favs": "Избранное", "defs": "Настройки", "reg": "Область"},
-    "Finlandês": {"code": "fi", "env": "YMPÄRISTÖ", "diet": "RUOKAVALIO", "rep": "LISÄÄNTYMINEN", "save": "Tallenna", "del": "Poista", "clear": "Tyhjennä kaikki", "nav": "Navigointi", "forests": "Maailman metsät", "oceans": "Valtameret ja meret", "favs": "Suosikit", "defs": "Asetukset", "reg": "Alue"},
-    "Crioulo": {"code": "pt-PT", "env": "AMBIENTI", "diet": "DIETA", "rep": "REPRODUSON", "save": "Guarda", "del": "Paga", "clear": "Limpia Tudo", "nav": "Navegason", "forests": "Floresta di Mundu", "oceans": "Osianu ku Mar", "favs": "Favoritus", "defs": "Definisons", "reg": "Rejion"}
+    "Português (Original)": {"code": "pt-BR", "env": "AMBIENTE", "diet": "DIETA", "rep": "REPRODUÇÃO", "save": "Guardar", "del": "Apagar", "clear": "Limpar Tudo", "nav": "Navegação", "forests": "Florestas do Mundo", "oceans": "Oceanos e Mares", "favs": "Favoritos", "defs": "Definições", "reg": "Região", "lab": "Laboratório", "carn": "Carnívoro", "herb": "Herbívoro", "omni": "Omnívoro", "viv": "Vivíparo", "ovi": "Ovíparo", "terr": "Terrestre", "aqua": "Aquático"},
+    "Inglês": {"code": "en", "env": "ENVIRONMENT", "diet": "DIET", "rep": "REPRODUCTION", "save": "Save", "del": "Delete", "clear": "Clear All", "nav": "Navigation", "forests": "World Forests", "oceans": "Oceans and Seas", "favs": "Favorites", "defs": "Settings", "reg": "Region", "lab": "Laboratory", "carn": "Carnivore", "herb": "Herbivore", "omni": "Omnivore", "viv": "Viviparous", "ovi": "Oviparous", "terr": "Terrestrial", "aqua": "Aquatic"},
+    "Russo": {"code": "ru", "env": "ОКРУЖАЮЩАЯ СРЕДА", "diet": "ПИТАНИЕ", "rep": "РЕПРОДУКЦИЯ", "save": "Сохранить", "del": "Удалить", "clear": "Очистить все", "nav": "Навигация", "forests": "Леса мира", "oceans": "Океаны и моря", "favs": "Избранное", "defs": "Настройки", "reg": "Область", "lab": "Лаборатория", "carn": "Хищник", "herb": "Травоядный", "omni": "Всеядный", "viv": "Живородящие", "ovi": "Яйцекладущие", "terr": "Земной", "aqua": "Водный"},
+    "Crioulo": {"code": "pt-PT", "env": "AMBIENTI", "diet": "DIETA", "rep": "REPRODUSON", "save": "Guarda", "del": "Paga", "clear": "Limpia Tudo", "nav": "Navegason", "forests": "Floresta di Mundu", "oceans": "Osianu ku Mar", "favs": "Favoritus", "defs": "Definisons", "reg": "Rejion", "lab": "Laboratoriu", "carn": "Karnivoru", "herb": "Erbivoru", "omni": "Omnivoru", "viv": "Vivíparu", "ovi": "Ovíparu", "terr": "Terrestre", "aqua": "Akuatiku"}
 }
-dic = lang_map[st.session_state.lingua]
-
+dic = lang_map.get(st.session_state.lingua, lang_map["Português (Original)"])
 cores_hex = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b", "Amarelo": "#f1c40f", "Roxo": "#4b0082", "Vermelho": "#8b0000"}
 
-# 4. CSS COM ANIMAÇÃO E SEPARADOR DO CARTÃO
+# 4. CSS
 bg = "#e0e2e6" if st.session_state.luz else cores_hex[st.session_state.cor_fundo]
 c_bg = "#ffffff" if st.session_state.luz else cores_hex[st.session_state.cor_card]
 txt = "#000000" if (st.session_state.luz or st.session_state.cor_card in ["Branco", "Amarelo"]) else "#ffffff"
@@ -42,7 +39,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# 5. BUSCA (TRADUZ OS NOMES CONFORME A LÍNGUA)
+# 5. MOTOR DE BUSCA
 def buscar(q):
     url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=70&locale={dic['code']}"
     try:
@@ -51,8 +48,11 @@ def buscar(q):
         for item in res.get('results', []):
             if item.get('default_photo'):
                 n = (item.get('preferred_common_name') or item.get('name')).title()
-                out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 
-                            'dieta': '...', 'rep': '...', 'amb': '...'}) # Lógica simplificada para fluidez
+                cl = item.get('iconic_taxon_name', 'Animal')
+                d = dic['carn'] if any(x in n.lower() for x in ['leão', 'lion', 'tubarão', 'shark', 'lobo', 'orca']) else dic['herb'] if any(x in n.lower() for x in ['zebra', 'girafa', 'elefante']) else dic['omni']
+                r = dic['viv'] if cl == 'Mammalia' else dic['ovi']
+                a = dic['aqua'] if cl in ['Actinopterygii', 'Mollusca'] or any(x in n.lower() for x in ['baleia', 'whale', 'peixe', 'marinho', 'ocean']) else dic['terr']
+                out.append({'nome': n, 'sci': item.get('name'), 'foto': item['default_photo']['medium_url'], 'dieta': d, 'rep': r, 'amb': a})
         return out
     except: return []
 
@@ -72,44 +72,56 @@ def render_card(an, k, fav=False):
         if st.button(f"⭐ {dic['save']}", key=f"sv_{k}"): st.session_state.zoo.append(an)
     else:
         if st.button(f"🗑️ {dic['del']}", key=f"dl_{k}"): 
-            st.session_state.zoo.pop(k)
-            st.rerun()
+            st.session_state.zoo.pop(k); st.rerun()
 
-# 6. INTERFACE DINÂMICA
-st.sidebar.title("🌍 MundoVivo")
-aba = st.sidebar.radio(dic['nav'], ["🌍 Planisfério", f"🌲 {dic['forests']}", f"🌊 {dic['oceans']}", "🔬 Lab", f"⭐ {dic['favs']}", f"⚙️ {dic['defs']}"])
+# 6. INTERFACE
+aba = st.sidebar.radio(dic['nav'], ["🌍 Planisfério", "🌲 " + dic['forests'], "🌊 " + dic['oceans'], "🔬 " + dic['lab'], "⭐ " + dic['favs'], "⚙️ " + dic['defs']])
 
-if f"🌲 {dic['forests']}" in aba:
-    op = st.sidebar.selectbox(dic['reg'], ["Amazonia", "Taiga", "Savanna", "Atlantic Forest", "Russian Forest"])
+if aba == "🌍 Planisfério":
+    st.map(pd.DataFrame({'lat': [38.7, -15.7, 60.0, -22.9], 'lon': [-9.1, -47.8, 90.0, -43.2]}))
+    p = st.selectbox(dic['reg'], ["Portugal", "Brasil", "Rússia", "Angola"])
+    res = buscar(p)
+    cols = st.columns(3)
+    for i, an in enumerate(res):
+        with cols[i%3]: render_card(an, i)
+
+elif "🌲" in aba:
+    # Planisfério das Florestas (Amazónia, Mata Atlântica, Taiga, Floresta Russa, Savana)
+    st.map(pd.DataFrame({'lat': [-3.4, -23.5, 63.7, 60.0, -13.1], 'lon': [-62.2, -46.6, 95.8, 40.0, 27.8]}))
+    op = st.selectbox(dic['reg'], ["Amazonia", "Atlantic Forest", "Taiga", "Russian Forest", "Savanna"])
     res = buscar(op)
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]: render_card(an, i)
 
-elif f"🌊 {dic['oceans']}" in aba:
-    op = st.sidebar.selectbox(dic['reg'], ["Pacific Ocean", "Atlantic Ocean", "Coral Reef", "Deep Sea"])
+elif "🌊" in aba:
+    # Planisfério dos Mares e Oceanos (Pacífico, Atlântico, Coral, Abismo)
+    st.map(pd.DataFrame({'lat': [-8.7, 14.5, -18.2, 0.0], 'lon': [-145.0, -30.0, 147.4, 10.0]}))
+    op = st.selectbox(dic['reg'], ["Pacific Ocean", "Atlantic Ocean", "Coral Reef", "Deep Sea"])
     res = buscar(op)
     cols = st.columns(3)
     for i, an in enumerate(res):
         with cols[i%3]: render_card(an, i)
 
-elif f"⭐ {dic['favs']}" in aba:
+elif "🔬" in aba:
+    st.title(dic['lab'])
+    b = st.text_input("🔍:")
+    if b:
+        res = buscar(b)
+        cols = st.columns(3)
+        for i, an in enumerate(res):
+            with cols[i%3]: render_card(an, i)
+
+elif "⭐" in aba:
     st.title(dic['favs'])
     if st.button(dic['clear']): st.session_state.zoo = []; st.rerun()
     cols = st.columns(3)
     for i, an in enumerate(st.session_state.zoo):
         with cols[i%3]: render_card(an, i, fav=True)
 
-elif f"⚙️ {dic['defs']}" in aba:
+elif "⚙️" in aba:
     st.session_state.luz = st.toggle("Luminosidade", value=st.session_state.luz)
     st.session_state.negrito = st.toggle("Negrito", value=st.session_state.negrito)
     st.session_state.cor_card = st.selectbox("Cartão", list(cores_hex.keys()), index=list(cores_hex.keys()).index(st.session_state.cor_card))
     st.session_state.lingua = st.selectbox("Idioma", list(lang_map.keys()), index=list(lang_map.keys()).index(st.session_state.lingua))
     if st.button("OK"): st.rerun()
-
-elif "🌍 Planisfério" in aba:
-    p = st.selectbox(dic['reg'], ["Portugal", "Brasil", "Russia", "Angola"])
-    res = buscar(p)
-    cols = st.columns(3)
-    for i, an in enumerate(res):
-        with cols[i%3]: render_card(an, i)
