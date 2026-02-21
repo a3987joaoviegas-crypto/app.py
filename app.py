@@ -58,12 +58,11 @@ st.markdown(f"""
         text-align: center; border: 3px solid #2ecc71; margin-bottom: 10px;
     }}
     .info-bio {{ background: rgba(0,0,0,0.3); padding: 8px; border-radius: 10px; font-size: 0.8em; text-align: left; margin-top: 10px; }}
-    .badge-premium {{ background: #ffd700; color: black; font-weight: bold; border-radius: 5px; padding: 2px; font-size: 0.7em; margin-top: 5px; }}
-    .lab-box {{ background: linear-gradient(135deg, #001f3f, #000); border: 2px solid #00ffff; border-radius: 15px; padding: 20px; color: white; }}
+    .badge-premium {{ background: #ffd700; color: black; font-weight: bold; border-radius: 5px; padding: 5px; font-size: 0.7em; margin-top: 5px; display: block; }}
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES DE BUSCA E RENDERIZAÇÃO
+# 5. FUNÇÕES
 def buscar_animais(q):
     try:
         url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=9&locale={st.session_state.idioma}"
@@ -87,7 +86,6 @@ def render_cartao(an, local):
         </div>
     """, unsafe_allow_html=True)
     
-    # APENAS CONSERVAÇÃO É PREMIUM
     if st.session_state.premium_ativo and tem_acesso:
         st.markdown('<div class="badge-premium">🛡️ STATUS: PROTEGIDO (IUCN)</div>', unsafe_allow_html=True)
     
@@ -104,13 +102,13 @@ def render_cartao(an, local):
                 st.session_state.tanque_fusao.append(an)
                 st.toast(f"DNA de {nome} extraído!")
 
-# 6. INTERRUPTOR PREMIUM (TOPO)
+# 6. INTERRUPTOR PREMIUM
 if tem_acesso:
     _, col_t = st.columns([5, 1])
     with col_t:
         st.session_state.premium_ativo = st.toggle("🔄 MODO PREMIUM", value=st.session_state.premium_ativo)
 
-# 7. SIDEBAR DINÂMICA
+# 7. SIDEBAR
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if st.session_state.premium_ativo and tem_acesso:
@@ -141,11 +139,9 @@ elif aba == "🧬 Fusão de Genes":
 
 elif aba == "📊 Estatísticas":
     st.title("📊 Painel VIP")
-    st.markdown("<div class='lab-box'>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     c1.metric("Animais no Zoo", len(st.session_state.zoo))
     c2.metric("Pontos Atuais", st.session_state.pontos)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "🚁 Resgates":
     st.title("🚁 Missões")
@@ -183,5 +179,6 @@ elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
     st.session_state.codigo = st.text_input("Código Premium (24h)", value=st.session_state.codigo, type="password")
     st.session_state.codigo_perm = st.text_input("Código Mega (Permanente)", value=st.session_state.codigo_perm, type="password")
-    st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()))
-    st.session_state.luminosidade = st.slider("Brilho",
+    st.session_state.cor_fundo = st.selectbox("Fundo", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_fundo))
+    st.session_state.luminosidade = st.slider("Brilho", 50, 150, st.session_state.luminosidade)
+    if st.button("Guardar"): st.rerun()
