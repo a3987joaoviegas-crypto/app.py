@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 
 # 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="MundoVivo Ultimate", page_icon="🌍", layout="wide")
 
 # 2. ESTADOS
 for key, val in {
