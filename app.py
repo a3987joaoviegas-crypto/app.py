@@ -4,14 +4,15 @@ import random
 import time
 from datetime import datetime, timedelta
 
-# 1. CONFIGURAÇÃO
+# 1. CONFIGURAÇÃO INICIAL
 st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
 
-# 2. INICIALIZAÇÃO SEGURA (Evita AttributeError)
+# 2. INICIALIZAÇÃO BLINDADA DO ESTADO
 chaves_padrao = {
     'zoo': [], 'codigo': "", 'codigo_perm': "", 'codigo_crio': "",
     'premium_ativado_em': None, 'premium_ativo': False,
-    'cor_fundo': "Preto", 'luminosidade': 100, 'negrito': False,
+    'cor_card': "Preto", 'cor_fundo': "Preto", 'idioma': "pt-PT", 
+    'nome_zoologo': "Explorador", 'luminosidade': 100, 'negrito': False,
     'resgates_ativos': ["Tigre ferido", "Panda faminto", "Baleia encalhada"],
     'criogenia_storage': []
 }
@@ -25,7 +26,6 @@ is_premium = st.session_state.codigo == "6626"
 is_mega = st.session_state.codigo_perm == "67lucas62"
 tem_acesso = is_premium or is_mega
 
-# Se ativou o premium agora, grava a hora
 if is_premium and st.session_state.premium_ativado_em is None:
     st.session_state.premium_ativado_em = datetime.now()
 
@@ -44,52 +44,83 @@ if is_premium and st.session_state.premium_ativado_em:
         minutos, segundos = divmod(rem, 60)
         tempo_restante_str = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
 
-# 4. INTERRUPTOR DE SUBSTITUIÇÃO (O OVO)
+# 4. DESIGN CSS DINÂMICO
+mapa_cores = {"Preto": "#0b1117", "Branco": "#ffffff", "Azul": "#001f3f", "Verde": "#002b1b"}
+app_bg = mapa_cores.get(st.session_state.cor_fundo, "#0b1117")
+card_bg = mapa_cores.get(st.session_state.cor_card, "#1a1c23")
+txt_c = "black" if st.session_state.cor_fundo == "Branco" else "white"
+peso = "bold" if st.session_state.negrito else "normal"
+
+st.markdown(f"""
+<style>
+    .stApp {{ background-color: {app_bg}; color: {txt_c}; filter: brightness({st.session_state.luminosidade}%); font-weight: {peso}; }}
+    .cartao-cidadao {{
+        background: {card_bg} !important; color: white; border-radius: 20px; 
+        padding: 15px; text-align: center; border: 4px solid #2ecc71;
+    }}
+    .lab-pesquisa {{
+        background: linear-gradient(135deg, #001f3f, #000);
+        border: 2px solid #00ffff; border-radius: 15px; padding: 20px;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# 5. TOPO: INTERRUPTOR PREMIUM (O OVO)
 if tem_acesso:
-    col_t1, col_t2 = st.columns([5, 1])
-    with col_t2:
-        # Só aparece se tiver um dos códigos
+    c1, c2 = st.columns([5, 1])
+    with c2:
         st.session_state.premium_ativo = st.toggle("💎 MODO PREMIUM", value=st.session_state.premium_ativo)
 
-# 5. SIDEBAR DINÂMICA
+# 6. SIDEBAR DINÂMICA (SUBSTITUIÇÃO TOTAL)
 with st.sidebar:
     st.title("🌍 MundoVivo")
-    
-    # Se o interruptor estiver ligado, a sidebar MUDA TOTALMENTE
     if st.session_state.premium_ativo and tem_acesso:
         st.subheader("🚀 MENU PREMIUM")
         nav = ["🔬 Lab de Pesquisa", "🚁 Resgates", "💊 Criogenia", "⚙️ Definições"]
     else:
         st.subheader("🌿 MENU NORMAL")
         nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "⭐ Coleção", "⚙️ Definições"]
-    
     aba = st.radio("Navegação", nav)
 
-# 6. CONTEÚDO DAS ABAS
+# 7. CONTEÚDO DAS ABAS
 if aba == "⚙️ Definições":
-    st.header("⚙️ Definições")
+    st.header("⚙️ Painel de Controlo")
     
     if is_premium and not is_mega:
-        st.info(f"⏳ O teu acesso Premium expira em: **{tempo_restante_str}**")
-    
-    st.session_state.codigo = st.text_input("Código Premium (24h)", value=st.session_state.codigo)
-    st.session_state.codigo_perm = st.text_input("Código Mega (Infinito)", value=st.session_state.codigo_perm)
-    st.session_state.cor_fundo = st.selectbox("Cor Fundo", ["Preto", "Branco", "Azul", "Verde"])
-    
-    if st.button("GUARDAR E ATUALIZAR"):
+        st.info(f"⏳ Tempo Premium: **{tempo_restante_str}** restantes.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("🔑 Acessos")
+        st.session_state.codigo = st.text_input("Código Premium (24h)", value=st.session_state.codigo)
+        st.session_state.codigo_perm = st.text_input("Código Mega (Infinito)", value=st.session_state.codigo_perm)
+        st.session_state.codigo_crio = st.text_input("Código Criogenia", value=st.session_state.codigo_crio)
+        
+        st.subheader("🎨 Estilo")
+        st.session_state.cor_fundo = st.selectbox("Cor do Fundo", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_fundo))
+        st.session_state.cor_card = st.selectbox("Cor dos Cartões", list(mapa_cores.keys()), index=list(mapa_cores.keys()).index(st.session_state.cor_card))
+        st.session_state.negrito = st.checkbox("Texto em Negrito", value=st.session_state.negrito)
+
+    with col2:
+        st.subheader("⚙️ Preferências")
+        st.session_state.nome_zoologo = st.text_input("Nome do Zoólogo", st.session_state.nome_zoologo)
+        st.session_state.idioma = st.selectbox("Idioma do Sistema", ["pt-PT", "pt-BR", "en-US", "es-ES"])
+        st.session_state.luminosidade = st.slider("Luminosidade (%)", 50, 150, st.session_state.luminosidade)
+
+    if st.button("💾 GUARDAR TODAS AS ALTERAÇÕES", type="primary"):
         st.rerun()
 
 elif aba == "🔬 Lab de Pesquisa":
+    st.markdown("<div class='lab-pesquisa'>", unsafe_allow_html=True)
     st.title("🔬 Laboratório de Bio-Genética")
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #001f3f, #000); border: 2px solid #00ffff; padding: 20px; border-radius: 15px;'>
-        <h3 style='color: #00ffff;'>Central de Pesquisa Ativa</h3>
-        <p>Aqui podes fundir genes e analisar o teu Zoo.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.write(f"Bem-vindo, {st.session_state.nome_zoologo}. O laboratório está operacional.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "🌍 Países":
-    st.title("🌍 Explorar o Mundo")
-    st.write("Escolhe um país para encontrar animais!")
+    st.title("🌍 Explorar Países")
+    st.write(f"Procurando animais em idioma: {st.session_state.idioma}")
+    # Aqui viria a função buscar_70 e render_cartao...
 
-# Outras abas seguiriam a mesma lógica...
+elif aba == "⭐ Coleção":
+    st.header("🐾 Teu Zoo")
+    # Lógica da coleção aqui...
