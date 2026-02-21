@@ -9,7 +9,7 @@ st.set_page_config(page_title="MundoVivo 🌍", page_icon="🌍", layout="wide")
 # 2. SISTEMA DE MEMÓRIA
 for key, val in {
     'luz': False, 'zoo': [], 'codigo': "", 'codigo_perm': "", 
-    'cor_card': "Preto", 'cor_fundo': "Preto", 'chat_pos': "sidebar", 'nome_zoologo': "Explorador"
+    'cor_card': "Preto", 'cor_fundo': "Preto", 'idioma': "pt-PT", 'nome_zoologo': "Explorador", 'lang_label': "Português"
 }.items():
     if key not in st.session_state:
         st.session_state[key] = val
@@ -17,10 +17,7 @@ for key, val in {
 # Lógica de Permissões
 is_perm_active = st.session_state.codigo_perm == "67lucas62"
 is_mestre = st.session_state.codigo == "6626" or is_perm_active
-is_ai_unlocked = st.session_state.codigo == "33236" or is_perm_active
 LIMITE = 80 if is_mestre else 20
-
-# Título do Cartão Dinâmico
 titulo_zoologo = "🏆 Zoólogo Profissional" if is_mestre else "💳 Zoólogo"
 
 # 3. DESIGN (CSS)
@@ -41,110 +38,111 @@ st.markdown(f"""
     .stApp {{ background-color: {app_bg}; color: {txt_color}; }}
     .cc-card {{ background: {c_bg} !important; border-radius: 15px; padding: 18px; {border_css} box-shadow: 8px 8px 20px rgba(0,0,0,0.5); margin-bottom: 20px; color: {txt_color} !important; }}
     .sidebar-card {{ background: #2ea043; padding: 15px; border-radius: 10px; border: 2px solid gold; color: white; }}
-    @keyframes galactico {{ 0% {{ filter: hue-rotate(0deg); }} 100% {{ filter: hue-rotate(360deg); }} }}
+    .premium-luta-box {{ background: rgba(255, 215, 0, 0.05); border: 2px dashed gold; padding: 15px; border-radius: 15px; }}
     </style>
     """, unsafe_allow_html=True)
 
 # 4. FUNÇÕES
 def buscar_api(termo, qtd=9):
     try:
-        url = f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page={qtd}&locale=pt-PT"
+        lang = st.session_state.idioma
+        url = f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page={qtd}&locale={lang}"
         r = requests.get(url).json()
         return [{'nome': i.get('preferred_common_name', i['name']).title(), 'sci': i['name'], 'foto': i['default_photo']['medium_url'] if i.get('default_photo') else "", 'id': i['id']} for i in r['results']]
     except: return []
 
-def obter_bio(nome):
-    n = nome.lower()
-    if any(x in n for x in ['tubarão', 'leão', 'lobo', 'tigre', 'águia', 'orca']):
-        return "Carnívoro 🥩", "Predador 🏹", "Vivíparo 🍼"
-    return "Herbívoro/Ominívoro 🌿", "Variável 🌍", "Ovíparo/Vivíparo 🥚"
-
-def render_cartao(an, k):
-    alim, amb, repr = obter_bio(an['nome'])
-    st.markdown(f"""
-    <div class='cc-card'>
-        <img src='{an['foto']}' width='100%' style='border-radius:10px; height:180px; object-fit:cover;'>
-        <div style='font-size:1.4em; font-weight:bold;'>{an['nome']}</div>
-        <div style='font-style:italic; opacity:0.7;'>{an['sci']}</div>
-        <div style='font-size: 0.8em; margin-top: 5px;'>
-            <b>🍴 Alimentação:</b> {alim}<br>
-            <b>🏠 Ambiente:</b> {amb}<br>
-            <b>🐣 Reprodução:</b> {repr}
-        </div>
-        {f"<div style='background:rgba(255,215,0,0.2); padding:5px; border-radius:5px; margin-top:10px; text-align:center; font-weight:bold;'>ESTADO: PROTEGIDO 🚨</div>" if is_mestre else ""}
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button(f"Guardar Animal", key=k):
-        if len(st.session_state.zoo) < LIMITE:
-            st.session_state.zoo.append(an)
-            st.toast(f"{an['nome']} guardado!")
+def render_cartao(an, k, tipo="zoo"):
+    label_btn = "⚔️ LUTAR" if tipo == "luta" else "➕ Guardar Animal"
+    st.markdown(f"<div class='cc-card'><img src='{an['foto']}' width='100%' style='border-radius:10px; height:180px; object-fit:cover;'><div style='font-size:1.3em; font-weight:bold;'>{an['nome']}</div><div style='font-style:italic; opacity:0.7;'>{an['sci']}</div></div>", unsafe_allow_html=True)
+    if st.button(label_btn, key=k, use_container_width=True):
+        if tipo == "zoo":
+            if len(st.session_state.zoo) < LIMITE:
+                st.session_state.zoo.append(an); st.toast(f"{an['nome']} guardado!")
+        else: st.error(f"COMBATE CONTRA {an['nome']}!")
 
 # 5. SIDEBAR
 with st.sidebar:
     st.title("🌍 MundoVivo")
-    # Cartão de Zoólogo Dinâmico
-    st.markdown(f"""
-    <div class='sidebar-card'>
-        <h4 style='margin:0;'>{titulo_zoologo}</h4>
-        <p style='margin:0; font-weight:bold;'>{st.session_state.nome_zoologo}</p>
-        <small>Espaço: {len(st.session_state.zoo)}/{LIMITE}</small>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown(f"<div class='sidebar-card'><h4>{titulo_zoologo}</h4><b>{st.session_state.nome_zoologo}</b><br><small>Reserva: {len(st.session_state.zoo)}/{LIMITE}</small></div>", unsafe_allow_html=True)
     st.markdown("---")
-    aba = st.radio("Navegação", ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "🥊 Luta Especial", "⭐ Coleção", "⚙️ Definições"])
+    aba = st.radio("Menu", ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⭐ Coleção", "⚙️ Definições"])
+
+GRUPOS = ["Todos", "Mamíferos", "Aves", "Répteis", "Anfíbios", "Peixes", "Aracnídeos", "Insetos"]
 
 # 6. INTERFACE
-if aba == "🥊 Luta Especial":
-    st.title("🥊 Arena de Luta Especial")
-    categoria = st.selectbox("Escolha a Classe de Combate:", ["Vertebrados", "Invertebrados", "Mamíferos", "Répteis", "Aves"])
-    inimigos = buscar_api(categoria, qtd=3)
-    cols = st.columns(3)
-    for i, a in enumerate(inimigos):
-        with cols[i]: render_cartao(a, f"fight_{i}")
-    st.markdown(f"<p style='text-align:center; font-weight:bold; margin-top:20px;'>(Ex: {categoria})</p>", unsafe_allow_html=True)
-
-elif aba == "🔬 Laboratório":
-    st.title("🔬 Laboratório de Pesquisa")
-    pesq = st.text_input("Análise Biológica (Pesquisa Livre):")
-    if pesq:
-        cols = st.columns(3)
-        for i, a in enumerate(buscar_api(pesq)):
-            with cols[i%3]: render_cartao(a, f"l_{i}")
+if aba == "🔬 Laboratório":
+    st.title("🔬 Laboratório Central")
+    col_pesquisa, col_luta = st.columns([1.8, 1])
+    with col_pesquisa:
+        st.subheader("🔍 Análise Livre")
+        termo_lab = st.text_input("Introduza nome para estudo:")
+        if termo_lab:
+            res = buscar_api(termo_lab)
+            c1, c2 = st.columns(2)
+            for i, a in enumerate(res):
+                with (c1 if i % 2 == 0 else c2): render_cartao(a, f"lab_{i}")
+    with col_luta:
+        st.markdown("<div class='premium-luta-box'>", unsafe_allow_html=True)
+        st.subheader("🥊 Lutas Premium")
+        if is_mestre:
+            op_txt = st.text_input("Oponente (1vs1):", key="search_fight")
+            if op_txt:
+                inimigo = buscar_api(op_txt, qtd=1)
+                if inimigo: render_cartao(inimigo[0], "btn_luta", tipo="luta")
+        else: st.error("Acesso bloqueado.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 elif aba == "🌲 Florestas":
-    st.title("🌲 Biomas Florestais")
-    tipo = st.selectbox("Escolha a Floresta:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
+    st.title("🌲 Biomas")
+    col1, col2 = st.columns(2)
+    with col1: tipo = st.selectbox("Escolha a Floresta:", ["Amazónia", "Taiga", "Savana", "Mata Atlântica"])
+    with col2: grupo = st.selectbox("Filtrar Grupo:", GRUPOS, key="f_grupo")
+    busca = f"Animais da {tipo}" if grupo == "Todos" else f"Animais {grupo} da {tipo}"
     cols = st.columns(3)
-    for i, a in enumerate(buscar_api(f"Animais da {tipo}")):
+    for i, a in enumerate(buscar_api(busca)):
         with cols[i%3]: render_cartao(a, f"f_{i}")
 
 elif aba == "🌊 Oceanos":
     st.title("🌊 Oceanos")
-    oceano = st.selectbox("Região Marinha:", ["Oceano Atlântico", "Oceano Pacífico", "Recifes de Coral"])
+    col1, col2 = st.columns(2)
+    with col1: oceano = st.selectbox("Escolha:", ["Oceano Atlântico", "Oceano Pacífico", "Recifes de Coral", "Mar Profundo"])
+    with col2: grupo = st.selectbox("Filtrar Grupo:", GRUPOS, key="o_grupo")
+    busca = f"Animais do {oceano}" if grupo == "Todos" else f"Animais {grupo} do {oceano}"
     cols = st.columns(3)
-    for i, a in enumerate(buscar_api(f"Animais do {oceano}")):
+    for i, a in enumerate(buscar_api(busca)):
         with cols[i%3]: render_cartao(a, f"o_{i}")
 
 elif aba == "🌍 Países":
     st.title("🌍 Países")
-    pais = st.selectbox("Selecione o País:", ["Portugal", "Brasil", "Angola", "Moçambique"])
+    col1, col2 = st.columns(2)
+    with col1: pais = st.selectbox("Selecione:", ["Portugal", "Brasil", "Angola", "Moçambique", "Japão", "Austrália"])
+    with col2: grupo = st.selectbox("Filtrar Grupo:", GRUPOS, key="p_grupo")
+    busca = f"Animais de {pais}" if grupo == "Todos" else f"Animais {grupo} de {pais}"
     cols = st.columns(3)
-    for i, a in enumerate(buscar_api(f"Animais de {pais}")):
+    for i, a in enumerate(buscar_api(busca)):
         with cols[i%3]: render_cartao(a, f"p_{i}")
 
 elif aba == "⭐ Coleção":
-    st.title("⭐ Reserva do Zoologo")
+    st.title("⭐ Minha Reserva")
     for i, a in enumerate(st.session_state.zoo):
         st.markdown(f"<div class='cc-card'><b>{a['nome']}</b></div>", unsafe_allow_html=True)
-        if st.button("Libertar", key=f"lib_{i}"):
-            st.session_state.zoo.pop(i); st.rerun()
+        if st.button("Libertar", key=f"lib_{i}"): st.session_state.zoo.pop(i); st.rerun()
 
 elif aba == "⚙️ Definições":
-    st.title("⚙️ Definições")
-    st.session_state.nome_zoologo = st.text_input("Seu Nome:", value=st.session_state.nome_zoologo)
-    st.session_state.codigo = st.text_input("Código de Acesso:", type="password")
+    st.title("⚙️ Definições e Idioma")
+    st.session_state.nome_zoologo = st.text_input("Nome:", value=st.session_state.nome_zoologo)
+    
+    # Seletor de Idiomas aqui
+    idiomas_dict = {
+        "Português": "pt-PT", "English": "en-US", "Français": "fr", 
+        "Español": "es", "Deutsch": "de", "Russo (Русский)": "ru", "Finlandês (Suomi)": "fi"
+    }
+    escolha_lang = st.selectbox("🌐 Idioma das Pesquisas:", list(idiomas_dict.keys()), index=list(idiomas_dict.keys()).index(st.session_state.lang_label))
+    st.session_state.idioma = idiomas_dict[escolha_lang]
+    st.session_state.lang_label = escolha_lang
+    
+    st.markdown("---")
+    st.session_state.codigo = st.text_input("Código:", type="password")
     st.session_state.codigo_perm = st.text_input("Código Permanente:", type="password")
     st.session_state.cor_card = st.selectbox("Cor Cartão:", list(cores_hex.keys()))
     st.session_state.luz = st.toggle("Modo Dia")
-
