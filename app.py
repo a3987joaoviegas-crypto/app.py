@@ -14,7 +14,7 @@ chaves = {
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 2. LÓGICA DE ACESSO
+# 2. LÓGICA DE ACESSO E CÓDIGOS
 is_mega = st.session_state.c_mega == "67lucas62"
 is_neon = st.session_state.c_neon == "6676neon7secret"
 is_diamante = st.session_state.c_diamante == "77daimond8secret"
@@ -27,7 +27,7 @@ if st.session_state.exp_trava:
 is_24h = (st.session_state.c_24h == "6626" and pode_6626)
 vip_global = is_mega or is_24h
 
-# 3. SIDEBAR
+# 3. SIDEBAR COM INTERRUPTOR
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if vip_global:
@@ -39,7 +39,7 @@ with st.sidebar:
         menu = ["🌍 Explorar", "🐾 Meu Zoo", "⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
-# 4. DESIGN
+# 4. DESIGN (NEON / DIAMANTE / MEGA)
 cor_borda = "#2ecc71"
 if is_neon: cor_borda = "#00ff00"
 if is_diamante: cor_borda = "#00d4ff"
@@ -98,8 +98,9 @@ def card(an, modo="explorar"):
 
 # 6. ABAS
 if aba == "🌍 Explorar":
-    st.header("🌍 Explorar")
-    st.write("---")
+    st.header("🌍 Explorar Biomas")
+    st.write("### Camadas da Biodiversidade")
+    
     tipo = st.selectbox("Local:", ["Amazónia", "Oceano Pacífico", "Savana Africana"])
     cols = st.columns(2)
     for i, an in enumerate(buscar_animais(tipo)):
@@ -116,17 +117,21 @@ elif aba == "🐾 Meu Zoo":
 
 elif aba == "🌀 Resgate":
     st.header("🌀 Unidade de Resgate")
+    if not st.session_state.criogenia_storage: st.info("Câmara vazia.")
     for an in st.session_state.criogenia_storage: card(an, "resgate")
 
 elif aba == "❄️ Criogenia":
     st.header("❄️ Criogenia")
-    st.info("Usa o menu Explorar para enviar animais para aqui.")
+    st.info("Usa o menu Explorar com o código crio99 para enviar animais para aqui.")
 
 elif aba == "🔬 Lab Especial":
     st.header("🔬 Laboratório Premium")
-    st.write("###
-")
-    st.success("Sistema de Fusão Ativo.")
+    st.write("### Sequenciamento Genético")
+    
+
+[Image of a DNA sequence model]
+
+    st.success("Estação de Fusão Pronta para uso VIP.")
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
