@@ -4,30 +4,24 @@ import random
 import time
 from datetime import datetime, timedelta
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="MundoVivo Ultra 🌍", layout="wide")
-
-# 2. ESTADO DO SISTEMA
+# 1. ESTADO DO SISTEMA
 chaves = {
-    'zoo': [], 'criogenia_storage': [],
-    'codigo': "", 'codigo_perm': "", 'codigo_crio': "", 'codigo_neon': "", 'codigo_diamante': "",
-    'premium_ativo': False, 'cor_fundo_user': "#0b1117", 'cor_card_user': "#1a1c23",
+    'zoo': [], 'codigo': "", 'codigo_perm': "", 'codigo_crio': "", 
+    'codigo_neon': "", 'codigo_diamante': "", 'premium_ativo': False, 
+    'cor_fundo_user': "#0b1117", 'cor_card_user': "#1a1c23",
     'luminosidade': 100, 'inicio_premium': None
 }
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 3. LÓGICA DE ACESSO
+# 2. LÓGICA DE ACESSO
 is_mega = st.session_state.codigo_perm == "67lucas62"
 is_premium_normal = st.session_state.codigo == "6626"
 tem_beneficios = is_mega or is_premium_normal
 is_neon = st.session_state.codigo_neon == "6676neon7secret"
 is_diamante = st.session_state.codigo_diamante == "77daimond8secret"
 
-if is_premium_normal and st.session_state.inicio_premium is None:
-    st.session_state.inicio_premium = datetime.now()
-
-# Estilos de Cores Especiais
+# 3. ESTILOS VISUAIS
 cor_borda = "#2ecc71"
 linha_vip_css = "border-top: 2px solid #ffd700;"
 sombra = "none"
@@ -42,7 +36,6 @@ elif is_diamante:
 elif is_premium_normal:
     cor_borda = "#ffd700"
 
-# 4. DESIGN CSS
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {st.session_state.cor_fundo_user}; filter: brightness({st.session_state.luminosidade}%); color: white; }}
@@ -50,17 +43,19 @@ st.markdown(f"""
         background: {st.session_state.cor_card_user}; border-radius: 15px; padding: 20px; border: 4px solid;
         border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
         border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
-        box-shadow: {sombra}; min-height: 620px; display: flex; flex-direction: column; margin-bottom: 25px;
+        box-shadow: {sombra}; min-height: 600px; display: flex; flex-direction: column; margin-bottom: 25px;
     }}
     .img-box img {{ width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; }}
-    .nome-comum {{ font-size: 1.5em; font-weight: 900; text-transform: uppercase; text-align: center; display: block; margin: 10px 0; }}
+    .nome-comum {{ font-size: 1.5em; font-weight: 900; text-transform: uppercase; text-align: center; display: block; margin: 10px 0; color: white; }}
     .label {{ color: #1DB954; font-weight: bold; font-size: 0.9em; }}
+    .campo {{ font-size: 1em; margin: 3px 0; }}
     .separador-vip {{ {linha_vip_css} margin: 15px 0; }}
     .stats-txt {{ color: #ffd700; font-weight: bold; font-family: monospace; font-size: 1.1em; }}
+    .timer-style {{ background: #ff4b4b; color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 10px; }}
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÕES
+# 4. FUNÇÕES
 def buscar_animais(termo):
     try:
         r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page=9&locale=pt-PT")
@@ -90,63 +85,58 @@ def desenhar_cartao(an, prefixo):
 
     if st.session_state.premium_ativo and tem_beneficios:
         st.markdown(f"""<div class="separador-vip"></div>
-        <div class="stats-txt">📊 DADOS VIP<br>🚀 VELOCIDADE: {random.randint(20, 180)} KM/H<br>⚖️ PESO: {random.randint(1, 4000)} KG</div>""", unsafe_allow_html=True)
+        <div class="stats-txt">📊 ESTATÍSTICAS VIP<br>🚀 VELOCIDADE: {random.randint(20, 190)} KM/H<br>⚖️ PESO: {random.randint(1, 5000)} KG</div>""", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     
     if st.button(f"📥 CAPTURAR", key=f"btn_{prefixo}_{an['id']}", use_container_width=True):
         limite = 80 if tem_beneficios else 20
         if len(st.session_state.zoo) < limite:
             st.session_state.zoo.append(an); st.toast(f"{nome} capturado!")
-        else: st.error(f"Limite de {limite} atingido!")
+        else: st.error("Zoo cheio!")
 
-# 6. SIDEBAR
+# 5. SIDEBAR
 with st.sidebar:
-    if st.session_state.premium_ativo and tem_beneficios:
-        st.markdown('<div style="background:gold; color:black; padding:10px; border-radius:10px; text-align:center; font-weight:bold;">🏆 ZOÓLOGO PROFISSIONAL</div>', unsafe_allow_html=True)
-        if is_premium_normal and st.session_state.inicio_premium:
-            restante = timedelta(hours=24) - (datetime.now() - st.session_state.inicio_premium)
-            if restante.total_seconds() > 0:
-                h, r = divmod(int(restante.total_seconds()), 3600)
-                m, s = divmod(r, 60)
-                st.markdown(f'<div style="background:red; color:white; text-align:center; padding:5px; border-radius:5px; margin-top:5px;">⏳ {h:02d}:{m:02d}:{s:02d}</div>', unsafe_allow_html=True)
+    if is_premium_normal:
+        if st.session_state.inicio_premium is None: st.session_state.inicio_premium = datetime.now()
+        restante = timedelta(hours=24) - (datetime.now() - st.session_state.inicio_premium)
+        if restante.total_seconds() > 0:
+            h, r = divmod(int(restante.total_seconds()), 3600)
+            m, s = divmod(r, 60)
+            st.markdown(f'<div class="timer-style">⏳ PREMIUM: {h:02d}:{m:02d}:{s:02d}</div>', unsafe_allow_html=True)
 
     st.title("🌍 MundoVivo")
-    if tem_beneficios: st.session_state.premium_ativo = st.toggle("Mundo VIP", value=st.session_state.premium_ativo)
+    if tem_beneficios: st.session_state.premium_ativo = st.toggle("MODO VIP", value=st.session_state.premium_ativo)
     
     nav = ["🌍 Países", "🌲 Florestas", "🌊 Oceanos", "🔬 Laboratório", "⚙️ Definições"]
     if st.session_state.premium_ativo and tem_beneficios:
-        nav = ["🔬 Laboratório", "🧬 Fusão", "🚁 Missões", "📊 Estatísticas", "❄️ Criogenia", "⚙️ Definições"]
-    aba = st.radio("Explorar", nav)
-    st.write(f"📊 Zoo: {len(st.session_state.zoo)} / {80 if tem_beneficios else 20}")
+        nav = ["🔬 Laboratório", "🧬 Fusão", "📊 Estatísticas", "❄️ Criogenia", "⚙️ Definições"]
+    aba = st.radio("Menu", nav)
 
-# 7. CONTEÚDO
+# 6. CONTEÚDO
 if aba == "🌍 Países":
-    p = st.selectbox("Escolha um País:", ["Brasil", "Portugal", "Austrália", "Madagáscar"])
+    p = st.selectbox("País:", ["Brasil", "Portugal", "Madagáscar", "Austrália"])
     cols = st.columns(3)
     for i, an in enumerate(buscar_animais(p)):
         with cols[i%3]: desenhar_cartao(an, "p")
 
 elif aba == "🌲 Florestas":
-    st.write("### Ecossistemas Terrestres")
+    st.header("🌲 Ecossistemas de Floresta")
     
-
-[Image of the layers of a tropical rainforest]
-
-    f = st.selectbox("Floresta:", ["Amazónia", "Selva do Congo", "Taiga"])
+    f = st.selectbox("Escolha a Floresta:", ["Amazónia", "Selva do Congo", "Mata Atlântica"])
     cols = st.columns(3)
     for i, an in enumerate(buscar_animais(f)):
         with cols[i%3]: desenhar_cartao(an, "f")
 
 elif aba == "🌊 Oceanos":
-    st.write("### Ecossistemas Marinhos")
+    st.header("🌊 Ecossistemas Oceânicos")
     
-    o = st.selectbox("Oceano:", ["Pacífico", "Atlântico", "Mar Mediterrâneo"])
+    o = st.selectbox("Escolha o Oceano:", ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico"])
     cols = st.columns(3)
     for i, an in enumerate(buscar_animais(o)):
         with cols[i%3]: desenhar_cartao(an, "o")
 
 elif aba == "🔬 Laboratório":
-    q = st.text_input("Procurar Genética:")
+    q = st.text_input("Pesquisa de Espécie:")
     if q:
         cols = st.columns(3)
         for i, an in enumerate(buscar_animais(q)):
@@ -156,19 +146,7 @@ elif aba == "🔬 Laboratório":
         st.subheader("🦁 O Teu Zoo")
         cols_z = st.columns(3)
         for i, an in enumerate(st.session_state.zoo):
-            with cols_z[i%3]: desenhar_cartao(an, f"zoo_{i}")
-
-elif aba == "❄️ Criogenia":
-    if st.session_state.codigo_crio == "crio969":
-        st.title("❄️ Unidade Criogénica")
-        animais = {a.get('preferred_common_name', a.get('name')): a for a in st.session_state.zoo}
-        if animais:
-            escolha = st.selectbox("Congelar:", list(animais.keys()))
-            if st.button("CONGELAR"):
-                st.session_state.zoo.remove(animais[escolha])
-                st.success(f"{escolha} congelado!")
-                time.sleep(1); st.rerun()
-    else: st.error("Código inválido.")
+            with cols_z[i%3]: desenhar_cartao(an, f"z_{i}")
 
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
@@ -188,4 +166,4 @@ elif aba == "⚙️ Definições":
         st.session_state.codigo = st.text_input("Premium 24h", value=st.session_state.codigo, type="password")
         st.session_state.codigo_crio = st.text_input("Crio", value=st.session_state.codigo_crio, type="password")
     
-    if st.button("Guardar"): st.rerun()
+    if st.button("Guardar Alterações"): st.rerun()
