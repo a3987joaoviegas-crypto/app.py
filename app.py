@@ -4,17 +4,13 @@ import random
 from datetime import datetime, timedelta
 
 # 1. ESTADO DO SISTEMA
-if 'zoo' not in st.session_state: st.session_state.zoo = []
-if 'nomes_zoo' not in st.session_state: st.session_state.nomes_zoo = {}
-if 'c_24h' not in st.session_state: st.session_state.c_24h = ""
-if 'c_mega' not in st.session_state: st.session_state.c_mega = ""
-if 'premium_ativo' not in st.session_state: st.session_state.premium_ativo = False
-if 'ini_premium' not in st.session_state: st.session_state.ini_premium = None
-if 'exp_trava' not in st.session_state: st.session_state.exp_trava = None
-if 'cor_tema' not in st.session_state: st.session_state.cor_tema = "#0b1117"
-if 'negrito' not in st.session_state: st.session_state.negrito = False
-if 'lingua' not in st.session_state: st.session_state.lingua = "Português"
-if 'brilho' not in st.session_state: st.session_state.brilho = 100
+chaves = {
+    'zoo': [], 'crio_storage': [], 'tanque_fusao': [], 'nomes_zoo': {},
+    'c_24h': "", 'c_mega': "", 'premium_ativo': False,
+    'cor_tema': "#0b1117", 'negrito': False, 'brilho': 100
+}
+for k, v in chaves.items():
+    if k not in st.session_state: st.session_state[k] = v
 
 # 2. LÓGICA DE ACESSO
 is_mega = st.session_state.c_mega == "67lucas62"
@@ -29,12 +25,12 @@ with st.sidebar:
     else:
         st.session_state.premium_ativo = False
 
-    menu = ["🌍 Explorar", "🔬 Lab Especial", "🐾 Meu Zoo", "⚙️ Definições"]
+    menu = ["🌲 Florestas", "🌊 Oceanos", "🔬 Lab Especial", "🐾 Meu Zoo", "⚙️ Definições"]
     if st.session_state.premium_ativo:
-        menu = ["🌀 Resgate", "❄️ Criogenia"] + menu
+        menu = ["🌀 Salvamento", "❄️ Criogenia", "🧬 Tanque de Fusão"] + menu
     aba = st.radio("Navegação", menu)
 
-# 4. DESIGN CSS (PONTAS CURVAS E APARÊNCIA)
+# 4. DESIGN CSS
 cor_borda = "#2ecc71"
 if is_mega: cor_borda = "linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)"
 elif is_24h_ativo: cor_borda = "#ffd700"
@@ -49,7 +45,6 @@ st.markdown(f"""
         margin-bottom: 25px; min-height: 540px;
     }}
     .img-vertical {{ width: 100%; border-radius: 20px; height: 280px; object-fit: cover; }}
-    .linha-sep {{ border-top: 2px solid {cor_borda if "gradient" not in cor_borda else "#ff00ff"}; margin: 12px 0; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,59 +52,75 @@ st.markdown(f"""
 def card(an, prefixo, idx=0):
     if not an: return
     nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
-    cientifico = an.get('name', 'N/A')
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/250x400")
-    ukey = f"{prefixo}_{an.get('id', random.randint(1000,9999))}_{idx}"
+    ukey = f"{prefixo}_{an.get('id', random.randint(100,999))}_{idx}"
     
-    amb = "Aquático" if any(x in st.session_state.get('bioma_sel', '') for x in ['Oceano', 'Mar', 'Fossa', 'Coral']) else "Terrestre"
-    nome_exibicao = st.session_state.nomes_zoo.get(ukey, nome)
-    
-    html = f"""
-    <div class="cartao-cidadao">
+    st.markdown(f"""<div class="cartao-cidadao">
         <span style="color:#ffd700; font-weight:bold; font-size:0.65em; display:block; text-align:center;">💳 CARTÃO DE CIDADÃO</span>
         <img src="{foto}" class="img-vertical">
-        <div style="text-align:center; font-weight:bold; margin-top:15px; font-size:1.3em; color:#ffd700;">{nome_exibicao}</div>
-        <div style="color:#1DB954; font-style:italic; text-align:center; margin-bottom:12px; font-size:0.9em;">({cientifico})</div>
-        <div>🐾 <b>Classe:</b> {random.choice(["Mamífero", "Ave", "Peixe", "Réptil"])}</div>
-        <div>🥚 <b>Repro:</b> {random.choice(["Ovíparo", "Vivíparo"])}</div>
-        <div>🥩 <b>Alim:</b> {random.choice(["Herbívoro", "Carnívoro"])}</div>
-        <div>🌲 <b>Amb:</b> {amb}</div>
-    """
-    if st.session_state.premium_ativo:
-        html += f'<div class="linha-sep"></div><div style="color:#bdc3c7;"><b>⚡ Vel:</b> {random.randint(10,150)}km/h | <b>⚖️ Peso:</b> {random.randint(1,800)}kg<br><b>⏳ Vida:</b> {random.randint(2,100)} anos</div>'
-    html += "</div>"
-    st.markdown(html, unsafe_allow_html=True)
+        <div style="text-align:center; font-weight:bold; margin-top:15px; font-size:1.3em; color:#ffd700;">{st.session_state.nomes_zoo.get(ukey, nome)}</div>
+        <div style="font-size:0.9em; margin-top:10px;">🐾 <b>Ambiente:</b> {"Aquático" if aba == "🌊 Oceanos" else "Terrestre"}</div>
+    </div>""", unsafe_allow_html=True)
     
-    if prefixo == "explorar":
+    if prefixo in ["explorar", "lab"]:
         if st.button("📥 Capturar", key=f"cap_{ukey}", use_container_width=True):
             st.session_state.zoo.append(an); st.toast("Capturado!")
     elif prefixo == "zoo":
-        nn = st.text_input("Apelido:", key=f"in_{ukey}")
-        if nn: st.session_state.nomes_zoo[ukey] = nn; st.rerun()
+        if st.session_state.premium_ativo:
+            if st.button("🧬 Enviar para Fusão", key=f"dna_{ukey}", use_container_width=True):
+                st.session_state.tanque_fusao.append(an)
+                st.session_state.zoo.pop(idx)
+                st.toast("Enviado para o Tanque de Fusão!"); st.rerun()
         if st.button("🗑️ Soltar", key=f"del_{ukey}", use_container_width=True):
             st.session_state.zoo.pop(idx); st.rerun()
 
-# 6. ABAS
-if aba == "🌍 Explorar":
-    st.header("🌍 Planisfério de Exploração")
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
-    
-    bioma = st.selectbox("Escolha a Região:", [
-        "Floresta Amazónica", "Floresta do Congo", "Floresta Negra", "Taiga Siberiana", "Mata Atlântica",
-        "Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Oceano Ártico", "Fossa das Marianas", "Grande Barreira de Coral"
-    ])
-    st.session_state.bioma_sel = bioma
-    
+# 6. LOGICA DE BUSCA
+def busca_animais(termo):
     try:
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={bioma}&taxon_id=1&per_page=70&locale=pt-PT")
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page=70&locale=pt-PT")
         animais = r.json().get('results', [])
-    except: animais = []
-    
-    for i in range(0, len(animais), 3):
-        cols = st.columns(3)
-        for j in range(3):
-            if i + j < len(animais):
-                with cols[j]: card(animais[i+j], "explorar", i+j)
+        for i in range(0, len(animais), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(animais):
+                    with cols[j]: card(animais[i+j], "lab", i+j)
+    except: pass
+
+# 7. ABAS
+if aba == "🌲 Florestas":
+    st.header("🌲 Florestas")
+    sel = st.selectbox("Escolha:", ["Amazónia", "Congo", "Taiga"])
+    busca_animais(sel)
+
+elif aba == "🌊 Oceanos":
+    st.header("🌊 Oceanos")
+    sel = st.selectbox("Escolha:", ["Oceano Pacífico", "Oceano Atlântico", "Recife de Coral"])
+    busca_animais(sel)
+
+elif aba == "🔬 Lab Especial":
+    st.header("🔬 Pesquisa de Espécies")
+    nome_busca = st.text_input("🔍 Pesquisar Animal:")
+    if nome_busca: busca_animais(nome_busca)
+
+elif aba == "🧬 Tanque de Fusão":
+    st.header("🧬 Tanque de Fusão Premium")
+    if len(st.session_state.tanque_fusao) < 2:
+        st.info("Envia pelo menos 2 animais do teu Zoo usando o símbolo 🧬 para começar a fusão.")
+    else:
+        st.write("Selecione os espécimes para fundir:")
+        a1 = st.selectbox("Espécime A:", [a.get('name') for a in st.session_state.tanque_fusao], index=0)
+        a2 = st.selectbox("Espécime B:", [a.get('name') for a in st.session_state.tanque_fusao], index=1)
+        if st.button("💥 INICIAR FUSÃO"):
+            st.balloons()
+            st.success(f"NOVA ESPÉCIE CRIADA: {a1[:4]}{a2[2:]} híbrido!")
+
+elif aba == "🌀 Salvamento":
+    st.header("🌀 Centro de Salvamento")
+    st.button("💉 Curar Animal Ferido")
+
+elif aba == "❄️ Criogenia":
+    st.header("❄️ Câmara Criogénica")
+    st.button("❄️ Congelar Animal")
 
 elif aba == "🐾 Meu Zoo":
     st.header("🐾 Meu Zoo")
@@ -119,18 +130,9 @@ elif aba == "🐾 Meu Zoo":
             if i + j < len(st.session_state.zoo):
                 with cols[j]: card(st.session_state.zoo[i+j], "zoo", i+j)
 
-elif aba == "🔬 Lab Especial":
-    st.header("🔬 Laboratório")
-    st.success("Sequenciador disponível.")
-
 elif aba == "⚙️ Definições":
     st.header("⚙️ Definições")
-    t1, t2 = st.tabs(["🔑 Acesso", "🎨 Aparência"])
-    with t1:
-        st.session_state.c_mega = st.text_input("Código Mega", value=st.session_state.c_mega, type="password")
-        st.session_state.c_24h = st.text_input("Código 24h", value=st.session_state.c_24h, type="password")
-    with t2:
-        st.session_state.cor_tema = st.color_picker("Cor de Fundo", st.session_state.cor_tema)
-        st.session_state.negrito = st.checkbox("Negrito", st.session_state.negrito)
-        st.session_state.brilho = st.slider("Brilho", 50, 150, st.session_state.brilho)
+    st.session_state.c_mega = st.text_input("Código Mega", type="password")
+    st.session_state.c_24h = st.text_input("Código 24h", type="password")
+    st.session_state.cor_tema = st.color_picker("Tema", st.session_state.cor_tema)
     if st.button("Guardar"): st.rerun()
