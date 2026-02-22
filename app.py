@@ -4,13 +4,13 @@ import random
 from datetime import datetime, timedelta
 
 # 1. ESTADO DO SISTEMA
-chaves = {
-    'zoo': [], 'criogenia_storage': [], 'nomes_zoo': {},
-    'c_24h': "", 'c_mega': "", 'c_crio': "", 
-    'premium_ativo': False, 'ini_premium': None, 'exp_trava': None
-}
-for k, v in chaves.items():
-    if k not in st.session_state: st.session_state[k] = v
+if 'zoo' not in st.session_state: st.session_state.zoo = []
+if 'nomes_zoo' not in st.session_state: st.session_state.nomes_zoo = {}
+if 'c_24h' not in st.session_state: st.session_state.c_24h = ""
+if 'c_mega' not in st.session_state: st.session_state.c_mega = ""
+if 'premium_ativo' not in st.session_state: st.session_state.premium_ativo = False
+if 'ini_premium' not in st.session_state: st.session_state.ini_premium = None
+if 'exp_trava' not in st.session_state: st.session_state.exp_trava = None
 
 # 2. LÓGICA DE ACESSO
 is_mega = st.session_state.c_mega == "67lucas62"
@@ -34,7 +34,7 @@ if st.session_state.ini_premium:
 
 tem_acesso_vip = is_mega or is_24h_ativo
 
-# 3. SIDEBAR (LOGICA DO PREMIUM)
+# 3. SIDEBAR
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if tem_acesso_vip:
@@ -44,7 +44,7 @@ with st.sidebar:
 
     menu = ["🌍 Explorar", "🐾 Meu Zoo", "⚙️ Definições"]
     if st.session_state.premium_ativo:
-        menu = ["🔬 Lab Especial", "🌀 Resgate de animais", "❄️ Criogenia"] + menu
+        menu = ["🔬 Lab Especial", "🌀 Resgate", "❄️ Criogenia"] + menu
     aba = st.radio("Navegação", menu)
 
 # 4. DESIGN (CSS)
@@ -64,9 +64,9 @@ st.markdown(f"""
         background: #1a1c23; border-radius: 12px; padding: 12px; border: 3px solid;
         border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
         border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
-        margin-bottom: 20px; min-height: 500px;
+        margin-bottom: 20px; min-height: 520px;
     }}
-    .img-vertical {{ width: 100%; border-radius: 8px; height: 250px; object-fit: cover; border-bottom: 1px solid #444; }}
+    .img-vertical {{ width: 100%; border-radius: 8px; height: 280px; object-fit: cover; border-bottom: 1px solid #444; }}
     .label-cidadao {{ color: #ffd700; font-weight: bold; font-size: 0.6em; text-align: center; display: block; }}
     .linha-sep {{ border-top: 2px solid {cor_linha}; margin: 12px 0; opacity: 0.8; }}
 </style>
@@ -78,14 +78,13 @@ def card(an, prefixo, idx=0):
     animal_id = str(an.get('id', random.randint(1000, 9999)))
     nome_comum = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     cientifico = an.get('name', 'N/A')
-    foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/200x350")
+    foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/250x400")
     ukey = f"{prefixo}_{animal_id}_{idx}"
     
-    # Simulação Biológica
     classe = random.choice(["Mamífero", "Réptil", "Ave", "Peixe", "Anfíbio"])
     repro = random.choice(["Ovíparo", "Vivíparo"])
     alim = random.choice(["Herbívoro", "Carnívoro", "Omnívoro"])
-    amb = "Aquático" if any(x in st.session_state.get('bioma_sel', '') for x in ['Oceano', 'Mar', 'Fossa']) else "Terrestre"
+    amb = "Aquático" if any(x in str(st.session_state.get('bioma_sel', '')) for x in ['Oceano', 'Mar', 'Fossa', 'Coral']) else "Terrestre"
     
     nome_exibicao = st.session_state.nomes_zoo.get(ukey, nome_comum)
     
@@ -101,16 +100,16 @@ def card(an, prefixo, idx=0):
         <div>🌲 <b>Amb:</b> {amb}</div>
     """
     if st.session_state.premium_ativo:
-        v, p, t = random.randint(20,150), random.randint(5,900), random.randint(5,100)
+        v, p, t = random.randint(20,160), random.randint(2,950), random.randint(5,110)
         html += f'<div class="linha-sep"></div><div style="color:#bdc3c7;"><b>⚡ Vel:</b> {v}km/h | <b>⚖️ Peso:</b> {p}kg<br><b>⏳ Vida:</b> {t} anos</div>'
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
     
     if prefixo == "explorar":
         if st.button("📥 Capturar", key=f"cap_{ukey}", use_container_width=True):
-            st.session_state.zoo.append(an); st.toast("Capturado!")
+            st.session_state.zoo.append(an); st.toast(f"{nome_comum} capturado!")
     elif prefixo == "zoo":
-        nn = st.text_input("Apelido:", key=f"in_{ukey}", placeholder="Escreve aqui...")
+        nn = st.text_input("Apelido:", key=f"in_{ukey}", placeholder="Dá um nome...")
         if nn: st.session_state.nomes_zoo[ukey] = nn; st.rerun()
         if st.button("🗑️ Soltar", key=f"del_{ukey}", use_container_width=True):
             st.session_state.zoo.pop(idx); st.rerun()
@@ -118,8 +117,7 @@ def card(an, prefixo, idx=0):
 # 6. ABAS
 if aba == "🌍 Explorar":
     st.header("🌍 Explorar Biomas")
-    
-    bioma = st.selectbox("Escolha o Destino:", ["Amazónia", "Floresta Negra", "Fossa das Marianas", "Recife de Coral", "Oceano Ártico", "Savana Africana"])
+    bioma = st.selectbox("Escolha o Destino:", ["Amazónia", "Fossa das Marianas", "Floresta Negra", "Recife de Coral", "Savana Africana", "Ártico"])
     st.session_state.bioma_sel = bioma
     
     try:
@@ -142,11 +140,7 @@ elif aba == "🐾 Meu Zoo":
                 with cols[j]: card(st.session_state.zoo[i+j], "zoo", i+j)
 
 elif aba == "🔬 Lab Especial":
-    st.header("🔬 Laboratório")
-    
-
-[Image of a DNA sequence model]
-
+    st.header("🔬 Laboratório de Genética")
     st.success("Sequenciador Premium Ativo.")
 
 elif aba == "⚙️ Definições":
