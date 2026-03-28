@@ -1,144 +1,171 @@
 import streamlit as st
 import requests
 import random
-from datetime import datetime, timedelta
+import time
 
-# 1. ESTADO DO SISTEMA
+# 1. ESTADO DO SISTEMA (CRIOGENIA REMOVIDA TOTALMENTE)
 chaves = {
-    'zoo': [], 'favoritos': [], 'crio_storage': [], 'tanque_fusao': [], 'nomes_zoo': {},
+    'zoo': [], 'favoritos': [], 'tanque_fusao': [], 'nomes_zoo': {},
+    'pontos_zoologo': 0, 'animais_salvos_ids': set(), 'id_animal_atual': None,
     'c_24h': "", 'c_mega': "", 'premium_ativo': False,
     'cor_tema': "#0b1117", 'negrito': False, 'brilho': 100
 }
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 2. LÓGICA DE ACESSO
+# 2. TRADUTOR DE CLASSES DA API (PARA SER REALISTA)
+def traduzir_classe(taxon_name):
+    traducao = {
+        "Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil",
+        "Amphibia": "Anfíbio", "Actinopterygii": "Peixe", "Arachnida": "Aracnídeo",
+        "Insecta": "Inseto", "Mollusca": "Molusco"
+    }
+    return traducao.get(taxon_name, "Espécie Selvagem")
+
+# 3. SISTEMA DE ESTRELAS
+def check_stars(pts):
+    if pts >= 50000: return "⭐⭐⭐⭐⭐ (Lenda)"
+    if pts >= 10000: return "⭐⭐⭐⭐ (Mestre)"
+    if pts >= 8000: return "⭐⭐⭐ (Perito)"
+    if pts >= 5000: return "⭐⭐ (Veterano)"
+    if pts >= 1000: return "⭐ (Iniciado)"
+    return "Recruta"
+
+# 4. SIDEBAR
 is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_ativo = st.session_state.c_24h == "6626"
 tem_acesso_vip = is_mega or is_24h_ativo
 
-# 3. SIDEBAR (FILTRADA POR PREMIUM)
 with st.sidebar:
     st.title("🌍 MundoVivo")
+    st.markdown(f"""
+    <div style="background:#1a1c23; padding:15px; border-radius:20px; border:2px solid #ffd700; text-align:center;">
+        <p style="margin:0; font-size:0.7em; color:#ffd700;">💳 CARTÃO DE ZOÓLOGO</p>
+        <p style="margin:0; font-size:1.2em; font-weight:bold;">{st.session_state.pontos_zoologo} PTS</p>
+        <p style="margin:0; font-size:0.9em;">{check_stars(st.session_state.pontos_zoologo)}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     if tem_acesso_vip:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
     
+    # MENU SEM CRIOGENIA
     if st.session_state.premium_ativo:
-        menu = ["🧬 Tanque de Fusão", "🌀 Salvamento", "❄️ Criogenia", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
+        menu = ["🌀 Salvamento", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
     else:
         menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
-    
     aba = st.radio("Navegação", menu)
 
-# 4. DESIGN CSS
-cor_borda = "#2ecc71"
-if is_mega: cor_borda = "linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)"
-elif is_24h_ativo: cor_borda = "#ffd700"
-
+# 5. CSS (ANIMAÇÃO HELICÓPTERO + PONTAS CURVAS)
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: {st.session_state.cor_tema}; color: white; filter: brightness({st.session_state.brilho/100}); font-weight: {'bold' if st.session_state.negrito else 'normal'}; }}
+    .stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
     .cartao-cidadao {{
-        background: #1a1c23; border-radius: 25px; padding: 15px; border: 4px solid;
-        border-color: {cor_borda if "gradient" not in cor_borda else "transparent"};
-        border-image: {cor_borda if "gradient" in cor_borda else "none"} 1;
-        margin-bottom: 25px; min-height: 580px;
+        background: #1e2129; border-radius: 30px; padding: 20px; border: 4px solid #2ecc71;
+        margin-bottom: 25px; min-height: 550px; text-align: center;
     }}
-    .img-vertical {{ width: 100%; border-radius: 20px; height: 280px; object-fit: cover; }}
-    .linha-sep {{ border-top: 2px solid #444; margin: 10px 0; }}
+    .img-an {{ width: 100%; border-radius: 25px; height: 280px; object-fit: cover; border: 2px solid #444; }}
+    
+    @keyframes helicopter_ride {{
+        0% {{ transform: translateX(-200px) translateY(0px); }}
+        50% {{ transform: translateX(50vw) translateY(-50px); }}
+        100% {{ transform: translateX(110vw) translateY(0px); }}
+    }}
+    .heli-anim {{
+        position: fixed; top: 30%; font-size: 80px; z-index: 9999;
+        animation: helicopter_ride 3.5s ease-in-out forwards;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# 5. FUNÇÃO DO CARTÃO COMPLETO
+# 6. FUNÇÃO DO CARTÃO REALISTA
 def card(an, prefixo, idx=0):
     if not an: return
-    id_an = an.get('id', random.randint(100,999))
     nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
-    foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/250x400")
-    ukey = f"{prefixo}_{id_an}_{idx}"
+    foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
+    classe = traduzir_classe(an.get('iconic_taxon_name'))
     
-    # Dados biológicos estáveis
-    classe = random.choice(["Mamífero", "Ave", "Peixe", "Réptil", "Anfíbio"])
-    repro = "Ovíparo" if classe in ["Ave", "Peixe", "Réptil"] else "Vivíparo"
-    alim = random.choice(["Herbívoro", "Carnívoro", "Omnívoro"])
-    amb = "Aquático" if "Oceano" in aba or "Mar" in aba else "Terrestre"
-
-    html = f"""
+    st.markdown(f"""
     <div class="cartao-cidadao">
-        <span style="color:#ffd700; font-weight:bold; font-size:0.65em; display:block; text-align:center;">💳 CARTÃO DE CIDADÃO</span>
-        <img src="{foto}" class="img-vertical">
-        <div style="text-align:center; font-weight:bold; margin-top:15px; font-size:1.3em; color:#ffd700;">{st.session_state.nomes_zoo.get(ukey, nome)}</div>
-        <div class="linha-sep"></div>
-        <div style="font-size:0.9em;">🐾 <b>Classe:</b> {classe}</div>
-        <div style="font-size:0.9em;">🥚 <b>Reprodução:</b> {repro}</div>
-        <div style="font-size:0.9em;">🥩 <b>Alimentação:</b> {alim}</div>
-        <div style="font-size:0.9em;">🌲 <b>Ambiente:</b> {amb}</div>
-    """
-    if st.session_state.premium_ativo:
-        html += f"""<div class="linha-sep"></div>
-        <div style="color:#bdc3c7; font-size:0.85em;">
-            ⚡ <b>Velocidade:</b> {random.randint(10,180)} km/h<br>
-            ⚖️ <b>Peso:</b> {random.randint(1,2000)} kg<br>
-            ⏳ <b>Expectativa Vida:</b> {random.randint(5,120)} anos
-        </div>"""
-    html += "</div>"
-    st.markdown(html, unsafe_allow_html=True)
+        <span style="color:#ffd700; font-weight:bold; font-size:0.7em;">💳 CARTÃO DE CIDADÃO</span>
+        <img src="{foto}" class="img-an">
+        <h2 style="color:#ffd700; margin:10px 0;">{nome}</h2>
+        <p>🐾 <b>Classe:</b> {classe}</p>
+        <p>🥚 <b>Reprodução:</b> {"Ovíparo" if classe != "Mamífero" else "Vivíparo"}</p>
+        <p>🥩 <b>Alimentação:</b> {random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])}</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("📥 Zoo", key=f"cap_{ukey}"): st.session_state.zoo.append(an); st.toast("No Zoo!")
-    with c2:
-        if st.button("⭐ Fav", key=f"fav_{ukey}"): st.session_state.favoritos.append(an); st.toast("Favorito!")
-    
-    if st.session_state.premium_ativo and prefixo == "zoo":
-        if st.button("🧬 Fusão", key=f"fus_{ukey}", use_container_width=True):
-            st.session_state.tanque_fusao.append(an); st.session_state.zoo.pop(idx); st.rerun()
+    if st.button("📥 Capturar para Zoo", key=f"btn_{prefixo}_{idx}", use_container_width=True):
+        st.session_state.zoo.append(an); st.toast(f"{nome} adicionado!")
 
-# 6. LÓGICA DE API
-def carregar_70(termo):
-    try:
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={termo}&taxon_id=1&per_page=70&locale=pt-PT")
+# 7. ABA SALVAMENTO (REFEITA)
+if aba == "🌀 Salvamento":
+    st.header("🌀 Centro de Salvamento e Resgate")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
+    
+    # Lógica de novo animal de resgate
+    if st.session_state.id_animal_atual is None:
+        regiao_random = random.choice(["Africa", "Amazon", "Australia", "Arctic", "Ocean"])
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={regiao_random}&taxon_id=1&per_page=50")
+        resultados = r.json()['results']
+        # Filtra para não repetir
+        validos = [a for a in resultados if a['id'] not in st.session_state.animais_salvos_ids]
+        if validos:
+            st.session_state.id_animal_atual = random.choice(validos)
+
+    if st.session_state.id_animal_atual:
+        an = st.session_state.id_animal_atual
+        nome_resgate = (an.get('preferred_common_name') or an.get('name')).title()
+        
+        st.warning(f"🆘 ALERTA: Um **{nome_resgate}** foi encontrado ferido numa região remota!")
+        
+        if st.button("🚁 ENVIAR HELICÓPTERO DE RESGATE"):
+            st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
+            time.sleep(3.5)
+            st.session_state.pontos_zoologo += 50
+            st.session_state.animais_salvos_ids.add(an['id'])
+            st.session_state.zoo.append(an)
+            st.session_state.id_animal_atual = None # Reseta para o próximo ser diferente
+            st.success(f"Missão Cumprida! {nome_resgate} está a salvo. +50 Pontos!")
+            st.rerun()
+    else:
+        st.info("A procurar animais em perigo...")
+        st.button("Atualizar Radar")
+
+# 8. OUTRAS ABAS
+elif aba == "🔬 Laboratório":
+    st.header("🔬 Laboratório")
+    busca = st.text_input("🔍 Pesquisa por nome ou espécie:", placeholder="Ex: Pantera, Falcão...")
+    if busca:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&per_page=70&locale=pt-PT")
         animais = r.json().get('results', [])
         for i in range(0, len(animais), 3):
             cols = st.columns(3)
             for j in range(3):
                 if i+j < len(animais):
-                    with cols[j]: card(animais[i+j], "explorar", i+j)
-    except: st.error("Erro ao carregar animais.")
+                    with cols[j]: card(animais[i+j], "lab", i+j)
 
-# 7. ABAS
-if aba == "🌲 Florestas":
-    sel = st.selectbox("Escolha a Floresta:", ["Amazónia", "Congo", "Floresta Negra"])
-    carregar_70(sel)
-elif aba == "🌊 Oceanos":
-    sel = st.selectbox("Escolha o Oceano:", ["Oceano Pacífico", "Oceano Índico", "Mar Mediterrâneo"])
-    carregar_70(sel)
-elif aba == "🏳️ Países":
-    sel = st.selectbox("Escolha o País:", ["Portugal", "Brasil", "Austrália", "Japão", "Canadá"])
-    carregar_70(sel)
-elif aba == "🔬 Laboratório":
-    st.header("🔬 Laboratório de Pesquisa")
-    busca = st.text_input("🔍 Pesquisar animal para analisar:")
-    if busca: carregar_70(busca)
 elif aba == "🐾 Meu Zoo":
+    if not st.session_state.zoo: st.write("O seu Zoo está vazio.")
     for i in range(0, len(st.session_state.zoo), 3):
         cols = st.columns(3)
         for j in range(3):
             if i+j < len(st.session_state.zoo):
                 with cols[j]: card(st.session_state.zoo[i+j], "zoo", i+j)
-elif aba == "⭐ Favoritos":
-    st.header("⭐ Meus Favoritos")
-    for i in range(0, len(st.session_state.favoritos), 3):
+
+elif aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
+    sel = st.selectbox("Selecione Localização:", ["Portugal", "Brasil", "Amazónia", "Oceano Atlântico", "Japão"])
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70")
+    animais = r.json().get('results', [])
+    for i in range(0, len(animais), 3):
         cols = st.columns(3)
         for j in range(3):
-            if i+j < len(st.session_state.favoritos):
-                with cols[j]: card(st.session_state.favoritos[i+j], "fav", i+j)
-elif aba == "🧬 Tanque de Fusão":
-    st.header("🧬 Tanque de Fusão")
-    st.write(f"Espécimes no tanque: {len(st.session_state.tanque_fusao)}")
-    if st.button("💥 FUNDIR TUDO"): st.balloons(); st.success("Híbrido criado!")
+            if i+j < len(animais):
+                with cols[j]: card(animais[i+j], "explorar", i+j)
+
 elif aba == "⚙️ Definições":
     st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
     st.session_state.c_24h = st.text_input("Código 24h", type="password", value=st.session_state.c_24h)
-    st.session_state.brilho = st.slider("Luminosidade", 50, 150, st.session_state.brilho)
+    st.session_state.brilho = st.slider("Brilho", 50, 150, st.session_state.brilho)
     if st.button("Guardar"): st.rerun()
