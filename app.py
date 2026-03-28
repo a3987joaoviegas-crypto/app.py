@@ -4,9 +4,9 @@ import random
 import time
 from datetime import datetime, timedelta
 
-# 1. ESTADO DO SISTEMA
+# 1. ESTADO DO SISTEMA (FAVORITOS REMOVIDOS)
 chaves = {
-    'zoo': [], 'favoritos': [], 'tanque_fusao': [], 'nomes_zoo': {},
+    'zoo': [], 'tanque_fusao': [], 'nomes_zoo': {},
     'pontos_zoologo': 0, 'animais_salvos_ids': set(), 'id_animal_atual': None,
     'internados_vet': [], 
     'c_24h': "", 'c_mega': "", 'premium_ativo': False,
@@ -34,7 +34,7 @@ is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_ativo = st.session_state.c_24h == "6626"
 tem_acesso_vip = is_mega or is_24h_ativo
 
-# 5. SIDEBAR
+# 5. SIDEBAR (SEM FAVORITOS)
 with st.sidebar:
     st.title("🌍 MundoVivo")
     st.markdown(f"""<div style="background:#1a1c23; padding:15px; border-radius:20px; border:2px solid #ffd700; text-align:center;">
@@ -49,9 +49,9 @@ with st.sidebar:
         st.session_state.premium_ativo = False
 
     if st.session_state.premium_ativo:
-        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
+        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     else:
-        menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
+        menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
 # 6. DESIGN CSS
@@ -69,7 +69,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # 7. FUNÇÃO DO CARTÃO
-def card(an, prefixo, idx=0, show_button=True, footer_text=None):
+def card(an, prefixo, idx=0, show_button=True, footer_text=None, is_zoo=False):
     if not an: return
     nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
@@ -87,11 +87,19 @@ def card(an, prefixo, idx=0, show_button=True, footer_text=None):
         {f'<p style="color:#ffd700; font-weight:bold; margin-top:5px;">{footer_text}</p>' if footer_text else ''}
     </div>"""
     st.markdown(html_cartao, unsafe_allow_html=True)
+    
     if show_button:
-        if st.button("📥 Zoo", key=f"btn_{prefixo}_{idx}_{random.randint(0,9999)}", use_container_width=True):
-            st.session_state.zoo.append(an); st.toast(f"{nome} adicionado!")
+        # Se estiver no Zoo, mostra botão de excluir. Se não, mostra botão de capturar.
+        if is_zoo:
+            if st.button(f"🗑️ Excluir", key=f"del_{prefixo}_{idx}", use_container_width=True):
+                st.session_state.zoo.pop(idx)
+                st.rerun()
+        else:
+            if st.button("📥 Zoo", key=f"btn_{prefixo}_{idx}_{random.randint(0,999)}", use_container_width=True):
+                st.session_state.zoo.append(an)
+                st.toast(f"{nome} adicionado!")
 
-# 8. LISTAS EXPANDIDAS
+# 8. LISTAS
 florestas_mundo = ["Amazónia", "Congo", "Taiga Siberiana", "Daintree Austrália", "Floresta Negra", "Mata Atlântica", "Bornéu", "Monteverde Costa Rica", "Tongass Alasca", "Bialowieza Polónia"]
 oceanos_mundo = ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Oceano Ártico", "Oceano Antártico", "Mar Mediterrâneo", "Mar Vermelho", "Mar das Caraíbas", "Mar de Coral", "Mar Morto"]
 paises_70 = ["Portugal", "Brasil", "Angola", "Moçambique", "Cabo Verde", "Espanha", "França", "Itália", "Alemanha", "Reino Unido", "EUA", "Canadá", "México", "Argentina", "Chile", "Colômbia", "Peru", "China", "Japão", "Coreia do Sul", "Índia", "Austrália", "Nova Zelândia", "Egito", "África do Sul", "Nigéria", "Quénia", "Marrocos", "Rússia", "Ucrânia", "Polónia", "Suécia", "Noruega", "Finlândia", "Dinamarca", "Holanda", "Bélgica", "Suíça", "Áustria", "Grécia", "Turquia", "Irão", "Iraque", "Arábia Saudita", "EAU", "Tailândia", "Vietname", "Indonésia", "Filipinas", "Malásia", "Singapura", "Paquistão", "Bangladesh", "Israel", "Suíça", "Irlanda", "Islândia", "Cuba", "Jamaica", "Uruguai", "Paraguai", "Bolívia", "Equador", "Venezuela", "Panamá", "Costa Rica", "Guatemala", "Honduras", "Senegal", "Gana"]
@@ -118,7 +126,7 @@ elif aba == "🌊 Oceanos":
                 with cols[j]: card(ans[i+j], "oceano", i+j)
 
 elif aba == "🏳️ Países":
-    sel = st.selectbox("Escolha um dos 70 Países:", sorted(paises_70))
+    sel = st.selectbox("Escolha um País:", sorted(paises_70))
     r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
     ans = r.json().get('results', [])
     for i in range(0, len(ans), 3):
@@ -178,11 +186,15 @@ elif aba == "🔬 Laboratório":
                     with cols[j]: card(ans[i+j], "lab", i+j)
 
 elif aba == "🐾 Meu Zoo":
+    st.header("🐾 Meu Zoo")
+    if not st.session_state.zoo:
+        st.info("O seu Zoo está vazio. Explore ou salve animais!")
     for i in range(0, len(st.session_state.zoo), 3):
         cols = st.columns(3)
         for j in range(3):
-            if i+j < len(st.session_state.zoo):
-                with cols[j]: card(st.session_state.zoo[i+j], "zoo", i+j)
+            idx = i + j
+            if idx < len(st.session_state.zoo):
+                with cols[j]: card(st.session_state.zoo[idx], "zoo", idx, is_zoo=True)
 
 elif aba == "⚙️ Definições":
     st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
