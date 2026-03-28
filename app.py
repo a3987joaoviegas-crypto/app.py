@@ -29,11 +29,12 @@ def check_stars(pts):
     if pts >= 1000: return "⭐ (Iniciado)"
     return "Recruta"
 
-# 4. SIDEBAR
+# 4. LÓGICA DE ACESSO
 is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_ativo = st.session_state.c_24h == "6626"
 tem_acesso_vip = is_mega or is_24h_ativo
 
+# 5. SIDEBAR (FILTRAGEM RIGOROSA)
 with st.sidebar:
     st.title("🌍 MundoVivo")
     st.markdown(f"""<div style="background:#1a1c23; padding:15px; border-radius:20px; border:2px solid #ffd700; text-align:center;">
@@ -44,13 +45,18 @@ with st.sidebar:
     
     if tem_acesso_vip:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
-    
-    opcoes = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🌀 Salvamento", "🏥 Veterinário", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
-    if st.session_state.premium_ativo:
-        opcoes = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
-    aba = st.radio("Navegação", opcoes)
+    else:
+        st.session_state.premium_ativo = False # Garante que desliga se o código estiver errado
 
-# 5. CSS (CORREÇÃO DO CARTÃO OPACO)
+    # Definição dos menus baseada no estado do Premium
+    if st.session_state.premium_ativo:
+        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
+    else:
+        menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
+    
+    aba = st.radio("Navegação", menu)
+
+# 6. DESIGN CSS
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
@@ -62,6 +68,7 @@ st.markdown(f"""
         margin-bottom: 20px; 
         text-align: center;
         color: white;
+        opacity: 1 !important;
     }}
     .img-an {{ width: 100%; border-radius: 20px; height: 180px; object-fit: cover; border: 1px solid #444; }}
     @keyframes helicopter_ride {{ 0% {{ transform: translateX(-200px); }} 100% {{ transform: translateX(110vw); }} }}
@@ -69,12 +76,16 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 6. FUNÇÃO DO CARTÃO CORRIGIDA (SEM O </div> EXTRA)
+# 7. FUNÇÃO DO CARTÃO (COM ALIMENTAÇÃO E NOME PT)
 def card(an, prefixo, idx=0, show_button=True, footer_text=None):
     if not an: return
-    nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
+    # Prioridade máxima para Nome em Português
+    nome = an.get('preferred_common_name') or an.get('name', 'Espécie')
+    nome = nome.title()
+    
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
     classe = traduzir_classe(an.get('iconic_taxon_name'))
+    alim = random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro']) # Simulação biológica
     
     html_cartao = f"""
     <div class="cartao-cidadao">
@@ -83,6 +94,7 @@ def card(an, prefixo, idx=0, show_button=True, footer_text=None):
         <h3 style="color:#ffd700; margin:10px 0;">{nome}</h3>
         <p style="margin:2px 0;">🐾 <b>Classe:</b> {classe}</p>
         <p style="margin:2px 0;">🥚 <b>Repro:</b> {"Ovíparo" if classe != "Mamífero" else "Vivíparo"}</p>
+        <p style="margin:2px 0;">🥩 <b>Alimentação:</b> {alim}</p>
         {f'<p style="color:#ffd700; font-weight:bold; margin-top:5px;">{footer_text}</p>' if footer_text else ''}
     </div>
     """
@@ -93,17 +105,15 @@ def card(an, prefixo, idx=0, show_button=True, footer_text=None):
             st.session_state.zoo.append(an)
             st.toast(f"{nome} adicionado!")
 
-# 7. ABAS
+# 8. ABAS
 if aba == "🌀 Salvamento":
     st.header("🌀 Centro de Emergência")
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
     
     if st.session_state.id_animal_atual is None:
-        try:
-            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={random.choice(['Africa','Amazon','Australia'])}&taxon_id=1&per_page=50&locale=pt-PT")
-            validos = [a for a in r.json()['results'] if a['id'] not in st.session_state.animais_salvos_ids]
-            if validos: st.session_state.id_animal_atual = random.choice(validos)
-        except: pass
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={random.choice(['Africa','Amazon','Australia'])}&taxon_id=1&per_page=50&locale=pt-PT")
+        validos = [a for a in r.json()['results'] if a['id'] not in st.session_state.animais_salvos_ids]
+        if validos: st.session_state.id_animal_atual = random.choice(validos)
 
     if st.session_state.id_animal_atual:
         an = st.session_state.id_animal_atual
@@ -148,15 +158,13 @@ elif aba == "🏥 Veterinário":
 elif aba == "🔬 Laboratório":
     busca = st.text_input("🔍 Pesquisa em Português:")
     if busca:
-        try:
-            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&per_page=70&locale=pt-PT")
-            animais = r.json().get('results', [])
-            for i in range(0, len(animais), 3):
-                cols = st.columns(3)
-                for j in range(3):
-                    if i+j < len(animais):
-                        with cols[j]: card(animais[i+j], "lab", i+j)
-        except: pass
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&per_page=70&locale=pt-PT")
+        animais = r.json().get('results', [])
+        for i in range(0, len(animais), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i+j < len(animais):
+                    with cols[j]: card(animais[i+j], "lab", i+j)
 
 elif aba == "🐾 Meu Zoo":
     for i in range(0, len(st.session_state.zoo), 3):
@@ -164,6 +172,16 @@ elif aba == "🐾 Meu Zoo":
         for j in range(3):
             if i+j < len(st.session_state.zoo):
                 with cols[j]: card(st.session_state.zoo[i+j], "zoo", i+j)
+
+elif aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
+    sel = st.selectbox("Escolha um local:", ["Portugal", "Brasil", "Amazónia", "Oceano Atlântico"])
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
+    animais = r.json().get('results', [])
+    for i in range(0, len(animais), 3):
+        cols = st.columns(3)
+        for j in range(3):
+            if i+j < len(animais):
+                with cols[j]: card(animais[i+j], "explorar", i+j)
 
 elif aba == "⚙️ Definições":
     st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
