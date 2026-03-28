@@ -56,15 +56,15 @@ with st.sidebar:
         menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
-# 5. CSS (ANIMAÇÃO HELICÓPTERO + PONTAS CURVAS)
+# 5. CSS (ANIMAÇÃO HELICÓPTERO + PONTAS CURVAS + AJUSTE DE TAMANHO)
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
     .cartao-cidadao {{
-        background: #1e2129; border-radius: 30px; padding: 20px; border: 4px solid #2ecc71;
-        margin-bottom: 25px; min-height: 550px; text-align: center;
+        background: #1e2129; border-radius: 25px; padding: 12px; border: 4px solid #2ecc71;
+        margin-bottom: 20px; min-height: 400px; text-align: center; font-size: 0.9em;
     }}
-    .img-an {{ width: 100%; border-radius: 25px; height: 280px; object-fit: cover; border: 2px solid #444; }}
+    .img-an {{ width: 100%; border-radius: 20px; height: 180px; object-fit: cover; border: 1px solid #444; }}
     
     @keyframes helicopter_ride {{
         0% {{ transform: translateX(-200px) translateY(0px); }}
@@ -78,10 +78,16 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 6. FUNÇÃO DO CARTÃO REALISTA
+# 6. FUNÇÃO DO CARTÃO COMPACTO E EM PORTUGUÊS
 def card(an, prefixo, idx=0):
     if not an: return
-    nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
+    # Garante nome em português preferencialmente
+    nome = an.get('preferred_common_name')
+    if not nome:
+        nome = an.get('name', 'Espécie').title()
+    else:
+        nome = nome.title()
+        
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
     classe = traduzir_classe(an.get('iconic_taxon_name'))
     
@@ -89,17 +95,17 @@ def card(an, prefixo, idx=0):
     <div class="cartao-cidadao">
         <span style="color:#ffd700; font-weight:bold; font-size:0.7em;">💳 CARTÃO DE CIDADÃO</span>
         <img src="{foto}" class="img-an">
-        <h2 style="color:#ffd700; margin:10px 0;">{nome}</h2>
-        <p>🐾 <b>Classe:</b> {classe}</p>
-        <p>🥚 <b>Reprodução:</b> {"Ovíparo" if classe != "Mamífero" else "Vivíparo"}</p>
-        <p>🥩 <b>Alimentação:</b> {random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])}</p>
+        <h3 style="color:#ffd700; margin:8px 0;">{nome}</h3>
+        <p style="margin:2px 0;">🐾 <b>Classe:</b> {classe}</p>
+        <p style="margin:2px 0;">🥚 <b>Reprodução:</b> {"Ovíparo" if classe != "Mamífero" else "Vivíparo"}</p>
+        <p style="margin:2px 0;">🥩 <b>Alimentação:</b> {random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button("📥 Capturar para Zoo", key=f"btn_{prefixo}_{idx}", use_container_width=True):
+    if st.button("📥 Zoo", key=f"btn_{prefixo}_{idx}", use_container_width=True):
         st.session_state.zoo.append(an); st.toast(f"{nome} adicionado!")
 
-# 7. ABA SALVAMENTO (REFEITA)
+# 7. ABA SALVAMENTO (REFEITA COM IMAGEM)
 if aba == "🌀 Salvamento":
     st.header("🌀 Centro de Salvamento e Resgate")
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
@@ -107,7 +113,7 @@ if aba == "🌀 Salvamento":
     # Lógica de novo animal de resgate
     if st.session_state.id_animal_atual is None:
         regiao_random = random.choice(["Africa", "Amazon", "Australia", "Arctic", "Ocean"])
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={regiao_random}&taxon_id=1&per_page=50")
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={regiao_random}&taxon_id=1&per_page=50&locale=pt-PT")
         resultados = r.json()['results']
         # Filtra para não repetir
         validos = [a for a in resultados if a['id'] not in st.session_state.animais_salvos_ids]
@@ -118,7 +124,10 @@ if aba == "🌀 Salvamento":
         an = st.session_state.id_animal_atual
         nome_resgate = (an.get('preferred_common_name') or an.get('name')).title()
         
-        st.warning(f"🆘 ALERTA: Um **{nome_resgate}** foi encontrado ferido numa região remota!")
+        # Mostra o cartão do animal ferido
+        card(an, "resgate", 0)
+        
+        st.warning(f"🆘 ALERTA: Este **{nome_resgate}** foi encontrado ferido numa região remota!")
         
         if st.button("🚁 ENVIAR HELICÓPTERO DE RESGATE"):
             st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
@@ -133,7 +142,7 @@ if aba == "🌀 Salvamento":
         st.info("A procurar animais em perigo...")
         st.button("Atualizar Radar")
 
-# 8. OUTRAS ABAS
+# 8. OUTRAS ABAS (COM LOCALIZAÇÃO PORTUGUESA)
 elif aba == "🔬 Laboratório":
     st.header("🔬 Laboratório")
     busca = st.text_input("🔍 Pesquisa por nome ou espécie:", placeholder="Ex: Pantera, Falcão...")
@@ -156,7 +165,7 @@ elif aba == "🐾 Meu Zoo":
 
 elif aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
     sel = st.selectbox("Selecione Localização:", ["Portugal", "Brasil", "Amazónia", "Oceano Atlântico", "Japão"])
-    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70")
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
     animais = r.json().get('results', [])
     for i in range(0, len(animais), 3):
         cols = st.columns(3)
