@@ -8,14 +8,14 @@ from datetime import datetime, timedelta
 chaves = {
     'zoo': [], 'favoritos': [], 'tanque_fusao': [], 'nomes_zoo': {},
     'pontos_zoologo': 0, 'animais_salvos_ids': set(), 'id_animal_atual': None,
-    'internados_vet': [], # Lista de dicts: {'animal': an, 'data_saida': timestamp}
+    'internados_vet': [], 
     'c_24h': "", 'c_mega': "", 'premium_ativo': False,
     'cor_tema': "#0b1117", 'negrito': False, 'brilho': 100
 }
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# 2. TRADUTOR DE CLASSES E NOMES
+# 2. TRADUTOR DE CLASSES
 def traduzir_classe(taxon_name):
     traducao = {"Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil", "Amphibia": "Anfíbio", "Actinopterygii": "Peixe", "Arachnida": "Aracnídeo", "Insecta": "Inseto", "Mollusca": "Molusco"}
     return traducao.get(taxon_name, "Espécie Selvagem")
@@ -45,19 +45,18 @@ with st.sidebar:
     if tem_acesso_vip:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
     
+    menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🌀 Salvamento", "🏥 Veterinário", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
     if st.session_state.premium_ativo:
         menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
-    else:
-        menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🏥 Veterinário", "🔬 Laboratório", "🐾 Meu Zoo", "⭐ Favoritos", "⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
-# 5. CSS (CARTÃO MAIS CLARO/OPACO)
+# 5. CSS
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
     .cartao-cidadao {{
         background: #1a1c23 !important; border-radius: 25px; padding: 15px; border: 4px solid #2ecc71;
-        margin-bottom: 20px; min-height: 420px; text-align: center; opacity: 1 !important;
+        margin-bottom: 20px; min-height: 400px; text-align: center; opacity: 1 !important;
     }}
     .img-an {{ width: 100%; border-radius: 20px; height: 180px; object-fit: cover; border: 1px solid #444; }}
     @keyframes helicopter_ride {{ 0% {{ transform: translateX(-200px); }} 100% {{ transform: translateX(110vw); }} }}
@@ -66,9 +65,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # 6. FUNÇÃO DO CARTÃO
-def card(an, prefixo, idx=0, show_button=True):
+def card(an, prefixo, idx=0, show_button=True, footer_text=None):
     if not an: return
-    nome = an.get('preferred_common_name', an.get('name', 'Espécie')).title()
+    nome = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
     classe = traduzir_classe(an.get('iconic_taxon_name'))
     
@@ -78,7 +77,7 @@ def card(an, prefixo, idx=0, show_button=True):
         <h3 style="color:#ffd700; margin:10px 0;">{nome}</h3>
         <p style="margin:2px 0;">🐾 <b>Classe:</b> {classe}</p>
         <p style="margin:2px 0;">🥚 <b>Repro:</b> {"Ovíparo" if classe != "Mamífero" else "Vivíparo"}</p>
-        <p style="margin:2px 0;">🥩 <b>Alim:</b> {random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])}</p>
+        {f'<p style="color:#ffd700; font-weight:bold;">{footer_text}</p>' if footer_text else ''}
     </div>""", unsafe_allow_html=True)
     
     if show_button:
@@ -87,57 +86,60 @@ def card(an, prefixo, idx=0, show_button=True):
 
 # 7. ABAS
 if aba == "🌀 Salvamento":
+    st.header("🌀 Centro de Emergência")
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
+    
     if st.session_state.id_animal_atual is None:
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={random.choice(['Africa','Amazon','Ocean'])}&taxon_id=1&per_page=50&locale=pt-PT")
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={random.choice(['Africa','Amazon','Australia'])}&taxon_id=1&per_page=50&locale=pt-PT")
         validos = [a for a in r.json()['results'] if a['id'] not in st.session_state.animais_salvos_ids]
         if validos: st.session_state.id_animal_atual = random.choice(validos)
 
     if st.session_state.id_animal_atual:
         an = st.session_state.id_animal_atual
+        nome_resgate = (an.get('preferred_common_name') or an.get('name')).title()
+        
+        st.warning(f"🆘 ALERTA CRÍTICO: Um **{nome_resgate}** foi detetado com ferimentos graves!")
         card(an, "resgate", 0, show_button=False)
-        if st.button("🚁 RESGATAR AGORA"):
+        
+        if st.button("🚁 ENVIAR HELICÓPTERO"):
             st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
             time.sleep(3)
             st.session_state.pontos_zoologo += 50
             st.session_state.animais_salvos_ids.add(an['id'])
-            # Enviar para Veterinário com data de alta (agora + 24h)
             alta = datetime.now() + timedelta(hours=24)
             st.session_state.internados_vet.append({'animal': an, 'data_alta': alta.timestamp()})
             st.session_state.id_animal_atual = None
-            st.success("Animal enviado para o Veterinário para recuperação (24h)!")
+            st.success("Resgate efetuado! Animal em observação no Veterinário.")
             st.rerun()
 
 elif aba == "🏥 Veterinário":
     st.header("🏥 Hospital Veterinário")
     if not st.session_state.internados_vet:
-        st.info("Nenhum animal em tratamento.")
+        st.info("O hospital está vazio. Todos os animais estão saudáveis!")
     else:
-        for idx, item in enumerate(st.session_state.internados_vet):
-            an = item['animal']
-            falta = item['data_alta'] - datetime.now().timestamp()
-            cols = st.columns([2, 1])
-            with cols[0]:
-                nome = an.get('preferred_common_name', an.get('name')).title()
-                st.write(f"🐾 **{nome}**")
-                if falta > 0:
-                    horas = int(falta // 3600)
-                    minutos = int((falta % 3600) // 60)
-                    st.write(f"⏳ Tempo de recuperação: {horas}h {minutos}m")
-                else:
-                    st.success("✅ Recuperação concluída!")
-            with cols[1]:
-                if falta <= 0:
-                    if st.button("🏁 Enviar para Zoo", key=f"vet_{idx}"):
-                        st.session_state.zoo.append(an)
-                        st.session_state.internados_vet.pop(idx)
-                        st.rerun()
-                else:
-                    st.button("💊 Em tratamento", disabled=True, key=f"vet_d_{idx}")
-            st.divider()
+        for i in range(0, len(st.session_state.internados_vet), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(st.session_state.internados_vet):
+                    item = st.session_state.internados_vet[i+j]
+                    an = item['animal']
+                    falta = item['data_alta'] - datetime.now().timestamp()
+                    
+                    with cols[j]:
+                        if falta > 0:
+                            h = int(falta // 3600)
+                            m = int((falta % 3600) // 60)
+                            txt_tempo = f"⏳ Alta em: {h}h {m}m"
+                            card(an, "vet_list", i+j, show_button=False, footer_text=txt_tempo)
+                        else:
+                            card(an, "vet_list", i+j, show_button=False, footer_text="✅ Recuperado!")
+                            if st.button("🏁 Mover para Zoo", key=f"move_{i+j}", use_container_width=True):
+                                st.session_state.zoo.append(an)
+                                st.session_state.internados_vet.pop(i+j)
+                                st.rerun()
 
 elif aba == "🔬 Laboratório":
-    busca = st.text_input("🔍 Pesquisar em Português:")
+    busca = st.text_input("🔍 Analisar Espécie:")
     if busca:
         r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={busca}&taxon_id=1&per_page=70&locale=pt-PT")
         animais = r.json().get('results', [])
