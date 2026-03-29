@@ -1,6 +1,16 @@
+def grid_cards(lista_animais):
+    if not lista_animais: return
+    for i in range(0, len(lista_animais), 3):
+        cols = st.columns(3)
+        for j in range(3):
+            if i+j < len(lista_animais):
+                an = lista_animais[i+j]
+                with cols[j]:
+                    card(an, show_sound=True)
+
 def card(an, show_sound=True):
     if not an: return
-    nome_pt = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
+    nome_pt = (an.get('preferred_common_name') or an.get('name')).title()
     nome_cientifico = an.get('name', 'Espécie')
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
     classe = {"Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil",
@@ -20,6 +30,7 @@ def card(an, show_sound=True):
     ''', unsafe_allow_html=True)
     
     if show_sound:
-        if st.button(f"🔊 Ouvir {nome_pt}", key=f"snd_{nome_pt}"):
+        key_btn = f"snd_{an.get('id', nome_pt)}"
+        if st.button(f"🔊 Ouvir {nome_pt}", key=key_btn):
             st.info(f"🔊 IA encontrou sons de {nome_pt} na internet!")
-            # Aqui podes colocar st.audio(URL_DO_SOM) quando tiveres a API real
+            # st.audio(URL_DO_SOM) aqui quando integrares a API real
