@@ -4,18 +4,22 @@ import random
 import time
 from datetime import datetime, timedelta
 
+# ----------------------
 # 1. ESTADO DO SISTEMA
+# ----------------------
 chaves = {
     'zoo': [], 'tanque_fusao': [], 'pontos_zoologo': 0, 
     'animais_salvos_ids': set(), 'id_animal_atual': None,
     'internados_vet': [], 'c_24h': "", 'c_mega': "", 
     'premium_ativo': False, 'cor_tema': "#0b1117", 'brilho': 100,
-    'inicio_sessao_24h': None
+    'inicio_sessao_24h': None, 'quiz_score': 0
 }
 for k, v in chaves.items():
     if k not in st.session_state: st.session_state[k] = v
 
+# ----------------------
 # 2. LÓGICA DE CÓDIGOS
+# ----------------------
 is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_valido = False
 if st.session_state.c_24h == "6626":
@@ -24,7 +28,9 @@ if st.session_state.c_24h == "6626":
     if (datetime.now().timestamp() - st.session_state.inicio_sessao_24h) < 86400:
         is_24h_valido = True
 
-# 3. CSS BLINDADO (CORES REAIS NAS FOTOS)
+# ----------------------
+# 3. CSS BLINDADO
+# ----------------------
 if is_mega:
     borda_css = "border: 5px solid; border-image: linear-gradient(var(--angle), red, orange, yellow, green, blue, indigo, violet) 1; animation: rotate_grad 3s linear infinite;"
 elif is_24h_valido:
@@ -47,12 +53,15 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
+# ----------------------
 # 4. FUNÇÃO DO CARTÃO
+# ----------------------
 def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     if not an: return
     nome_pt = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     foto = an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300")
-    classe = {"Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil", "Amphibia": "Anfíbio", "Actinopterygii": "Peixe"}.get(an.get('iconic_taxon_name'), "Selvagem")
+    classe = {"Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil", 
+              "Amphibia": "Anfíbio", "Actinopterygii": "Peixe"}.get(an.get('iconic_taxon_name'), "Selvagem")
     alim = random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])
     repro = "Vivíparo" if classe == "Mamífero" else "Ovíparo"
     
@@ -69,7 +78,7 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     ''', unsafe_allow_html=True)
     
     if show_buttons:
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns([1,1,1])
         with c1:
             if is_zoo:
                 if st.button("🗑️", key=f"d_{prefixo}_{idx}"):
@@ -80,8 +89,15 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
         with c2:
             if st.button("🧬", key=f"f_{prefixo}_{idx}"):
                 st.session_state.tanque_fusao.append(an); st.toast("DNA Coletado!")
+        with c3:
+            # Botão de som se existir
+            sound_url = an.get('sounds', [None])[0] if an.get('sounds') else None
+            if sound_url and st.button("🔊 Som", key=f"s_{prefixo}_{idx}"):
+                st.audio(sound_url)
 
-# 5. SIDEBAR COM NOMES COMPLETOS
+# ----------------------
+# 5. SIDEBAR
+# ----------------------
 with st.sidebar:
     st.title("🌍 MundoVivo")
     if is_24h_valido:
@@ -91,12 +107,14 @@ with st.sidebar:
     if is_mega or is_24h_valido:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
     
-    menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+    menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições", "🔎 Procurar Animal", "🎯 Quiz"]
     if st.session_state.premium_ativo:
-        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições", "🔎 Procurar Animal", "🎯 Quiz"]
     aba = st.radio("Navegação", menu)
 
+# ----------------------
 # 6. LOGICA DE GRELHA
+# ----------------------
 def grid(lista, prefixo):
     for i in range(0, len(lista), 3):
         cols = st.columns(3)
@@ -104,13 +122,51 @@ def grid(lista, prefixo):
             if i+j < len(lista):
                 with cols[j]: card(lista[i+j], prefixo, i+j)
 
+# ----------------------
 # 7. CONTEÚDO DAS ABAS
+# ----------------------
+# Aba Florestas, Oceanos, Países
 if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
     lista_loc = ["Amazónia", "Oceano Pacífico", "Portugal", "Brasil"]
     sel = st.selectbox("Localização:", lista_loc)
     r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=12&locale=pt-PT")
     grid(r.json().get('results', []), "exp")
 
+# Aba Procurar Animal
+elif aba == "🔎 Procurar Animal":
+    animal_nome = st.text_input("Digite o nome do animal:")
+    if animal_nome:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={animal_nome}&per_page=12&locale=pt-PT")
+        grid(r.json().get('results', []), "search")
+
+# Aba Quiz
+elif aba == "🎯 Quiz":
+    st.header("🎯 Quiz: Qual é este animal?")
+    if "quiz_animal" not in st.session_state or st.button("Novo Quiz"):
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q=Africa&taxon_id=1&per_page=1&locale=pt-PT")
+        if r.json()['results']:
+            st.session_state.quiz_animal = r.json()['results'][0]
+    
+    an = st.session_state.quiz_animal
+    if an:
+        st.image(an.get('default_photo', {}).get('medium_url', "https://via.placeholder.com/300"))
+        options = [an.get('preferred_common_name') or an.get('name')]
+        # adicionar 2 nomes falsos
+        fake_names = ["Leopardo", "Girafa", "Tigre", "Elefante", "Crocodilo"]
+        while len(options) < 3:
+            fake = random.choice(fake_names)
+            if fake not in options: options.append(fake)
+        random.shuffle(options)
+        choice = st.radio("Escolha o nome correto:", options)
+        if st.button("Verificar"):
+            if choice == (an.get('preferred_common_name') or an.get('name')):
+                st.success("✅ Correto! +1 ponto")
+                st.session_state.quiz_score += 1
+            else:
+                st.error("❌ Errado!")
+            st.write(f"Pontuação: {st.session_state.quiz_score}")
+
+# Aba Salvamento, Veterinário, Tanque de Fusão, Meu Zoo, Definições
 elif aba == "🌀 Salvamento":
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
     if not st.session_state.id_animal_atual:
