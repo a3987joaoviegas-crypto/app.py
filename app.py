@@ -31,7 +31,7 @@ if st.session_state.c_24h == "6626":
         is_24h_valido = True
 
 # ----------------------
-# CSS para cartões pequenos como antes
+# CSS
 # ----------------------
 borda_css = "border: 4px solid #2ecc71;" if not (is_mega or is_24h_valido) else (
     "border: 5px solid #ffd700;" if is_24h_valido else
@@ -104,7 +104,7 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
                 st.session_state.tanque_fusao.append(an); st.toast("DNA Coletado!")
         with c3:
             if st.button("🔊", key=f"s_{prefixo}_{idx}"):
-                # exemplo de URL de áudio - aqui podes ligar à IA ou API Merlin
+                # Exemplo de som xeno-canto (pode ser substituído por API Merlin)
                 audio_url = f"https://www.xeno-canto.org/sounds/mp3/0/0/0/0/{nome_pt.replace(' ','_')}.mp3"
                 st.audio(audio_url, format="audio/mp3")
 
@@ -135,9 +135,7 @@ def safe_api(url):
 # ----------------------
 with st.sidebar:
     st.title("🌍 MundoVivo")
-    if is_24h_valido or is_mega:
-        st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
-
+    st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
     menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     if st.session_state.premium_ativo:
         menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
@@ -146,26 +144,45 @@ with st.sidebar:
 # ----------------------
 # ABAS
 # ----------------------
-if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
-    lista_loc = ["Amazónia", "Oceano Pacífico", "Portugal", "Brasil"] + [f"País{i}" for i in range(5,71)]
-    sel = st.selectbox("Localização:", lista_loc)
+if aba == "🌲 Florestas":
+    lista_loc = ["Amazónia", "Congo", "Taiga", "Mata Atlântica"]  # exemplos
+    sel = st.selectbox("Florestas:", lista_loc)
+    lista = safe_api(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
+    grid(lista, "exp")
+
+elif aba == "🌊 Oceanos":
+    oceanos = ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Oceano Ártico", "Oceano Antártico",
+               "Mar Mediterrâneo", "Mar do Caribe", "Mar da China"]
+    sel = st.selectbox("Oceanos e Mares:", oceanos)
+    lista = safe_api(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
+    grid(lista, "exp")
+
+elif aba == "🏳️ Países":
+    paises = [
+        "Afeganistão","África do Sul","Albânia","Alemanha","Andorra","Angola","Antígua e Barbuda","Arábia Saudita","Argélia","Argentina",
+        "Arménia","Austrália","Áustria","Azerbaijão","Bahamas","Bangladesh","Barbados","Barein","Bélgica","Belize",
+        "Benim","Bielorrússia","Bolívia","Bósnia e Herzegovina","Botsuana","Brasil","Brunei","Bulgária","Burkina Faso","Burúndi",
+        "Butão","Cabo Verde","Camarões","Camboja","Canadá","Catar","Cazaquistão","Chade","Chile","China",
+        "Chipre","Colômbia","Comores","Coreia do Norte","Coreia do Sul","Costa do Marfim","Costa Rica","Croácia","Cuba","Dinamarca",
+        "Djibuti","Dominica","Egito","El Salvador","Emirados Árabes Unidos","Equador","Eritreia","Eslováquia","Eslovénia","Espanha",
+        "Estónia","Estados Unidos","Eswatini","Etiópia","Fiji","Filipinas","Finlândia","França","Gabão","Gâmbia",
+        "Gana","Geórgia","Grécia","Granada","Guatemala","Guiné","Guiné-Bissau","Guiné Equatorial","Haiti","Honduras"
+    ]
+    sel = st.selectbox("País:", paises)
     lista = safe_api(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
     grid(lista, "exp")
 
 elif aba == "🔬 Laboratório":
-    if st.session_state.premium_ativo:
-        st.header("🔬 Laboratório MundoVivo")
-        animais_input = st.text_input("Digite nomes de animais (até 3, separados por vírgula):")
-        if animais_input:
-            nomes = [x.strip() for x in animais_input.split(",")][:3]
-            lista = []
-            for n in nomes:
-                res = safe_api(f"https://api.inaturalist.org/v1/taxa?q={n}&per_page=1&locale=pt-PT")
-                if res:
-                    lista.append(res[0])
-            grid(lista, "lab")
-    else:
-        st.info("Ativa o premium para acessar o laboratório 🧪")
+    st.header("🔬 Laboratório MundoVivo")
+    animais_input = st.text_input("Digite nomes de animais (até 3, separados por vírgula):")
+    if animais_input:
+        nomes = [x.strip() for x in animais_input.split(",")][:3]
+        lista = []
+        for n in nomes:
+            res = safe_api(f"https://api.inaturalist.org/v1/taxa?q={n}&per_page=1&locale=pt-PT")
+            if res:
+                lista.append(res[0])
+        grid(lista, "lab")
 
 elif aba == "🐾 Meu Zoo":
     grid(st.session_state.zoo, "zoo")
