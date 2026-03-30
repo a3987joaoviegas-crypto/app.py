@@ -172,19 +172,33 @@ with st.sidebar:
 # ----------------------
 # ABAS
 # ----------------------
-# (mesmo código que antes para Florestas, Oceanos, Países, Laboratório, Salvamento, Veterinário, Tanque de Fusão, Meu Zoo, Definições)
-# Apenas lembrando: o laboratório agora é grátis e retorna 70 animais
-# Florestas, Oceanos e Países usam locale=pt-PT para nomes em português
-
-# Exemplo de uso para Florestas
+# Florestas, Oceanos, Países
 if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
-    lista_loc = []
     if aba == "🌲 Florestas":
-        lista_loc = ["Amazônia", "Savana Africana", "Floresta Temperada", "Deserto"]
+        lista_loc = ["Amazônia", "Savana Africana", "Floresta Temperada", "Deserto", "Taiga", "Manguezal"]
     elif aba == "🌊 Oceanos":
-        lista_loc = ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Mar Mediterrâneo"]
+        lista_loc = ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Mar Mediterrâneo",
+                     "Mar do Norte", "Mar Báltico", "Mar da China Meridional"]
     else:
-        lista_loc = ["Portugal", "Brasil", "EUA", "China", "Japão", "Índia", "França", "Alemanha"] # até 70 países
+        lista_loc = ["Portugal","Brasil","EUA","China","Japão","Índia","França","Alemanha","Itália","México",
+                     "Rússia","Canadá","Argentina","Egito","África do Sul","Marrocos","Turquia","Irã","Arábia Saudita",
+                     "Coreia do Sul","Indonésia","Malásia","Tailândia","Filipinas","Vietnã","Nova Zelândia","Austrália",
+                     "Colômbia","Peru","Chile","Venezuela","Bolívia","Equador","Paraguai","Uruguai","Cuba","Haiti",
+                     "Jamaica","Costa Rica","Panamá","Nicarágua","Honduras","El Salvador","Guatemala","Belize",
+                     "Islândia","Noruega","Suécia","Finlândia","Dinamarca","Polônia","Ucrânia","Bélgica","Holanda",
+                     "Suíça","Áustria","Hungria","Romênia","Bulgária","Grécia","Portugal","Eslováquia","República Tcheca",
+                     "Lituânia","Letônia","Estônia","Chipre","Malta","Luxemburgo"]
     sel = st.selectbox("Localização:", lista_loc)
     r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
     grid(r.json().get('results', []), "exp")
+
+# Laboratório grátis
+elif aba == "🔬 Laboratório":
+    st.header("🔬 Laboratório")
+    if st.session_state.premium_ativo:
+        st.info("Laboratório disponível para todos, mesmo no grátis!")
+    # Buscar 70 animais aleatórios
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?taxon_id=1&per_page=70&locale=pt-PT")
+    grid(r.json().get("results", []), "lab")
+
+# Aqui podes adicionar Salvamento, Veterinário, Tanque de Fusão, Meu Zoo, Definições mantendo layout do cartão
