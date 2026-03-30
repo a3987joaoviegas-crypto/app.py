@@ -65,9 +65,11 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# FUNÇÃO DE BUSCA DE ÁUDIO
+# FUNÇÃO DE BUSCA DE ÁUDIO (APENAS AVES)
 # ----------------------
 def buscar_audio(animal):
+    if animal.get("iconic_taxon_name") != "Aves":
+        return None
     nome_cientifico = animal.get("name")
     if not nome_cientifico: return None
     query = nome_cientifico.replace(" ", "+")
@@ -121,12 +123,11 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
             if st.button("🧬", key=f"f_{prefixo}_{idx}"):
                 st.session_state.tanque_fusao.append(an); st.toast("DNA Coletado!")
         with c3:
-            if st.button("🔊", key=f"s_{prefixo}_{idx}"):
-                audio_url = buscar_audio(an)
-                if audio_url:
-                    st.audio(audio_url, format="audio/mp3")
-                else:
-                    st.warning("⚠️ Som não encontrado.")
+            if an.get("iconic_taxon_name") == "Aves":
+                if st.button("🔊", key=f"s_{prefixo}_{idx}"):
+                    audio_url = buscar_audio(an)
+                    if audio_url:
+                        st.audio(audio_url, format="audio/mp3")
 
 # ----------------------
 # GRID
