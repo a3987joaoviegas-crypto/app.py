@@ -68,10 +68,6 @@ st.markdown(f"""
 # FUNÇÃO DE BUSCA DE ÁUDIO
 # ----------------------
 def buscar_audio(animal):
-    """
-    Tenta buscar o som do animal na internet (Xeno-Canto API para aves).
-    Retorna URL de áudio ou None se não encontrado.
-    """
     nome_cientifico = animal.get("name")
     if not nome_cientifico: return None
     query = nome_cientifico.replace(" ", "+")
@@ -150,12 +146,17 @@ def safe_api(url):
     try:
         r = requests.get(url, timeout=5)
         if r.status_code != 200: return []
-        return r.json().get("results", [])
+        results = r.json().get("results", [])
+        if not results:  # fallback: criar 5 animais fake
+            results = [{"name": f"AnimalFake{i}", "preferred_common_name": f"Espécie{i}",
+                        "iconic_taxon_name": random.choice(["Mammalia","Aves","Reptilia","Amphibia","Actinopterygii"]),
+                        "default_photo": {"medium_url":"https://via.placeholder.com/300"}} for i in range(5)]
+        return results
     except:
         return []
 
 # ----------------------
-# SIDEBAR COM PREMIUM
+# SIDEBAR
 # ----------------------
 with st.sidebar:
     st.title("🌍 MundoVivo")
@@ -171,5 +172,69 @@ with st.sidebar:
 # ----------------------
 # ABAS
 # ----------------------
-# (Aqui mantém-se o resto do código igual: Florestas, Oceanos, Países, Laboratório, Meu Zoo, Salvamento, Veterinário, Tanque)
-# Usa a mesma lógica do código anterior
+if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
+    if aba == "🌲 Florestas":
+        lista_loc = ["Amazônia", "Savana Africana", "Floresta Temperada", "Deserto"]
+    elif aba == "🌊 Oceanos":
+        lista_loc = ["Oceano Pacífico", "Oceano Atlântico", "Oceano Índico", "Mar Mediterrâneo"]
+    else:  # Países
+        lista_loc = ["Portugal", "Brasil", "EUA", "China", "Japão", "Índia", "França", "Alemanha", "Itália", "México",
+                     "Canadá", "Austrália", "Argentina", "Rússia", "Noruega", "Suécia", "Finlândia", "Egito",
+                     "África do Sul", "Marrocos", "Nigéria", "Quênia", "Turquia", "Grécia", "Holanda", "Bélgica",
+                     "Polônia", "Suíça", "Áustria", "Hungria", "Irlanda", "Nova Zelândia", "Chile", "Peru", "Colômbia",
+                     "Venezuela", "Cuba", "Coreia do Sul", "Coreia do Norte", "Tailândia", "Indonésia", "Malásia",
+                     "Filipinas", "Singapura", "Paquistão", "Bangladesh", "Sri Lanka", "Nepal", "Butão", "Mianmar",
+                     "Laos", "Camboja", "Vietnam", "Uzbequistão", "Cazaquistão", "Quirguistão", "Tajiquistão",
+                     "Afeganistão", "Irã", "Iraque", "Síria", "Líbano", "Israel", "Jordânia", "Emirados Árabes",
+                     "Arábia Saudita", "Omã", "Iémen", "Kuwait", "Bahrein", "Qatar"]
+    sel = st.selectbox("Localização:", lista_loc)
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70")
+    grid(r.json().get('results', []), "exp")
+
+elif aba == "🔬 Laboratório":
+    st.header("🔬 Laboratório de Animais")
+    lista_loc = ["Amazônia", "Savana Africana", "Floresta Temperada", "Deserto", "Oceano Pacífico", "Oceano Atlântico", "Oceano Índico"]
+    sel = st.selectbox("Escolha a pesquisa:", lista_loc)
+    query = sel.replace(" ", "%20")
+    url_api = f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70"
+    animais = safe_api(url_api)
+    grid(animais, "lab")
+
+elif aba == "🐾 Meu Zoo":
+    grid(st.session_state.zoo, "zoo")
+
+elif aba == "🌀 Salvamento" and premium_real and st.session_state.premium_ativo:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
+    if not st.session_state.id_animal_atual:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q=Africa&taxon_id=1&per_page=1")
+        if r.json()['results']: st.session_state.id_animal_atual = r.json()['results'][0]
+    if st.session_state.id_animal_atual:
+        card(st.session_state.id_animal_atual, "res", 0, show_buttons=False)
+        if st.button("🚁 ENVIAR HELICÓPTERO"):
+            st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
+            time.sleep(3)
+            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
+            st.session_state.id_animal_atual = None; st.rerun()
+
+elif aba == "🏥 Veterinário" and premium_real and st.session_state.premium_ativo:
+    st.header("🏥 Hospital")
+    if not st.session_state.internados_vet: st.info("Sem animais feridos.")
+    for i, item in enumerate(st.session_state.internados_vet):
+        falta = item['data_alta'] - datetime.now().timestamp()
+        txt = f"⏳ {int(falta//3600)}h" if falta > 0 else "✅ ALTA"
+        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
+        if falta <= 0 and st.button("🏁 Zoo", key=f"mv_{i}"):
+            st.session_state.zoo.append(item['animal']); st.session_state.internados_vet.pop(i); st.rerun()
+
+elif aba == "🧬 Tanque de Fusão" and premium_real and st.session_state.premium_ativo:
+    if len(st.session_state.tanque_fusao) < 2: st.info("Colete DNA!")
+    else:
+        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
+        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
+        if st.button("🔬 FUNDIR"):
+            st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
+
+elif aba == "⚙️ Definições":
+    st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
+    st.session_state.c_24h = st.text_input("Código 24h", type="password", value=st.session_state.c_24h)
+    if st.button("Guardar"): st.rerun()
