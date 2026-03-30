@@ -140,22 +140,6 @@ def grid(lista, prefixo):
                     card(lista[i+j], prefixo, i+j)
 
 # ----------------------
-# API SEGURA
-# ----------------------
-def safe_api(url):
-    try:
-        r = requests.get(url, timeout=5)
-        if r.status_code != 200: return []
-        results = r.json().get("results", [])
-        if not results:
-            results = [{"name": f"AnimalFake{i}", "preferred_common_name": f"Espécie{i}",
-                        "iconic_taxon_name": random.choice(["Mammalia","Aves","Reptilia","Amphibia","Actinopterygii"]),
-                        "default_photo": {"medium_url":"https://via.placeholder.com/300"}} for i in range(5)]
-        return results
-    except:
-        return []
-
-# ----------------------
 # SIDEBAR
 # ----------------------
 with st.sidebar:
@@ -192,13 +176,10 @@ if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
     r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT")
     grid(r.json().get('results', []), "exp")
 
-# Laboratório grátis
+# Laboratório pesquisa livre
 elif aba == "🔬 Laboratório":
-    st.header("🔬 Laboratório")
-    if st.session_state.premium_ativo:
-        st.info("Laboratório disponível para todos, mesmo no grátis!")
-    # Buscar 70 animais aleatórios
-    r = requests.get(f"https://api.inaturalist.org/v1/taxa?taxon_id=1&per_page=70&locale=pt-PT")
-    grid(r.json().get("results", []), "lab")
-
-# Aqui podes adicionar Salvamento, Veterinário, Tanque de Fusão, Meu Zoo, Definições mantendo layout do cartão
+    st.header("🔬 Laboratório de Pesquisa Livre")
+    query = st.text_input("Digite o nome do animal ou palavra-chave:")
+    if query:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale=pt-PT")
+        grid(r.json().get("results", []), "lab")
