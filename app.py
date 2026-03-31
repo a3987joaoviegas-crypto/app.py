@@ -108,7 +108,7 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     ''', unsafe_allow_html=True)
 
     if show_buttons:
-        c1, c2, c3, c4 = st.columns([1,1,1,1])
+        c1, c2, c3 = st.columns([1,1,1])
 
         with c1:
             if is_zoo:
@@ -130,9 +130,6 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
             if audio_url and st.button("🔊", key=f"s_{prefixo}_{idx}"):
                 st.audio(audio_url)
 
-        with c4:
-            st.button("👁️", key=f"eye_{prefixo}_{idx}")  # Botão do olho
-
 # ----------------------
 # GRID
 # ----------------------
@@ -145,11 +142,11 @@ def grid(lista, prefixo=""):
                     card(lista[i+j], f"{prefixo}_{i+j}")
 
 # ----------------------
-# LISTAS EXEMPLO
+# LOCAIS
 # ----------------------
 florestas = ["Amazônia", "Congo", "Taiga", "Temperada", "Manguezal"]
 oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico"]
-paises = ["Portugal","Brasil","EUA","França","Alemanha","Japão","China","Índia","México","Canadá"] * 7  # 70 países
+paises = ["Portugal","Brasil","EUA","França","Alemanha","Japão","China","Índia","México","Canadá"] * 7
 
 # ----------------------
 # SIDEBAR
