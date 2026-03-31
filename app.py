@@ -41,18 +41,20 @@ st.markdown(f"""
     background-color: {st.session_state.cor_tema};
     filter: brightness({st.session_state.brilho/100});
 }}
-.cartao {{
-    background:#1a1c23;
-    border-radius:12px;
-    padding:8px;
-    text-align:center;
-    margin-bottom:10px;
+.cartao-cidadao {{
+    background-color: #1a1c23 !important;
+    border-radius: 20px; 
+    padding: 12px; 
+    margin-bottom: 15px; 
+    text-align: center; 
+    color: white;
 }}
-.img {{
-    width:100%;
-    height:120px;
-    object-fit:cover;
-    border-radius:10px;
+.img-an {{
+    width: 100%; 
+    border-radius: 15px; 
+    height: 130px; 
+    object-fit: cover; 
+    border: 1px solid #444;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -74,55 +76,76 @@ def buscar_audio(animal):
     return None
 
 # ----------------------
-# CARTÃO (ERRO CORRIGIDO AQUI)
+# CARTÃO
 # ----------------------
-def card(an, idx):
+def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     if not an:
         return
 
-    nome = (an.get("preferred_common_name") or an.get("name") or "Espécie").title()
-    cientifico = an.get("name","")
+    nome_pt = (an.get('preferred_common_name') or an.get('name') or 'Espécie').title()
+    nome_cientifico = an.get('name', "Desconhecido")
 
-    foto_data = an.get("default_photo") or {}
-    foto = foto_data.get("medium_url", "https://via.placeholder.com/300")
+    foto_data = an.get('default_photo') or {}
+    foto = foto_data.get('medium_url', "https://via.placeholder.com/300")
 
-    st.markdown(f"""
-    <div class="cartao">
-        <img src="{foto}" class="img">
-        <b>{nome}</b><br>
-        <span style="font-size:0.7em;color:#aaa;">{cientifico}</span>
+    classe = {
+        "Mammalia": "Mamífero",
+        "Aves": "Ave",
+        "Reptilia": "Réptil",
+        "Amphibia": "Anfíbio",
+        "Actinopterygii": "Peixe"
+    }.get(an.get('iconic_taxon_name'), "Selvagem")
+
+    alim = random.choice(['Herbívoro', 'Carnívoro', 'Omnívoro'])
+    repro = "Vivíparo" if classe == "Mamífero" else "Ovíparo"
+
+    st.markdown(f'''
+    <div class="cartao-cidadao">
+        <span style="color:#ffd700; font-weight:bold; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
+        <img src="{foto}" class="img-an">
+        <h4 style="color:#ffd700; margin:8px 0; font-size:1em;">{nome_pt}</h4>
+        <p style="color:#aaa; font-size:0.7em;">{nome_cientifico}</p>
+        <p style="margin:2px 0; font-size:0.8em; text-align:left;">🐾 <b>Classe:</b> {classe}</p>
+        <p style="margin:2px 0; font-size:0.8em; text-align:left;">🥚 <b>Repro:</b> {repro}</p>
+        <p style="margin:2px 0; font-size:0.8em; text-align:left;">🥩 <b>Alimentação:</b> {alim}</p>
+        {f'<p style="color:#ffd700; font-weight:bold;">{footer_text}</p>' if footer_text else ''}
     </div>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
 
-    c1,c2,c3 = st.columns(3)
+    if show_buttons:
+        c1, c2, c3 = st.columns(3)
 
-    with c1:
-        if st.button("📥", key=f"z{idx}"):
-            st.session_state.zoo.append(an)
+        with c1:
+            if is_zoo:
+                if st.button("🗑️", key=f"d_{prefixo}_{idx}"):
+                    st.session_state.zoo.pop(idx)
+                    st.rerun()
+            else:
+                if st.button("📥", key=f"z_{prefixo}_{idx}"):
+                    st.session_state.zoo.append(an)
+                    st.toast("No Zoo!")
 
-    with c2:
-        if st.button("🧬", key=f"f{idx}"):
-            st.session_state.tanque_fusao.append(an)
+        with c2:
+            if st.button("🧬", key=f"f_{prefixo}_{idx}"):
+                st.session_state.tanque_fusao.append(an)
+                st.toast("DNA Coletado!")
 
-    with c3:
-        audio = buscar_audio(an)
-        if audio and st.button("🔊", key=f"s{idx}"):
-            st.audio(audio)
+        with c3:
+            if an.get("iconic_taxon_name") == "Aves":
+                audio_url = buscar_audio(an)
+                if audio_url and st.button("🔊", key=f"s_{prefixo}_{idx}"):
+                    st.audio(audio_url)
 
 # ----------------------
 # GRID
 # ----------------------
-def grid(lista):
-    if not lista:
-        st.write("Sem resultados")
-        return
-
+def grid(lista, prefixo=""):
     for i in range(0,len(lista),3):
         cols = st.columns(3)
         for j in range(3):
             if i+j < len(lista):
                 with cols[j]:
-                    card(lista[i+j], i+j)
+                    card(lista[i+j], f"{prefixo}_{i+j}")
 
 # ----------------------
 # SIDEBAR
@@ -152,17 +175,17 @@ if aba in ["🌲 Florestas","🌊 Oceanos","🏳️ Países"]:
     elif aba=="🌊 Oceanos":
         locais=["Oceano Atlântico","Oceano Pacífico","Mar Mediterrâneo"]
     else:
-        locais=["Portugal","Brasil","EUA","Japão","França","Alemanha"]
+        locais=["Portugal","Brasil","EUA","Japão","França","Alemanha"]  # adicionar até 70 países
 
     sel = st.selectbox("Local", locais)
 
     try:
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&per_page=70", timeout=5)
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
         lista = r.json().get("results",[])
     except:
         lista=[]
 
-    grid(lista)
+    grid(lista, "exp")
 
 # LAB (PESQUISA LIVRE)
 elif aba=="🔬 Laboratório":
@@ -171,18 +194,18 @@ elif aba=="🔬 Laboratório":
 
     if q:
         try:
-            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={q}&per_page=70", timeout=5)
+            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
             lista = r.json().get("results",[])
         except:
             lista=[]
 
-        grid(lista)
+        grid(lista, "lab")
 
 # ZOO
 elif aba=="🐾 Zoo":
-    grid(st.session_state.zoo)
+    grid(st.session_state.zoo, "zoo")
 
-# DEFINIÇÕES (AGORA FUNCIONA)
+# DEFINIÇÕES
 elif aba=="⚙️ Definições":
 
     st.subheader("Códigos")
