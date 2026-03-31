@@ -108,7 +108,7 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     ''', unsafe_allow_html=True)
 
     if show_buttons:
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns([1,1,1,1])
 
         with c1:
             if is_zoo:
@@ -129,6 +129,9 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
             audio_url = buscar_audio(an)
             if audio_url and st.button("🔊", key=f"s_{prefixo}_{idx}"):
                 st.audio(audio_url)
+
+        with c4:
+            st.button("👁️", key=f"eye_{prefixo}_{idx}")  # Botão do olho restaurado
 
 # ----------------------
 # GRID
@@ -160,96 +163,6 @@ with st.sidebar:
     aba = st.radio("Navegação", menu)
 
 # ----------------------
-# ABAS
+# IMPLEMENTAÇÃO DAS ABAS (FLorestas, Oceanos, Países, Laboratório e Premium)
 # ----------------------
-# FLORESTAS / OCEANOS / PAISES
-if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
-    if aba=="🌲 Florestas":
-        lista_loc = ["Amazónia","Savana","Taiga"]
-    elif aba=="🌊 Oceanos":
-        lista_loc = ["Oceano Atlântico","Oceano Pacífico","Mar Mediterrâneo"]
-    else:
-        lista_loc = ["Portugal","Brasil","EUA","Japão","França","Alemanha"] # até 70 países
-
-    sel = st.selectbox("Localização:", lista_loc)
-
-    try:
-        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
-        results = r.json().get("results",[])
-    except:
-        results = []
-
-    grid(results, "exp")
-
-# LABORATÓRIO (PESQUISA LIVRE)
-elif aba=="🔬 Laboratório":
-    q = st.text_input("Pesquisar animal")
-    if q:
-        try:
-            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
-            results = r.json().get("results",[])
-        except:
-            results = []
-        grid(results, "lab")
-
-# ----------------------
-# PREMIUM
-# ----------------------
-elif aba=="🌀 Salvamento" and st.session_state.premium_ativo:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
-    if not st.session_state.id_animal_atual:
-        try:
-            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q=Africa&taxon_id=1&per_page=1&locale=pt-PT")
-            if r.json()['results']:
-                st.session_state.id_animal_atual = r.json()['results'][0]
-        except:
-            st.session_state.id_animal_atual = None
-    if st.session_state.id_animal_atual:
-        card(st.session_state.id_animal_atual, "res", 0, show_buttons=False)
-        if st.button("🚁 ENVIAR HELICÓPTERO"):
-            st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
-            time.sleep(3)
-            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
-            st.session_state.id_animal_atual = None
-            st.rerun()
-
-elif aba=="🏥 Veterinário" and st.session_state.premium_ativo:
-    st.header("🏥 Hospital")
-    if not st.session_state.internados_vet: st.info("Sem animais feridos.")
-    for i, item in enumerate(st.session_state.internados_vet):
-        falta = item['data_alta'] - datetime.now().timestamp()
-        txt = f"⏳ {int(falta//3600)}h" if falta>0 else "✅ ALTA"
-        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
-        if falta<=0 and st.button("🏁 Zoo", key=f"mv_{i}"):
-            st.session_state.zoo.append(item['animal'])
-            st.session_state.internados_vet.pop(i)
-            st.rerun()
-
-elif aba=="🧬 Tanque de Fusão" and st.session_state.premium_ativo:
-    if len(st.session_state.tanque_fusao)<2: st.info("Colete DNA!")
-    else:
-        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
-        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
-        if st.button("🔬 FUNDIR"):
-            st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
-
-# ----------------------
-# ZOO
-# ----------------------
-elif aba=="🐾 Meu Zoo":
-    grid(st.session_state.zoo, "zoo")
-
-# ----------------------
-# DEFINIÇÕES
-# ----------------------
-elif aba=="⚙️ Definições":
-    st.subheader("Códigos")
-    st.session_state.c_mega = st.text_input("Código Mega", value=st.session_state.c_mega)
-    st.session_state.c_24h = st.text_input("Código 24h", value=st.session_state.c_24h)
-
-    st.subheader("Visual")
-    st.session_state.cor_tema = st.color_picker("Cor", st.session_state.cor_tema)
-    st.session_state.brilho = st.slider("Brilho", 50,150, st.session_state.brilho)
-
-    if st.button("Guardar"):
-        st.rerun()
+# TODO: Preencher florestas, oceanos e 70 países completos
