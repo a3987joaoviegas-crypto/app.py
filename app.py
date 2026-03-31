@@ -192,11 +192,56 @@ elif aba=="🔬 Laboratório":
             results = []
         grid(results, "lab")
 
+# ----------------------
+# PREMIUM
+# ----------------------
+elif aba=="🌀 Salvamento" and st.session_state.premium_ativo:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
+    if not st.session_state.id_animal_atual:
+        try:
+            r = requests.get(f"https://api.inaturalist.org/v1/taxa?q=Africa&taxon_id=1&per_page=1&locale=pt-PT")
+            if r.json()['results']:
+                st.session_state.id_animal_atual = r.json()['results'][0]
+        except:
+            st.session_state.id_animal_atual = None
+    if st.session_state.id_animal_atual:
+        card(st.session_state.id_animal_atual, "res", 0, show_buttons=False)
+        if st.button("🚁 ENVIAR HELICÓPTERO"):
+            st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
+            time.sleep(3)
+            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
+            st.session_state.id_animal_atual = None
+            st.rerun()
+
+elif aba=="🏥 Veterinário" and st.session_state.premium_ativo:
+    st.header("🏥 Hospital")
+    if not st.session_state.internados_vet: st.info("Sem animais feridos.")
+    for i, item in enumerate(st.session_state.internados_vet):
+        falta = item['data_alta'] - datetime.now().timestamp()
+        txt = f"⏳ {int(falta//3600)}h" if falta>0 else "✅ ALTA"
+        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
+        if falta<=0 and st.button("🏁 Zoo", key=f"mv_{i}"):
+            st.session_state.zoo.append(item['animal'])
+            st.session_state.internados_vet.pop(i)
+            st.rerun()
+
+elif aba=="🧬 Tanque de Fusão" and st.session_state.premium_ativo:
+    if len(st.session_state.tanque_fusao)<2: st.info("Colete DNA!")
+    else:
+        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
+        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
+        if st.button("🔬 FUNDIR"):
+            st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
+
+# ----------------------
 # ZOO
+# ----------------------
 elif aba=="🐾 Meu Zoo":
     grid(st.session_state.zoo, "zoo")
 
+# ----------------------
 # DEFINIÇÕES
+# ----------------------
 elif aba=="⚙️ Definições":
     st.subheader("Códigos")
     st.session_state.c_mega = st.text_input("Código Mega", value=st.session_state.c_mega)
