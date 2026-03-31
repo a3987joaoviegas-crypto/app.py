@@ -152,7 +152,7 @@ with st.sidebar:
     if premium:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
 
-    if premium and st.session_state.premium_ativo:
+    if st.session_state.premium_ativo:
         menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     else:
         menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
@@ -169,7 +169,7 @@ if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
     elif aba=="🌊 Oceanos":
         lista_loc = ["Oceano Atlântico","Oceano Pacífico","Mar Mediterrâneo"]
     else:
-        lista_loc = ["Portugal","Brasil","EUA","Japão","França","Alemanha"] # adicionar até 70 países
+        lista_loc = ["Portugal","Brasil","EUA","Japão","França","Alemanha"] # até 70 países
 
     sel = st.selectbox("Localização:", lista_loc)
 
