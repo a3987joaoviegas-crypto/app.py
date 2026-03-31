@@ -4,8 +4,6 @@ import random
 import time
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="MundoVivo", layout="wide")
-
 # ----------------------
 # ESTADO
 # ----------------------
@@ -25,7 +23,6 @@ for k, v in chaves.items():
 # ----------------------
 is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_valido = False
-
 if st.session_state.c_24h == "6626":
     if st.session_state.inicio_sessao_24h is None:
         st.session_state.inicio_sessao_24h = datetime.now().timestamp()
@@ -35,27 +32,25 @@ if st.session_state.c_24h == "6626":
 # ----------------------
 # CSS
 # ----------------------
+if is_mega:
+    borda_css = "border: 5px solid; border-image: linear-gradient(var(--angle), red, orange, yellow, green, blue, indigo, violet) 1; animation: rotate_grad 3s linear infinite;"
+elif is_24h_valido:
+    borda_css = "border: 5px solid #ffd700;"
+else:
+    borda_css = "border: 4px solid #2ecc71;"
+
 st.markdown(f"""
 <style>
-.stApp {{
-    background-color: {st.session_state.cor_tema};
-    filter: brightness({st.session_state.brilho/100});
-}}
+@property --angle {{ syntax: '<angle>'; initial-value: 0deg; inherits: false; }}
+@keyframes rotate_grad {{ to {{ --angle: 360deg; }} }}
+.stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
 .cartao-cidadao {{
-    background-color: #1a1c23 !important;
-    border-radius: 20px; 
-    padding: 12px; 
-    margin-bottom: 15px; 
-    text-align: center; 
-    color: white;
+    background-color: #1a1c23 !important; border-radius: 20px; padding: 12px; 
+    {borda_css} margin-bottom: 15px; text-align: center; color: white;
 }}
-.img-an {{
-    width: 100%; 
-    border-radius: 15px; 
-    height: 130px; 
-    object-fit: cover; 
-    border: 1px solid #444;
-}}
+.img-an {{ width: 100%; border-radius: 15px; height: 130px; object-fit: cover; border: 1px solid #444; filter: none !important; }}
+@keyframes heli {{ 0% {{ transform: translateX(-200px); }} 100% {{ transform: translateX(110vw); }} }}
+.heli-anim {{ position: fixed; top: 30%; font-size: 80px; z-index: 9999; animation: heli 3s linear forwards; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -131,10 +126,9 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
                 st.toast("DNA Coletado!")
 
         with c3:
-            if an.get("iconic_taxon_name") == "Aves":
-                audio_url = buscar_audio(an)
-                if audio_url and st.button("🔊", key=f"s_{prefixo}_{idx}"):
-                    st.audio(audio_url)
+            audio_url = buscar_audio(an)
+            if audio_url and st.button("🔊", key=f"s_{prefixo}_{idx}"):
+                st.audio(audio_url)
 
 # ----------------------
 # GRID
@@ -156,65 +150,59 @@ with st.sidebar:
     premium = is_mega or is_24h_valido
 
     if premium:
-        st.session_state.premium_ativo = st.toggle("Premium")
+        st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
 
     if premium and st.session_state.premium_ativo:
-        aba = st.radio("Menu", ["🔬 Laboratório","🐾 Zoo","⚙️ Definições"])
+        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     else:
-        aba = st.radio("Menu", ["🌲 Florestas","🌊 Oceanos","🏳️ Países","🔬 Laboratório","🐾 Zoo","⚙️ Definições"])
+        menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+
+    aba = st.radio("Navegação", menu)
 
 # ----------------------
 # ABAS
 # ----------------------
-
 # FLORESTAS / OCEANOS / PAISES
-if aba in ["🌲 Florestas","🌊 Oceanos","🏳️ Países"]:
-
+if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
     if aba=="🌲 Florestas":
-        locais=["Amazónia","Savana","Taiga"]
+        lista_loc = ["Amazónia","Savana","Taiga"]
     elif aba=="🌊 Oceanos":
-        locais=["Oceano Atlântico","Oceano Pacífico","Mar Mediterrâneo"]
+        lista_loc = ["Oceano Atlântico","Oceano Pacífico","Mar Mediterrâneo"]
     else:
-        locais=["Portugal","Brasil","EUA","Japão","França","Alemanha"]  # adicionar até 70 países
+        lista_loc = ["Portugal","Brasil","EUA","Japão","França","Alemanha"] # adicionar até 70 países
 
-    sel = st.selectbox("Local", locais)
+    sel = st.selectbox("Localização:", lista_loc)
 
     try:
         r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
-        lista = r.json().get("results",[])
+        results = r.json().get("results",[])
     except:
-        lista=[]
+        results = []
 
-    grid(lista, "exp")
+    grid(results, "exp")
 
-# LAB (PESQUISA LIVRE)
+# LABORATÓRIO (PESQUISA LIVRE)
 elif aba=="🔬 Laboratório":
-
     q = st.text_input("Pesquisar animal")
-
     if q:
         try:
             r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=1&per_page=70&locale=pt-PT", timeout=5)
-            lista = r.json().get("results",[])
+            results = r.json().get("results",[])
         except:
-            lista=[]
-
-        grid(lista, "lab")
+            results = []
+        grid(results, "lab")
 
 # ZOO
-elif aba=="🐾 Zoo":
+elif aba=="🐾 Meu Zoo":
     grid(st.session_state.zoo, "zoo")
 
 # DEFINIÇÕES
 elif aba=="⚙️ Definições":
-
     st.subheader("Códigos")
-
     st.session_state.c_mega = st.text_input("Código Mega", value=st.session_state.c_mega)
     st.session_state.c_24h = st.text_input("Código 24h", value=st.session_state.c_24h)
 
     st.subheader("Visual")
-
     st.session_state.cor_tema = st.color_picker("Cor", st.session_state.cor_tema)
     st.session_state.brilho = st.slider("Brilho", 50,150, st.session_state.brilho)
 
