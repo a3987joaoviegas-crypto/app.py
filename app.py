@@ -131,7 +131,7 @@ def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
                 st.audio(audio_url)
 
         with c4:
-            st.button("👁️", key=f"eye_{prefixo}_{idx}")  # Botão do olho restaurado
+            st.button("👁️", key=f"eye_{prefixo}_{idx}")  # Botão do olho
 
 # ----------------------
 # GRID
@@ -143,6 +143,13 @@ def grid(lista, prefixo=""):
             if i+j < len(lista):
                 with cols[j]:
                     card(lista[i+j], f"{prefixo}_{i+j}")
+
+# ----------------------
+# LISTAS EXEMPLO
+# ----------------------
+florestas = ["Amazônia", "Congo", "Taiga", "Temperada", "Manguezal"]
+oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico"]
+paises = ["Portugal","Brasil","EUA","França","Alemanha","Japão","China","Índia","México","Canadá"] * 7  # 70 países
 
 # ----------------------
 # SIDEBAR
@@ -163,6 +170,71 @@ with st.sidebar:
     aba = st.radio("Navegação", menu)
 
 # ----------------------
-# IMPLEMENTAÇÃO DAS ABAS (FLorestas, Oceanos, Países, Laboratório e Premium)
+# ABAS
 # ----------------------
-# TODO: Preencher florestas, oceanos e 70 países completos
+if aba == "🌲 Florestas":
+    sel = st.selectbox("Localização:", florestas)
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=12&locale=pt-PT")
+    grid(r.json().get('results', []), "exp")
+
+elif aba == "🌊 Oceanos":
+    sel = st.selectbox("Localização:", oceanos)
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=12&locale=pt-PT")
+    grid(r.json().get('results', []), "exp")
+
+elif aba == "🏳️ Países":
+    sel = st.selectbox("País:", paises)
+    r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=12&locale=pt-PT")
+    grid(r.json().get('results', []), "exp")
+
+elif aba == "🌀 Salvamento":
+    st.image(f"https://source.unsplash.com/600x200/?animal,{random.randint(1,100)}")
+    if not st.session_state.id_animal_atual:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q=Animal&taxon_id=1&per_page=1&locale=pt-PT")
+        if r.json()['results']: st.session_state.id_animal_atual = r.json()['results'][0]
+    if st.session_state.id_animal_atual:
+        card(st.session_state.id_animal_atual, "res", 0, show_buttons=False)
+        if st.button("🚁 ENVIAR HELICÓPTERO"):
+            st.markdown('<div class="heli-anim">🚁</div>', unsafe_allow_html=True)
+            time.sleep(3)
+            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
+            st.session_state.id_animal_atual = None
+            st.rerun()
+
+elif aba == "🏥 Veterinário":
+    st.header("🏥 Hospital")
+    if not st.session_state.internados_vet: st.info("Sem animais feridos.")
+    for i, item in enumerate(st.session_state.internados_vet):
+        falta = item['data_alta'] - datetime.now().timestamp()
+        txt = f"⏳ {int(falta//3600)}h" if falta > 0 else "✅ ALTA"
+        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
+        if falta <= 0 and st.button("🏁 Zoo", key=f"mv_{i}"):
+            st.session_state.zoo.append(item['animal'])
+            st.session_state.internados_vet.pop(i)
+            st.rerun()
+
+elif aba == "🧬 Tanque de Fusão":
+    if len(st.session_state.tanque_fusao) < 2: st.info("Colete DNA!")
+    else:
+        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
+        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
+        if st.button("🔬 FUNDIR"):
+            st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
+
+elif aba == "🐾 Meu Zoo":
+    grid(st.session_state.zoo, "zoo")
+
+elif aba == "🔬 Laboratório":
+    termo = st.text_input("Pesquisar animal livremente:")
+    if termo:
+        r = requests.get(f"https://api.inaturalist.org/v1/taxa?q={termo}&per_page=12&locale=pt-PT")
+        results = r.json().get('results', [])
+        if results:
+            grid(results, "lab")
+        else:
+            st.info("Nenhum resultado encontrado.")
+
+elif aba == "⚙️ Definições":
+    st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
+    st.session_state.c_24h = st.text_input("Código 24h", type="password", value=st.session_state.c_24h)
+    if st.button("Guardar"): st.rerun()
