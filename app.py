@@ -161,4 +161,4 @@ elif aba == "🏥 Veterinário":
     st.write("Sem animais.")
 
 elif aba == "🧬 Fusão":
-    st.write("Fusão ativa.")
+    st.
