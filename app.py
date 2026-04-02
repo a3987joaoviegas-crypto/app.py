@@ -23,7 +23,6 @@ for k, v in chaves.items():
 # ----------------------
 is_mega = st.session_state.c_mega == "67lucas62"
 is_24h_valido = False
-
 if st.session_state.c_24h == "6626":
     if st.session_state.inicio_sessao_24h is None:
         st.session_state.inicio_sessao_24h = datetime.now().timestamp()
@@ -36,7 +35,7 @@ if st.session_state.c_24h == "6626":
 if is_mega:
     borda_css = "border: 5px solid; border-image: linear-gradient(var(--angle), red, orange, yellow, green, blue, indigo, violet) 1; animation: rotate_grad 3s linear infinite;"
 elif is_24h_valido:
-    borda_css = "border: 5px solid gold;"
+    borda_css = "border: 5px solid #ffd700;"
 else:
     borda_css = "border: 4px solid #2ecc71;"
 
@@ -46,7 +45,7 @@ st.markdown(f"""
 @keyframes rotate_grad {{ to {{ --angle: 360deg; }} }}
 .stApp {{ background-color: {st.session_state.cor_tema}; }}
 .cartao-cidadao {{
-    background-color: #1a1c23;
+    background-color: #1a1c23 !important;
     border-radius: 20px;
     padding: 12px;
     {borda_css}
@@ -64,23 +63,14 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# AUDIO (aves)
+# BUSCAR ANIMAIS (SÓ ANIMALIA)
 # ----------------------
-def buscar_audio(animal):
-    if animal.get("iconic_taxon_name") != "Aves":
-        return None
-    try:
-        nome = animal.get("name","").replace(" ","+")
-        r = requests.get(f"https://www.xeno-canto.org/api/2/recordings?query={nome}", timeout=5)
-        data = r.json()
-        if data["recordings"]:
-            return "https:" + data["recordings"][0]["file"]
-    except:
-        return None
-    return None
+def buscar_animais(q):
+    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&rank=species&per_page=12&locale=pt-PT"
+    return requests.get(url).json().get("results", [])
 
 # ----------------------
-# CARTÃO
+# CARTÃO DE CIDADÃO
 # ----------------------
 def card(an, prefixo, idx=0, show_buttons=True):
     if not an:
@@ -88,32 +78,25 @@ def card(an, prefixo, idx=0, show_buttons=True):
 
     nome_pt = (an.get('preferred_common_name') or an.get('name') or 'Espécie').title()
     nome_cientifico = an.get('name', "Desconhecido")
-
     foto = (an.get('default_photo') or {}).get('medium_url', "https://via.placeholder.com/300")
 
-    st.markdown(f"""
+    st.markdown(f'''
     <div class="cartao-cidadao">
+        <span style="color:#ffd700; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
         <img src="{foto}" class="img-an">
-        <h4>{nome_pt}</h4>
-        <p style="font-size:12px;color:#aaa;">{nome_cientifico}</p>
+        <h4 style="color:#ffd700;">{nome_pt}</h4>
+        <p style="color:#aaa; font-size:0.7em;">{nome_cientifico}</p>
     </div>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
 
     if show_buttons:
-        c1, c2, c3 = st.columns(3)
-
+        c1, c2 = st.columns(2)
         with c1:
             if st.button("📥", key=f"z_{prefixo}_{idx}"):
                 st.session_state.zoo.append(an)
-
         with c2:
             if st.button("🧬", key=f"f_{prefixo}_{idx}"):
                 st.session_state.tanque_fusao.append(an)
-
-        with c3:
-            audio = buscar_audio(an)
-            if audio and st.button("🔊", key=f"s_{prefixo}_{idx}"):
-                st.audio(audio)
 
 # ----------------------
 # GRID
@@ -127,22 +110,20 @@ def grid(lista, prefixo):
                     card(lista[i+j], prefixo, i+j)
 
 # ----------------------
-# LISTAS
+# LOCAIS
 # ----------------------
 florestas = ["Amazônia", "Congo", "Taiga", "Temperada"]
-oceanos = ["Atlântico", "Pacífico", "Índico"]
-paises = ["Portugal","Brasil","EUA","França","Alemanha"] * 14  # 70
+oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico"]
+paises = ["Portugal","Brasil","EUA","França","Alemanha"] * 14  # 70 países
 
 # ----------------------
 # SIDEBAR
 # ----------------------
 with st.sidebar:
     st.title("🌍 MundoVivo")
-
     premium = is_mega or is_24h_valido
-
     if premium:
-        st.session_state.premium_ativo = st.toggle("✨ PREMIUM")
+        st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM")
 
     if st.session_state.premium_ativo:
         menu = ["🌀 Salvamento","🏥 Veterinário","🧬 Fusão","🔬 Laboratório"]
@@ -150,13 +131,6 @@ with st.sidebar:
         menu = ["🌲 Florestas","🌊 Oceanos","🏳️ Países","🔬 Laboratório"]
 
     aba = st.radio("Menu", menu)
-
-# ----------------------
-# FUNÇÃO API (FIX)
-# ----------------------
-def buscar_animais(q):
-    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&per_page=12&locale=pt-PT"
-    return requests.get(url).json().get("results", [])
 
 # ----------------------
 # ABAS
@@ -179,11 +153,9 @@ elif aba == "🔬 Laboratório":
         grid(buscar_animais(termo), "lab")
 
 elif aba == "🌀 Salvamento":
-    st.image(f"https://source.unsplash.com/600x200/?animal,{random.randint(1,100)}")
     lista = buscar_animais("wildlife")
     if lista:
-        animal = random.choice(lista)
-        card(animal, "res", 0, False)
+        card(random.choice(lista), "res", 0, False)
 
 elif aba == "🏥 Veterinário":
     st.write("Sem animais.")
