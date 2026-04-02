@@ -158,3 +158,9 @@ elif aba == "🏥 Veterinário":
 
 elif aba == "🧬 Fusão":
     st.write("Fusão ativa.")
+
+# ----------------------
+# PLACEHOLDER PARA SOM VIA IA
+# ----------------------
+if st.session_state.premium_ativo:
+    st.info("🔊 Em breve: ouvir som dos animais via IA")
