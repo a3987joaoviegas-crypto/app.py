@@ -43,7 +43,7 @@ st.markdown(f"""
 <style>
 @property --angle {{ syntax: '<angle>'; initial-value: 0deg; inherits: false; }}
 @keyframes rotate_grad {{ to {{ --angle: 360deg; }} }}
-.stApp {{ background-color: {st.session_state.cor_tema}; }}
+.stApp {{ background-color: {st.session_state.cor_tema}; filter: brightness({st.session_state.brilho/100}); }}
 .cartao-cidadao {{
     background-color: #1a1c23 !important;
     border-radius: 20px;
@@ -63,23 +63,14 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# BUSCAR ANIMAIS (SÓ ANIMALIA)
-# ----------------------
-def buscar_animais(q):
-    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&rank=species&per_page=12&locale=pt-PT"
-    return requests.get(url).json().get("results", [])
-
-# ----------------------
-# CARTÃO DE CIDADÃO
+# FUNÇÃO CARTÃO DE CIDADÃO
 # ----------------------
 def card(an, prefixo, idx=0, show_buttons=True):
     if not an:
         return
-
     nome_pt = (an.get('preferred_common_name') or an.get('name') or 'Espécie').title()
-    nome_cientifico = an.get('name', "Desconhecido")
+    nome_cientifico = an.get('name', 'Desconhecido')
     foto = (an.get('default_photo') or {}).get('medium_url', "https://via.placeholder.com/300")
-
     st.markdown(f'''
     <div class="cartao-cidadao">
         <span style="color:#ffd700; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
@@ -110,11 +101,18 @@ def grid(lista, prefixo):
                     card(lista[i+j], prefixo, i+j)
 
 # ----------------------
+# BUSCAR ANIMAIS (SÓ ANIMALIA)
+# ----------------------
+def buscar_animais(q):
+    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&rank=species&per_page=70&locale=pt-PT"
+    return requests.get(url).json().get("results", [])
+
+# ----------------------
 # LOCAIS
 # ----------------------
-florestas = ["Amazônia", "Congo", "Taiga", "Temperada"]
-oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico"]
-paises = ["Portugal","Brasil","EUA","França","Alemanha"] * 14  # 70 países
+florestas = ["Amazônia", "Congo", "Taiga", "Temperada", "Boreal", "Mata Atlântica"]
+oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico", "Mar Mediterrâneo", "Mar do Caribe"]
+paises = ["Portugal","Brasil","EUA","França","Alemanha","Itália","Espanha","Japão","China","Austrália"]*7  # 70 países
 
 # ----------------------
 # SIDEBAR
@@ -124,12 +122,10 @@ with st.sidebar:
     premium = is_mega or is_24h_valido
     if premium:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM")
-
     if st.session_state.premium_ativo:
         menu = ["🌀 Salvamento","🏥 Veterinário","🧬 Fusão","🔬 Laboratório"]
     else:
         menu = ["🌲 Florestas","🌊 Oceanos","🏳️ Países","🔬 Laboratório"]
-
     aba = st.radio("Menu", menu)
 
 # ----------------------
@@ -161,4 +157,4 @@ elif aba == "🏥 Veterinário":
     st.write("Sem animais.")
 
 elif aba == "🧬 Fusão":
-    st.
+    st.write("Fusão ativa.")
