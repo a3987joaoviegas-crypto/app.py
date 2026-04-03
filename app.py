@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # ----------------------
 # ESTADO
@@ -63,7 +63,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# FUNÇÃO CARTÃO DE CIDADÃO COMPLETO
+# FUNÇÃO CARTÃO DE CIDADÃO
 # ----------------------
 def card(an):
     if not an or an.get('iconic_taxon_name') == 'Plantae':
@@ -73,7 +73,7 @@ def card(an):
     foto = (an.get('default_photo') or {}).get('medium_url','https://via.placeholder.com/300')
     classe = {"Mammalia":"Mamífero","Aves":"Ave","Reptilia":"Réptil","Amphibia":"Anfíbio","Actinopterygii":"Peixe"}.get(an.get('iconic_taxon_name'),"Selvagem")
     alim = random.choice(['Herbívoro','Carnívoro','Omnívoro'])
-    repro = "Vivíparo" if classe == "Mamífero" else "Ovíparo"
+    repro = "Vivíparo" if classe=="Mamífero" else "Ovíparo"
     st.markdown(f'''
     <div class="cartao-cidadao">
         <img src="{foto}" class="img-an">
@@ -89,7 +89,7 @@ def card(an):
 # GRELHA
 # ----------------------
 def grid(lista):
-    for i in range(0, len(lista), 3):
+    for i in range(0,len(lista),3):
         cols = st.columns(3)
         for j in range(3):
             if i+j < len(lista):
@@ -97,14 +97,25 @@ def grid(lista):
                     card(lista[i+j])
 
 # ----------------------
+# FUNÇÃO BUSCAR ANIMAIS
+# ----------------------
+def get_animais(query):
+    r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale=pt-PT')
+    results = [a for a in r.json().get('results',[]) if a.get('iconic_taxon_name') != 'Plantae']
+    return results[:70]
+
+# ----------------------
 # SIDEBAR
 # ----------------------
 with st.sidebar:
     st.title('🌍 MundoVivo')
     menu = ['🌲 Florestas','🌊 Oceanos','🏳️ Países','🔬 Laboratório','🐾 Meu Zoo','⚙️ Definições']
+    premium_checkbox = False
     if is_mega or is_24h_valido:
-        st.session_state.premium_ativo = st.checkbox('✨ Premium', value=st.session_state.premium_ativo)
-        menu = ['🌀 Salvamento','🏥 Veterinário','🧬 Tanque de Fusão','🔬 Laboratório','🐾 Meu Zoo','⚙️ Definições']
+        premium_checkbox = st.checkbox('✨ Premium', value=st.session_state.premium_ativo)
+        st.session_state.premium_ativo = premium_checkbox
+        if premium_checkbox:
+            menu = ['🌀 Salvamento','🏥 Veterinário','🧬 Tanque de Fusão','🔬 Laboratório','🐾 Meu Zoo','⚙️ Definições']
     aba = st.radio('Navegação', menu)
 
 # ----------------------
@@ -113,38 +124,47 @@ with st.sidebar:
 if aba == '🌲 Florestas':
     florestas = ['Amazónia','Congo','Taiga','Savana']
     sel = st.selectbox('Escolha a floresta:', florestas)
-    r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
-    grid(results[:70])
+    grid(get_animais(sel))
 
 elif aba == '🌊 Oceanos':
     oceanos = ['Oceano Pacífico','Atlântico','Índico','Ártico','Antártico']
     sel = st.selectbox('Escolha o oceano:', oceanos)
-    r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
-    grid(results[:70])
+    grid(get_animais(sel))
 
 elif aba == '🏳️ Países':
-    paises = [f'País {i}' for i in range(1,71)]
+    paises = [
+        'Portugal','Espanha','França','Alemanha','Itália','Reino Unido','Bélgica','Países Baixos','Suíça','Áustria',
+        'Polónia','República Checa','Hungria','Eslováquia','Roménia','Bulgária','Grécia','Dinamarca','Noruega','Suécia',
+        'Finlândia','Islândia','Irlanda','Luxemburgo','Malta','Chipre','Estónia','Letónia','Lituânia','Ucrânia',
+        'Bielorrússia','Rússia','Sérvia','Croácia','Bósnia','Eslovénia','Macedónia','Albânia','Montenegro','Kosovo',
+        'Turquia','Arménia','Geórgia','Azerbaijão','Cazaquistão','Uzbequistão','Quirguistão','Tadjiquistão','Turquemenistão',
+        'Afeganistão','Irão','Iraque','Síria','Líbano','Israel','Jordânia','Egipto','Líbia','Tunísia','Argélia','Marrocos',
+        'Sudão','Etiópia','Somália','Quénia','Uganda','Tanzânia','Moçambique','Angola','Zâmbia','Zimbabwe','Botswana','Namíbia'
+    ]
     sel = st.selectbox('Escolha o país:', paises)
-    r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
-    grid(results[:70])
+    grid(get_animais(sel))
 
 elif aba == '🔬 Laboratório':
     query = st.text_input('Pesquisar animal (qualquer nome):')
     if query:
-        r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale=pt-PT')
-        results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
-        grid(results[:70])
+        grid(get_animais(query))
     else:
         st.info('Digite um nome para pesquisar.')
 
 elif aba == '🐾 Meu Zoo':
     grid(st.session_state.zoo)
 
+elif aba == '🌀 Salvamento':
+    st.info('Conteúdo do Salvamento aqui (premium).')
+
+elif aba == '🏥 Veterinário':
+    st.info('Conteúdo do Veterinário aqui (premium).')
+
+elif aba == '🧬 Tanque de Fusão':
+    st.info('Conteúdo do Tanque de Fusão aqui (premium).')
+
 elif aba == '⚙️ Definições':
     st.session_state.c_mega = st.text_input('Código Mega', type='password', value=st.session_state.c_mega)
     st.session_state.c_24h = st.text_input('Código 24h', type='password', value=st.session_state.c_24h)
     if st.button('Guardar'):
-        st.experimental_rerun()
+        st.success('Definições guardadas com sucesso!')
