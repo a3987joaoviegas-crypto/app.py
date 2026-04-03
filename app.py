@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ----------------------
 # ESTADO
@@ -13,7 +13,6 @@ chaves = {
     'premium_ativo': False, 'cor_tema': '#0b1117', 'brilho': 100,
     'inicio_sessao_24h': None
 }
-
 for k, v in chaves.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -154,14 +153,26 @@ elif aba == '🔬 Laboratório':
 elif aba == '🐾 Meu Zoo':
     grid(st.session_state.zoo)
 
-elif aba == '🌀 Salvamento':
-    st.info('Conteúdo do Salvamento aqui (premium).')
+elif aba == '🌀 Salvamento' and st.session_state.premium_ativo:
+    animais = [a for a in get_animais("animal") if a.get('id') not in st.session_state.animais_salvos_ids]
+    for an in animais:
+        card(an)
+        if st.button(f"Salvar {an.get('preferred_common_name','Animal')}", key=f"salvar_{an.get('id')}"):
+            st.session_state.zoo.append(an)
+            st.session_state.animais_salvos_ids.add(an.get('id'))
+            st.success(f"{an.get('preferred_common_name','Animal')} salvo!")
 
-elif aba == '🏥 Veterinário':
-    st.info('Conteúdo do Veterinário aqui (premium).')
+elif aba == '🏥 Veterinário' and st.session_state.premium_ativo:
+    for an in st.session_state.internados_vet:
+        st.markdown(f"{an.get('preferred_common_name','Animal')} - Alta em 24h")
+    if st.button("Internar novo animal"):
+        if st.session_state.zoo:
+            an = random.choice(st.session_state.zoo)
+            st.session_state.internados_vet.append(an)
+            st.success(f"{an.get('preferred_common_name','Animal')} internado.")
 
-elif aba == '🧬 Tanque de Fusão':
-    st.info('Conteúdo do Tanque de Fusão aqui (premium).')
+elif aba == '🧬 Tanque de Fusão' and st.session_state.premium_ativo:
+    grid(get_animais("animal"))
 
 elif aba == '⚙️ Definições':
     st.session_state.c_mega = st.text_input('Código Mega', type='password', value=st.session_state.c_mega)
