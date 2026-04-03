@@ -65,29 +65,33 @@ st.markdown(f"""
 # ----------------------
 # FUNÇÃO CARTÃO DE CIDADÃO
 # ----------------------
-def card(an, prefixo, idx=0, show_buttons=True):
-    if not an:
-        return
-    nome_pt = (an.get('preferred_common_name') or an.get('name') or 'Espécie').title()
-    nome_cientifico = an.get('name', 'Desconhecido')
+def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
+    if not an: return
+    nome_pt = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
     foto = (an.get('default_photo') or {}).get('medium_url', "https://via.placeholder.com/300")
     st.markdown(f'''
     <div class="cartao-cidadao">
         <span style="color:#ffd700; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
         <img src="{foto}" class="img-an">
         <h4 style="color:#ffd700;">{nome_pt}</h4>
-        <p style="color:#aaa; font-size:0.7em;">{nome_cientifico}</p>
     </div>
     ''', unsafe_allow_html=True)
 
     if show_buttons:
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("📥", key=f"z_{prefixo}_{idx}"):
-                st.session_state.zoo.append(an)
+            if is_zoo:
+                if st.button("🗑️", key=f"d_{prefixo}_{idx}"):
+                    st.session_state.zoo.pop(idx)
+                    st.rerun()
+            else:
+                if st.button("📥", key=f"z_{prefixo}_{idx}"):
+                    st.session_state.zoo.append(an)
+                    st.toast("No Zoo!")
         with c2:
             if st.button("🧬", key=f"f_{prefixo}_{idx}"):
                 st.session_state.tanque_fusao.append(an)
+                st.toast("DNA Coletado!")
 
 # ----------------------
 # GRID
@@ -101,7 +105,7 @@ def grid(lista, prefixo):
                     card(lista[i+j], prefixo, i+j)
 
 # ----------------------
-# BUSCAR ANIMAIS (SÓ ANIMALIA)
+# BUSCAR ANIMAIS
 # ----------------------
 def buscar_animais(q):
     url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&rank=species&per_page=70&locale=pt-PT"
@@ -119,48 +123,67 @@ paises = ["Portugal","Brasil","EUA","França","Alemanha","Itália","Espanha","Ja
 # ----------------------
 with st.sidebar:
     st.title("🌍 MundoVivo")
-    premium = is_mega or is_24h_valido
-    if premium:
-        st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM")
+    if is_24h_valido:
+        res = 86400 - (datetime.now().timestamp() - st.session_state.inicio_sessao_24h)
+        st.write(f"⏳ Premium: {int(res//3600)}h {int((res%3600)//60)}m")
+    if is_mega or is_24h_valido:
+        st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
+
+    menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
     if st.session_state.premium_ativo:
-        menu = ["🌀 Salvamento","🏥 Veterinário","🧬 Fusão","🔬 Laboratório"]
-    else:
-        menu = ["🌲 Florestas","🌊 Oceanos","🏳️ Países","🔬 Laboratório"]
-    aba = st.radio("Menu", menu)
+        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+    aba = st.radio("Navegação", menu)
 
 # ----------------------
 # ABAS
 # ----------------------
-if aba == "🌲 Florestas":
-    sel = st.selectbox("Floresta", florestas)
-    grid(buscar_animais(sel), "f")
-
-elif aba == "🌊 Oceanos":
-    sel = st.selectbox("Oceano", oceanos)
-    grid(buscar_animais(sel), "o")
-
-elif aba == "🏳️ Países":
-    sel = st.selectbox("País", paises)
-    grid(buscar_animais(sel), "p")
-
-elif aba == "🔬 Laboratório":
-    termo = st.text_input("Pesquisar animal:")
-    if termo:
-        grid(buscar_animais(termo), "lab")
+if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
+    lista_loc = florestas if aba=="🌲 Florestas" else oceanos if aba=="🌊 Oceanos" else paises
+    sel = st.selectbox("Localização:", lista_loc)
+    r = buscar_animais(sel)
+    grid(r, "exp")
 
 elif aba == "🌀 Salvamento":
-    lista = buscar_animais("wildlife")
-    if lista:
-        card(random.choice(lista), "res", 0, False)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
+    if not st.session_state.id_animal_atual:
+        r = buscar_animais("Africa")
+        if r: st.session_state.id_animal_atual = r[0]
+    if st.session_state.id_animal_atual:
+        card(st.session_state.id_animal_atual, "res", 0, show_buttons=False)
+        if st.button("🚁 ENVIAR HELICÓPTERO"):
+            st.markdown('<div style="font-size:80px;">🚁</div>', unsafe_allow_html=True)
+            time.sleep(3)
+            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
+            st.session_state.id_animal_atual = None
+            st.rerun()
 
 elif aba == "🏥 Veterinário":
-    st.write("Sem animais.")
+    st.header("🏥 Hospital")
+    if not st.session_state.internados_vet:
+        st.info("Sem animais feridos.")
+    for i, item in enumerate(st.session_state.internados_vet):
+        falta = item['data_alta'] - datetime.now().timestamp()
+        txt = f"⏳ {int(falta//3600)}h" if falta>0 else "✅ ALTA"
+        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
+        if falta<=0 and st.button("🏁 Zoo", key=f"mv_{i}"):
+            st.session_state.zoo.append(item['animal'])
+            st.session_state.internados_vet.pop(i)
+            st.rerun()
 
-elif aba == "🧬 Fusão":
-    st.write("Fusão ativa.")
+elif aba == "🧬 Tanque de Fusão":
+    if len(st.session_state.tanque_fusao)<2:
+        st.info("Colete DNA!")
+    else:
+        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
+        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
+        if st.button("🔬 FUNDIR"):
+            st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
 
-# ----------------------
-# PLACEHOLDER PARA SOM VIA IA
-# ----------------------
-if st.session_state.premium_ativo:
-    st.info("🔊 Em breve: ouvir som dos animais via IA")
+elif aba == "🐾 Meu Zoo":
+    grid(st.session_state.zoo, "zoo")
+
+elif aba == "⚙️ Definições":
+    st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
+    st.session_state.c_24h = st.text_input("Código 24h", type="password", value=st.session_state.c_24h)
+    if st.button("Guardar"):
+        st.rerun()
