@@ -63,7 +63,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# FUNÇÃO CARTÃO
+# FUNÇÃO CARTÃO DE CIDADÃO COMPLETO
 # ----------------------
 def card(an):
     if not an or an.get('iconic_taxon_name') == 'Plantae':
@@ -102,6 +102,9 @@ def grid(lista):
 with st.sidebar:
     st.title('🌍 MundoVivo')
     menu = ['🌲 Florestas','🌊 Oceanos','🏳️ Países','🔬 Laboratório','🐾 Meu Zoo','⚙️ Definições']
+    if is_mega or is_24h_valido:
+        st.session_state.premium_ativo = st.checkbox('✨ Premium', value=st.session_state.premium_ativo)
+        menu = ['🌀 Salvamento','🏥 Veterinário','🧬 Tanque de Fusão','🔬 Laboratório','🐾 Meu Zoo','⚙️ Definições']
     aba = st.radio('Navegação', menu)
 
 # ----------------------
@@ -111,32 +114,28 @@ if aba == '🌲 Florestas':
     florestas = ['Amazónia','Congo','Taiga','Savana']
     sel = st.selectbox('Escolha a floresta:', florestas)
     r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = r.json().get('results', [])
-    results = [a for a in results if a.get('iconic_taxon_name') not in ['Plantae']]
+    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
     grid(results[:70])
 
 elif aba == '🌊 Oceanos':
     oceanos = ['Oceano Pacífico','Atlântico','Índico','Ártico','Antártico']
     sel = st.selectbox('Escolha o oceano:', oceanos)
     r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = r.json().get('results', [])
-    results = [a for a in results if a.get('iconic_taxon_name') not in ['Plantae']]
+    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
     grid(results[:70])
 
 elif aba == '🏳️ Países':
     paises = [f'País {i}' for i in range(1,71)]
     sel = st.selectbox('Escolha o país:', paises)
     r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={sel}&taxon_id=1&per_page=70&locale=pt-PT')
-    results = r.json().get('results', [])
-    results = [a for a in results if a.get('iconic_taxon_name') not in ['Plantae']]
+    results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
     grid(results[:70])
 
 elif aba == '🔬 Laboratório':
     query = st.text_input('Pesquisar animal (qualquer nome):')
     if query:
         r = requests.get(f'https://api.inaturalist.org/v1/taxa?q={query}&taxon_id=1&per_page=70&locale=pt-PT')
-        results = r.json().get('results', [])
-        results = [a for a in results if a.get('iconic_taxon_name') not in ['Plantae']]
+        results = [a for a in r.json().get('results', []) if a.get('iconic_taxon_name') != 'Plantae']
         grid(results[:70])
     else:
         st.info('Digite um nome para pesquisar.')
