@@ -63,17 +63,27 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ----------------------
-# FUNÇÃO CARTÃO DE CIDADÃO
+# FUNÇÃO CARTÃO DE CIDADÃO COMPLETO
 # ----------------------
 def card(an, prefixo, idx=0, show_buttons=True, footer_text=None, is_zoo=False):
     if not an: return
     nome_pt = (an.get('preferred_common_name') or an.get('name', 'Espécie')).title()
+    nome_cient = an.get('name', 'Desconhecido')
     foto = (an.get('default_photo') or {}).get('medium_url', "https://via.placeholder.com/300")
+    classe = {"Mammalia": "Mamífero", "Aves": "Ave", "Reptilia": "Réptil", "Amphibia": "Anfíbio", "Actinopterygii": "Peixe"}.get(an.get('iconic_taxon_name'), "Selvagem")
+    alim = random.choice(['Herbívoro','Carnívoro','Omnívoro'])
+    repro = "Vivíparo" if classe == "Mamífero" else "Ovíparo"
+
     st.markdown(f'''
     <div class="cartao-cidadao">
-        <span style="color:#ffd700; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
+        <span style="color:#ffd700; font-weight:bold; font-size:0.6em;">💳 CARTÃO DE CIDADÃO</span><br>
         <img src="{foto}" class="img-an">
-        <h4 style="color:#ffd700;">{nome_pt}</h4>
+        <h4 style="color:#ffd700; margin:5px 0 0 0;">{nome_pt}</h4>
+        <p style="margin:2px 0; font-size:0.8em; font-style:italic;">{nome_cient}</p>
+        <p style="margin:2px 0; font-size:0.8em;">🐾 <b>Classe:</b> {classe}</p>
+        <p style="margin:2px 0; font-size:0.8em;">🥚 <b>Reprodução:</b> {repro}</p>
+        <p style="margin:2px 0; font-size:0.8em;">🥩 <b>Alimentação:</b> {alim}</p>
+        {f'<p style="color:#ffd700; font-weight:bold; margin-top:5px; font-size:0.8em;">{footer_text}</p>' if footer_text else ''}
     </div>
     ''', unsafe_allow_html=True)
 
@@ -108,14 +118,14 @@ def grid(lista, prefixo):
 # BUSCAR ANIMAIS
 # ----------------------
 def buscar_animais(q):
-    url = f"https://api.inaturalist.org/v1/taxa?q={q}&taxon_id=40151&rank=species&per_page=70&locale=pt-PT"
+    url = f"https://api.inaturalist.org/v1/taxa?q={q}&rank=species&per_page=70&locale=pt-PT"
     return requests.get(url).json().get("results", [])
 
 # ----------------------
 # LOCAIS
 # ----------------------
-florestas = ["Amazônia", "Congo", "Taiga", "Temperada", "Boreal", "Mata Atlântica"]
-oceanos = ["Atlântico", "Pacífico", "Índico", "Ártico", "Antártico", "Mar Mediterrâneo", "Mar do Caribe"]
+florestas = ["Amazônia","Congo","Taiga","Temperada","Boreal","Mata Atlântica"]
+oceanos = ["Atlântico","Pacífico","Índico","Ártico","Antártico","Mar Mediterrâneo","Mar do Caribe"]
 paises = ["Portugal","Brasil","EUA","França","Alemanha","Itália","Espanha","Japão","China","Austrália"]*7  # 70 países
 
 # ----------------------
@@ -129,21 +139,21 @@ with st.sidebar:
     if is_mega or is_24h_valido:
         st.session_state.premium_ativo = st.toggle("✨ MODO PREMIUM", value=st.session_state.premium_ativo)
 
-    menu = ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+    menu = ["🌲 Florestas","🌊 Oceanos","🏳️ Países","🔬 Laboratório","🐾 Meu Zoo","⚙️ Definições"]
     if st.session_state.premium_ativo:
-        menu = ["🌀 Salvamento", "🏥 Veterinário", "🧬 Tanque de Fusão", "🔬 Laboratório", "🐾 Meu Zoo", "⚙️ Definições"]
+        menu = ["🌀 Salvamento","🏥 Veterinário","🧬 Tanque de Fusão","🔬 Laboratório","🐾 Meu Zoo","⚙️ Definições"]
     aba = st.radio("Navegação", menu)
 
 # ----------------------
 # ABAS
 # ----------------------
-if aba in ["🌲 Florestas", "🌊 Oceanos", "🏳️ Países"]:
+if aba in ["🌲 Florestas","🌊 Oceanos","🏳️ Países"]:
     lista_loc = florestas if aba=="🌲 Florestas" else oceanos if aba=="🌊 Oceanos" else paises
     sel = st.selectbox("Localização:", lista_loc)
     r = buscar_animais(sel)
     grid(r, "exp")
 
-elif aba == "🌀 Salvamento":
+elif aba=="🌀 Salvamento":
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png")
     if not st.session_state.id_animal_atual:
         r = buscar_animais("Africa")
@@ -153,37 +163,37 @@ elif aba == "🌀 Salvamento":
         if st.button("🚁 ENVIAR HELICÓPTERO"):
             st.markdown('<div style="font-size:80px;">🚁</div>', unsafe_allow_html=True)
             time.sleep(3)
-            st.session_state.internados_vet.append({'animal': st.session_state.id_animal_atual, 'data_alta': (datetime.now() + timedelta(hours=24)).timestamp()})
+            st.session_state.internados_vet.append({'animal':st.session_state.id_animal_atual,'data_alta':(datetime.now()+timedelta(hours=24)).timestamp()})
             st.session_state.id_animal_atual = None
             st.rerun()
 
-elif aba == "🏥 Veterinário":
+elif aba=="🏥 Veterinário":
     st.header("🏥 Hospital")
     if not st.session_state.internados_vet:
         st.info("Sem animais feridos.")
-    for i, item in enumerate(st.session_state.internados_vet):
+    for i,item in enumerate(st.session_state.internados_vet):
         falta = item['data_alta'] - datetime.now().timestamp()
         txt = f"⏳ {int(falta//3600)}h" if falta>0 else "✅ ALTA"
-        card(item['animal'], "vet", i, show_buttons=False, footer_text=txt)
-        if falta<=0 and st.button("🏁 Zoo", key=f"mv_{i}"):
+        card(item['animal'],"vet",i,show_buttons=False,footer_text=txt)
+        if falta<=0 and st.button("🏁 Zoo",key=f"mv_{i}"):
             st.session_state.zoo.append(item['animal'])
             st.session_state.internados_vet.pop(i)
             st.rerun()
 
-elif aba == "🧬 Tanque de Fusão":
+elif aba=="🧬 Tanque de Fusão":
     if len(st.session_state.tanque_fusao)<2:
         st.info("Colete DNA!")
     else:
-        n1 = st.selectbox("Mãe:", [a.get('name') for a in st.session_state.tanque_fusao], key="f1")
-        n2 = st.selectbox("Pai:", [a.get('name') for a in st.session_state.tanque_fusao], key="f2")
+        n1 = st.selectbox("Mãe:",[a.get('name') for a in st.session_state.tanque_fusao],key="f1")
+        n2 = st.selectbox("Pai:",[a.get('name') for a in st.session_state.tanque_fusao],key="f2")
         if st.button("🔬 FUNDIR"):
             st.success(f"Nova Espécie: **{n1.split()[0]} {n2.split()[-1]}**")
 
-elif aba == "🐾 Meu Zoo":
-    grid(st.session_state.zoo, "zoo")
+elif aba=="🐾 Meu Zoo":
+    grid(st.session_state.zoo,"zoo")
 
-elif aba == "⚙️ Definições":
-    st.session_state.c_mega = st.text_input("Código Mega", type="password", value=st.session_state.c_mega)
-    st.session_state.c_24h = st.text_input("Código 24h", type="password", value=st.session_state.c_24h)
+elif aba=="⚙️ Definições":
+    st.session_state.c_mega = st.text_input("Código Mega",type="password",value=st.session_state.c_mega)
+    st.session_state.c_24h = st.text_input("Código 24h",type="password",value=st.session_state.c_24h)
     if st.button("Guardar"):
         st.rerun()
