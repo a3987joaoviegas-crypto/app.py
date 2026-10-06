@@ -1,4 +1,4 @@
-```python
+python
 import random
 import time
 from datetime import datetime
@@ -1627,4 +1627,4 @@ elif st.session_state.page == "⚙️ Definições":
     st.caption(
         "Versão: MundoVivo 2.0 — sem Premium e sem sons."
     )
-```
+
