@@ -1,3 +1,4 @@
+```python
 import random
 import time
 from datetime import datetime
@@ -156,7 +157,6 @@ OCEANS = {
     "Antártico": (-90.0, -180.0, -55.0, 180.0),
 }
 
-# Traduções/fallbacks para nomes comuns frequentes
 COMMON_NAMES = {
     "Panthera leo": "Leão",
     "Panthera tigris": "Tigre",
@@ -471,8 +471,6 @@ def country_animals(country, limit=70):
         if data:
             return normalize_taxa(data.get("results", []), limit)
 
-    # Fallback: procura o país no nome e, se necessário,
-    # devolve animais conhecidos para a página não ficar vazia.
     return search_animals(country, limit)
 
 
@@ -508,6 +506,110 @@ def open_vet(taxon):
         st.session_state.veterinary[str(tid)] = time.time()
 
 
+def get_habitat(taxon):
+    """
+    Obtém uma descrição de habitat baseada na classe do animal.
+    """
+    cls = class_name(taxon)
+
+    habitats = {
+        "Mamífero": "Florestas, savanas, montanhas, desertos, campos ou ambientes urbanos, conforme a espécie.",
+        "Ave": "Florestas, zonas húmidas, montanhas, praias, campos ou ambientes urbanos, conforme a espécie.",
+        "Réptil": "Florestas, desertos, savanas, rios, zonas costeiras ou outros habitats quentes, conforme a espécie.",
+        "Anfíbio": "Zonas húmidas, rios, lagos, charcos, florestas e outros locais com disponibilidade de água.",
+        "Peixe": "Rios, lagos, estuários, recifes, zonas costeiras ou mar aberto, conforme a espécie.",
+        "Molusco": "Ambientes marinhos, água doce ou habitats terrestres húmidos, conforme a espécie.",
+        "Inseto": "Florestas, campos, jardins, zonas húmidas, desertos e outros ambientes terrestres.",
+        "Aracnídeo": "Solo, vegetação, cavernas, florestas, desertos e outros habitats terrestres.",
+        "Crustáceo": "Oceanos, rios, lagos, estuários e zonas costeiras, conforme a espécie.",
+    }
+
+    return habitats.get(
+        cls,
+        "O habitat varia conforme a espécie e a sua distribuição geográfica."
+    )
+
+
+def get_diet(taxon):
+    cls = class_name(taxon)
+
+    diets = {
+        "Mamífero": "Herbívoro, carnívoro ou omnívoro, conforme a espécie.",
+        "Ave": "Sementes, frutos, néctar, insetos, peixe ou outros animais, conforme a espécie.",
+        "Réptil": "Carnívoro, herbívoro ou omnívoro, conforme a espécie.",
+        "Anfíbio": "Principalmente insetos e outros pequenos invertebrados.",
+        "Peixe": "Algas, plantas aquáticas, plâncton, pequenos animais ou outros peixes, conforme a espécie.",
+        "Molusco": "Algas, plantas, plâncton, detritos ou outros animais, conforme a espécie.",
+        "Inseto": "Néctar, folhas, sementes, frutos, madeira ou outros pequenos organismos, conforme a espécie.",
+        "Aracnídeo": "Principalmente insetos e outros pequenos animais.",
+        "Crustáceo": "Algas, detritos, plâncton ou pequenos animais, conforme a espécie.",
+    }
+
+    return diets.get(cls, "A alimentação varia conforme a espécie.")
+
+
+def get_reproduction(taxon):
+    cls = class_name(taxon)
+
+    reproduction = {
+        "Mamífero": "Na maioria das espécies, reprodução sexuada e nascimento de crias vivas.",
+        "Ave": "Reprodução sexuada e postura de ovos.",
+        "Réptil": "Reprodução sexuada; muitas espécies põem ovos.",
+        "Anfíbio": "Reprodução sexuada; muitas espécies põem ovos na água ou em locais húmidos.",
+        "Peixe": "Reprodução sexuada, podendo ocorrer fecundação externa ou interna.",
+        "Molusco": "Reprodução sexuada, com estratégias diferentes conforme a espécie.",
+        "Inseto": "Reprodução sexuada e desenvolvimento através de ovos.",
+        "Aracnídeo": "Reprodução sexuada e produção de ovos.",
+        "Crustáceo": "Reprodução sexuada e produção de ovos.",
+    }
+
+    return reproduction.get(
+        cls,
+        "A reprodução varia conforme a espécie."
+    )
+
+
+def get_distribution(taxon):
+    """
+    Usa os dados disponíveis na API para apresentar uma indicação
+    da distribuição conhecida.
+    """
+    preferred = taxon.get("preferred_common_name") or ""
+    wikipedia = taxon.get("wikipedia_url") or ""
+
+    if wikipedia:
+        return "Distribuição geográfica disponível nas fontes científicas associadas à espécie."
+
+    if preferred:
+        return "A distribuição geográfica depende da espécie e das populações conhecidas."
+
+    return "Distribuição geográfica não especificada pela API."
+
+
+def get_fun_fact(taxon):
+    """
+    Pequenos factos educativos baseados na classe.
+    """
+    cls = class_name(taxon)
+
+    facts = {
+        "Mamífero": "Os mamíferos distinguem-se, entre outras características, pela presença de glândulas mamárias.",
+        "Ave": "As aves possuem penas e um sistema respiratório altamente especializado.",
+        "Réptil": "Os répteis possuem adaptações que lhes permitem viver sobretudo em ambientes terrestres.",
+        "Anfíbio": "Muitos anfíbios passam parte do seu ciclo de vida na água e parte em terra.",
+        "Peixe": "Os peixes apresentam uma enorme diversidade de formas, tamanhos e habitats.",
+        "Molusco": "Os moluscos incluem grupos muito diferentes, como polvos, lulas, caracóis e mexilhões.",
+        "Inseto": "Os insetos constituem um dos grupos de animais mais diversos do planeta.",
+        "Aracnídeo": "Aranhas, escorpiões, ácaros e carraças pertencem ao grupo dos aracnídeos.",
+        "Crustáceo": "Os crustáceos incluem animais como caranguejos, camarões, lagostas e krill.",
+    }
+
+    return facts.get(
+        cls,
+        "Cada espécie possui adaptações únicas ao seu ambiente."
+    )
+
+
 def show_animal_card(taxon, compact=False, key_prefix="animal"):
     name = animal_name(taxon)
     scientific = taxon.get("name", "Nome científico indisponível")
@@ -519,14 +621,28 @@ def show_animal_card(taxon, compact=False, key_prefix="animal"):
         st.markdown('<div class="animal-card">', unsafe_allow_html=True)
         if photo:
             st.image(photo, use_container_width=True)
+
         st.markdown(f"### {name}")
-        st.markdown(f'<div class="scientific">{scientific}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="scientific">{scientific}</div>',
+            unsafe_allow_html=True,
+        )
+
         st.caption(f"Classe: {cls}")
-        if st.button("❤️ Guardar", key=f"{key_prefix}_fav_{taxon.get('id')}"):
+
+        if st.button(
+            "❤️ Guardar",
+            key=f"{key_prefix}_fav_{taxon.get('id')}"
+        ):
             add_favorite(taxon)
             st.rerun()
+
         st.markdown("</div>", unsafe_allow_html=True)
         return
+
+    # ========================================================
+    # CARTÃO DE CIDADÃO COMPLETO
+    # ========================================================
 
     st.markdown('<div class="animal-card">', unsafe_allow_html=True)
 
@@ -535,56 +651,110 @@ def show_animal_card(taxon, compact=False, key_prefix="animal"):
     else:
         st.info("📷 A API não forneceu fotografia para este animal.")
 
-    st.markdown(f"### 🪪 CARTÃO DE CIDADÃO — {name}")
+    st.markdown(
+        f"## 🪪 CARTÃO DE CIDADÃO DO ANIMAL",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(f"### 🐾 {name}")
+
     st.markdown(
         f'<div class="scientific">{scientific}</div>',
         unsafe_allow_html=True,
     )
 
-    tags = [
-        f"Classe: {cls}",
-        "Reino: Animalia",
-    ]
+    st.divider()
 
-    for tag in tags:
-        st.markdown(f'<span class="tag">{tag}</span>', unsafe_allow_html=True)
+    # Identificação
+    st.markdown("### 🆔 Identificação")
 
-    diet = "Variável conforme a espécie"
-    reproduction = "Reprodução sexuada"
-    habitat = "Habitat natural variável"
+    col1, col2 = st.columns(2)
 
-    if cls == "Mamífero":
-        diet = "Herbívoro, carnívoro ou omnívoro, conforme a espécie"
-        reproduction = "Vivíparo na maioria das espécies"
-    elif cls == "Ave":
-        diet = "Muito variável: sementes, frutos, insetos, peixe ou carne"
-        reproduction = "Ovípara"
-    elif cls == "Réptil":
-        diet = "Carnívoro, herbívoro ou omnívoro"
-        reproduction = "Maioritariamente ovípara"
-    elif cls == "Anfíbio":
-        diet = "Principalmente insetos e pequenos invertebrados"
-        reproduction = "Geralmente ovípara"
-    elif cls == "Peixe":
-        diet = "Muito variável conforme a espécie"
-        reproduction = "Variável conforme a espécie"
+    with col1:
+        st.write(f"**Nome comum:** {name}")
+        st.write(f"**Nome científico:** *{scientific}*")
+        st.write(f"**Classe:** {cls}")
 
-    st.write(f"🍖 **Dieta:** {diet}")
-    st.write(f"🥚 **Reprodução:** {reproduction}")
-    st.write(f"🌍 **Habitat:** {habitat}")
+    with col2:
+        st.write("**Reino:** Animalia")
+        st.write(f"**ID científico:** {taxon.get('id', 'Não disponível')}")
+        st.write(
+            f"**Estado de conservação:** "
+            f"{conservation if conservation else 'Não disponível'}"
+        )
 
+    st.divider()
+
+    # Características
+    st.markdown("### 🔬 Características")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write(f"🍖 **Alimentação:** {get_diet(taxon)}")
+        st.write(f"🥚 **Reprodução:** {get_reproduction(taxon)}")
+
+    with col2:
+        st.write(f"🌍 **Habitat:** {get_habitat(taxon)}")
+        st.write(f"🗺️ **Distribuição:** {get_distribution(taxon)}")
+
+    st.divider()
+
+    # Facto interessante
+    st.markdown("### 💡 Sabias que...")
+
+    st.info(get_fun_fact(taxon))
+
+    # Estado de conservação
     if conservation:
-        if conservation.lower() in {"cr", "en", "vu", "critically endangered", "endangered", "vulnerable"}:
+        conservation_lower = conservation.lower()
+
+        dangerous_statuses = {
+            "cr",
+            "en",
+            "vu",
+            "critically endangered",
+            "endangered",
+            "vulnerable",
+            "criticamente em perigo",
+            "em perigo",
+            "vulnerável",
+        }
+
+        if conservation_lower in dangerous_statuses:
             st.markdown(
-                f'<div class="danger">⚠️ <b>Animal em perigo:</b> {conservation}</div>',
+                f'''
+                <div class="danger">
+                    ⚠️ <b>Animal com preocupação de conservação:</b>
+                    {conservation}
+                </div>
+                ''',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f'<div class="safe">🛡️ Estado de conservação: {conservation}</div>',
+                f'''
+                <div class="safe">
+                    🛡️ <b>Estado de conservação:</b>
+                    {conservation}
+                </div>
+                ''',
                 unsafe_allow_html=True,
             )
+    else:
+        st.markdown(
+            '''
+            <div class="safe">
+                🛡️ <b>Estado de conservação:</b>
+                Informação não disponível.
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
 
+    st.divider()
+
+    # Botões
     c1, c2, c3 = st.columns(3)
 
     with c1:
@@ -628,13 +798,18 @@ def show_results(results, title="Animais", limit=None):
 
     for index in range(0, len(data), 3):
         cols = st.columns(3)
+
         for col, taxon in zip(cols, data[index:index + 3]):
             with col:
-                show_animal_card(taxon, compact=True, key_prefix=f"grid_{taxon.get('id')}")
+                show_animal_card(
+                    taxon,
+                    compact=True,
+                    key_prefix=f"grid_{taxon.get('id')}",
+                )
 
 
 # -----------------------------
-# Sidebar
+# Barra lateral
 # -----------------------------
 with st.sidebar:
     st.markdown("# 🌍 MundoVivo")
@@ -647,7 +822,7 @@ with st.sidebar:
         "🌊 Oceanos",
         "🌍 Países",
         "🔬 Laboratório",
-        "📸 Vision AI",
+        "📸 Visão IA",
         "🚑 Salvamento",
         "🩺 Veterinário",
         "🧬 Tanque de Fusão",
@@ -668,13 +843,14 @@ with st.sidebar:
     st.session_state.page = selected
 
     st.divider()
+
     st.metric("❤️ No teu Zoo", len(st.session_state.favorites))
     st.metric("🚑 Resgatados", len(st.session_state.rescued))
     st.metric("🏆 Conquistas", len(st.session_state.achievements))
 
 
 # -----------------------------
-# Header
+# Cabeçalho
 # -----------------------------
 st.markdown(
     """
@@ -694,18 +870,23 @@ if st.session_state.page == "🏠 Início":
     st.subheader("✨ Bem-vindo ao MundoVivo")
 
     c1, c2, c3, c4 = st.columns(4)
+
     with c1:
         st.metric("❤️ Meu Zoo", len(st.session_state.favorites))
+
     with c2:
         st.metric("🚑 Resgates", len(st.session_state.rescued))
+
     with c3:
         st.metric("🏆 Conquistas", len(st.session_state.achievements))
+
     with c4:
         st.metric("🩺 Veterinário", len(st.session_state.veterinary))
 
     st.divider()
 
     st.subheader("🔎 Explorar rapidamente")
+
     quick = st.text_input(
         "Procura um animal",
         placeholder="Ex.: leão, golfinho, águia, panda...",
@@ -722,7 +903,11 @@ if st.session_state.page == "🏠 Início":
     if st.session_state.favorites:
         st.divider()
         st.subheader("❤️ Os teus últimos animais")
-        show_results(st.session_state.favorites[-6:][::-1], "Meu Zoo", 6)
+        show_results(
+            st.session_state.favorites[-6:][::-1],
+            "Meu Zoo",
+            6,
+        )
 
 
 # ============================================================
@@ -733,11 +918,13 @@ elif st.session_state.page == "❤️ Meu Zoo":
 
     if not st.session_state.favorites:
         st.info(
-            "Ainda não tens animais no teu Zoo. Vai a Países, Florestas, Oceanos "
-            "ou Laboratório e carrega em «Adicionar ao Zoo»."
+            "Ainda não tens animais no teu Zoo. Vai a Países, Florestas, "
+            "Oceanos ou Laboratório e carrega em «Adicionar ao Zoo»."
         )
     else:
-        st.write(f"Tens **{len(st.session_state.favorites)} animais** guardados.")
+        st.write(
+            f"Tens **{len(st.session_state.favorites)} animais** guardados."
+        )
 
         for taxon in st.session_state.favorites:
             tid = taxon.get("id")
@@ -774,7 +961,10 @@ elif st.session_state.page == "❤️ Meu Zoo":
 elif st.session_state.page == "🌳 Florestas":
     st.subheader("🌳 Florestas")
 
-    forest = st.selectbox("Escolhe uma floresta", list(FORESTS.keys()))
+    forest = st.selectbox(
+        "Escolhe uma floresta",
+        list(FORESTS.keys()),
+    )
 
     if st.button("🔎 Explorar floresta", type="primary"):
         with st.spinner("A procurar animais desta região..."):
@@ -782,10 +972,13 @@ elif st.session_state.page == "🌳 Florestas":
 
         st.session_state.last_animals = results
         show_results(results, forest, 70)
+
     elif st.session_state.last_animals:
         show_results(st.session_state.last_animals, forest, 70)
     else:
-        st.info("Escolhe uma floresta e carrega em «Explorar floresta».")
+        st.info(
+            "Escolhe uma floresta e carrega em «Explorar floresta»."
+        )
 
 
 # ============================================================
@@ -794,21 +987,29 @@ elif st.session_state.page == "🌳 Florestas":
 elif st.session_state.page == "🌊 Oceanos":
     st.subheader("🌊 Oceanos")
 
-    ocean = st.selectbox("Escolhe um oceano", list(OCEANS.keys()))
+    ocean = st.selectbox(
+        "Escolhe um oceano",
+        list(OCEANS.keys()),
+    )
 
     if st.button("🌊 Explorar oceano", type="primary"):
         with st.spinner("A procurar animais marinhos..."):
             results = observations_bbox(OCEANS[ocean], 70)
 
-        # Filtro extra para impedir que apareçam plantas.
-        results = [x for x in results if not is_plant(x)]
+        results = [
+            x for x in results
+            if not is_plant(x)
+        ]
 
         st.session_state.last_animals = results
         show_results(results, ocean, 70)
+
     elif st.session_state.last_animals:
         show_results(st.session_state.last_animals, ocean, 70)
     else:
-        st.info("Escolhe um oceano e começa a exploração.")
+        st.info(
+            "Escolhe um oceano e começa a exploração."
+        )
 
 
 # ============================================================
@@ -826,7 +1027,9 @@ elif st.session_state.page == "🌍 Países":
     st.caption(f"{len(COUNTRIES)} países disponíveis.")
 
     if st.button("🦁 Explorar país", type="primary"):
-        with st.spinner(f"A procurar animais em {country}..."):
+        with st.spinner(
+            f"A procurar animais em {country}..."
+        ):
             results = country_animals(country, 70)
 
         st.session_state.last_animals = results
@@ -836,9 +1039,18 @@ elif st.session_state.page == "🌍 Países":
                 "A API não encontrou observações suficientes para este país."
             )
         else:
-            show_results(results, f"Animais de {country}", 70)
+            show_results(
+                results,
+                f"Animais de {country}",
+                70,
+            )
+
     elif st.session_state.last_animals:
-        show_results(st.session_state.last_animals, f"Animais de {country}", 70)
+        show_results(
+            st.session_state.last_animals,
+            f"Animais de {country}",
+            70,
+        )
 
 
 # ============================================================
@@ -852,34 +1064,56 @@ elif st.session_state.page == "🔬 Laboratório":
         placeholder="Ex.: leão, tubarão, pinguim, raposa...",
     )
 
-    limit = st.slider("Número de resultados", 6, 70, 20)
+    limit = st.slider(
+        "Número de resultados",
+        6,
+        70,
+        20,
+    )
 
     if query:
-        with st.spinner("A pesquisar no catálogo animal..."):
+        with st.spinner(
+            "A pesquisar no catálogo animal..."
+        ):
             results = search_animals(query, limit)
 
-        # Filtro gigante: plantas nunca entram.
-        results = [x for x in results if not is_plant(x)]
-        show_results(results, f"Laboratório: {query}", limit)
+        results = [
+            x for x in results
+            if not is_plant(x)
+        ]
+
+        show_results(
+            results,
+            f"Laboratório: {query}",
+            limit,
+        )
     else:
-        st.info("Escreve o nome de um animal para começar.")
+        st.info(
+            "Escreve o nome de um animal para começar."
+        )
 
 
 # ============================================================
-# VISION AI
+# VISÃO IA
 # ============================================================
-elif st.session_state.page == "📸 Vision AI":
-    st.subheader("📸 Vision AI")
+elif st.session_state.page == "📸 Visão IA":
+    st.subheader("📸 Visão IA")
 
     st.write(
         "Tira uma fotografia para tentares encontrar animais semelhantes "
         "no catálogo do MundoVivo."
     )
 
-    photo = st.camera_input("📸 Tirar fotografia")
+    photo = st.camera_input(
+        "📸 Tirar fotografia"
+    )
 
     if photo:
-        st.image(photo, caption="Fotografia recebida", use_container_width=True)
+        st.image(
+            photo,
+            caption="Fotografia recebida",
+            use_container_width=True,
+        )
 
         st.warning(
             "A identificação automática por fotografia precisa de um serviço "
@@ -893,7 +1127,12 @@ elif st.session_state.page == "📸 Vision AI":
 
         if manual:
             results = search_animals(manual, 6)
-            show_results(results, f"Possíveis resultados: {manual}", 6)
+
+            show_results(
+                results,
+                f"Possíveis resultados: {manual}",
+                6,
+            )
 
 
 # ============================================================
@@ -903,13 +1142,22 @@ elif st.session_state.page == "🚑 Salvamento":
     st.subheader("🚑 Centro de Salvamento")
 
     if st.session_state.last_animals:
-        candidate = random.choice(st.session_state.last_animals)
+        candidate = random.choice(
+            st.session_state.last_animals
+        )
     else:
         candidate = None
 
     if candidate:
-        st.markdown("### 🐾 Animal disponível para resgate")
-        show_animal_card(candidate, compact=False, key_prefix="rescue_page")
+        st.markdown(
+            "### 🐾 Animal disponível para resgate"
+        )
+
+        show_animal_card(
+            candidate,
+            compact=False,
+            key_prefix="rescue_page",
+        )
     else:
         st.info(
             "Primeiro explora uma floresta, oceano, país ou usa o laboratório. "
@@ -919,7 +1167,12 @@ elif st.session_state.page == "🚑 Salvamento":
     if st.session_state.rescued:
         st.divider()
         st.subheader("❤️ Animais resgatados")
-        show_results(st.session_state.rescued, "Resgatados", 20)
+
+        show_results(
+            st.session_state.rescued,
+            "Resgatados",
+            20,
+        )
 
 
 # ============================================================
@@ -929,25 +1182,44 @@ elif st.session_state.page == "🩺 Veterinário":
     st.subheader("🩺 Veterinário")
 
     if not st.session_state.veterinary:
-        st.info("Ainda não tens animais internados.")
+        st.info(
+            "Ainda não tens animais internados."
+        )
     else:
-        for tid, start in list(st.session_state.veterinary.items()):
+        for tid, start in list(
+            st.session_state.veterinary.items()
+        ):
             taxon = next(
-                (x for x in st.session_state.favorites + st.session_state.rescued
-                 if str(x.get("id")) == str(tid)),
+                (
+                    x
+                    for x in (
+                        st.session_state.favorites
+                        + st.session_state.rescued
+                    )
+                    if str(x.get("id")) == str(tid)
+                ),
                 None,
             )
 
             if taxon is None:
                 continue
 
-            elapsed = int(time.time() - start)
-            remaining = max(0, 86400 - elapsed)
+            elapsed = int(
+                time.time() - start
+            )
+
+            remaining = max(
+                0,
+                86400 - elapsed
+            )
+
             hours = remaining // 3600
             minutes = (remaining % 3600) // 60
 
             with st.container(border=True):
-                st.markdown(f"### 🐾 {animal_name(taxon)}")
+                st.markdown(
+                    f"### 🐾 {animal_name(taxon)}"
+                )
 
                 if remaining > 0:
                     st.info(
@@ -955,7 +1227,9 @@ elif st.session_state.page == "🩺 Veterinário":
                         f"**{hours}h {minutes}min**."
                     )
                 else:
-                    st.success("✅ Alta disponível!")
+                    st.success(
+                        "✅ Alta disponível!"
+                    )
 
                     if st.button(
                         "🏠 Dar alta",
@@ -973,12 +1247,21 @@ elif st.session_state.page == "🧬 Tanque de Fusão":
 
     if len(st.session_state.favorites) < 2:
         st.info(
-            "Precisas de pelo menos 2 animais no teu Zoo para usar o Tanque de Fusão."
+            "Precisas de pelo menos 2 animais no teu Zoo "
+            "para usar o Tanque de Fusão."
         )
     else:
-        names = [animal_name(x) for x in st.session_state.favorites]
+        names = [
+            animal_name(x)
+            for x in st.session_state.favorites
+        ]
 
-        a = st.selectbox("Primeiro animal", names, key="fusion_a")
+        a = st.selectbox(
+            "Primeiro animal",
+            names,
+            key="fusion_a",
+        )
+
         b = st.selectbox(
             "Segundo animal",
             names,
@@ -986,12 +1269,26 @@ elif st.session_state.page == "🧬 Tanque de Fusão":
             key="fusion_b",
         )
 
-        if st.button("🧬 Criar fusão", type="primary"):
+        if st.button(
+            "🧬 Criar fusão",
+            type="primary",
+        ):
             if a == b:
-                st.error("Escolhe dois animais diferentes.")
+                st.error(
+                    "Escolhe dois animais diferentes."
+                )
             else:
-                first = next(x for x in st.session_state.favorites if animal_name(x) == a)
-                second = next(x for x in st.session_state.favorites if animal_name(x) == b)
+                first = next(
+                    x
+                    for x in st.session_state.favorites
+                    if animal_name(x) == a
+                )
+
+                second = next(
+                    x
+                    for x in st.session_state.favorites
+                    if animal_name(x) == b
+                )
 
                 st.session_state.fusion_result = {
                     "name": f"{a} + {b}",
@@ -1003,25 +1300,46 @@ elif st.session_state.page == "🧬 Tanque de Fusão":
 
         if fusion:
             st.divider()
-            st.markdown(f"## 🧬 {fusion['name']}")
+
+            st.markdown(
+                f"## 🧬 {fusion['name']}"
+            )
 
             c1, c2 = st.columns(2)
 
             with c1:
-                photo = safe_photo(fusion["a"])
+                photo = safe_photo(
+                    fusion["a"]
+                )
+
                 if photo:
-                    st.image(photo, use_container_width=True)
-                st.write(animal_name(fusion["a"]))
+                    st.image(
+                        photo,
+                        use_container_width=True,
+                    )
+
+                st.write(
+                    animal_name(fusion["a"])
+                )
 
             with c2:
-                photo = safe_photo(fusion["b"])
+                photo = safe_photo(
+                    fusion["b"]
+                )
+
                 if photo:
-                    st.image(photo, use_container_width=True)
-                st.write(animal_name(fusion["b"]))
+                    st.image(
+                        photo,
+                        use_container_width=True,
+                    )
+
+                st.write(
+                    animal_name(fusion["b"])
+                )
 
             st.success(
-                "Fusão criada! Esta criatura é uma combinação virtual dos "
-                "dois animais escolhidos."
+                "Fusão criada! Esta criatura é uma combinação virtual "
+                "dos dois animais escolhidos."
             )
 
 
@@ -1031,50 +1349,86 @@ elif st.session_state.page == "🧬 Tanque de Fusão":
 elif st.session_state.page == "🧠 Quiz":
     st.subheader("🧠 Quiz do MundoVivo")
 
-    pool = st.session_state.favorites or st.session_state.last_animals
+    pool = (
+        st.session_state.favorites
+        or st.session_state.last_animals
+    )
 
     if len(pool) < 4:
         st.info(
-            "Guarda pelo menos 4 animais no Zoo ou explora uma região primeiro."
+            "Guarda pelo menos 4 animais no Zoo "
+            "ou explora uma região primeiro."
         )
     else:
         question = random.choice(pool)
+
         correct = animal_name(question)
 
         options = [correct]
-        others = [animal_name(x) for x in pool if animal_name(x) != correct]
+
+        others = [
+            animal_name(x)
+            for x in pool
+            if animal_name(x) != correct
+        ]
 
         random.shuffle(others)
-        options.extend(others[:3])
+
+        options.extend(
+            others[:3]
+        )
+
         random.shuffle(options)
 
-        st.markdown(f"### Que animal é este?")
+        st.markdown(
+            "### Que animal é este?"
+        )
 
         photo = safe_photo(question)
+
         if photo:
-            st.image(photo, width=450)
+            st.image(
+                photo,
+                width=450,
+            )
         else:
-            st.info("Esta espécie não tem fotografia disponível.")
+            st.info(
+                "Esta espécie não tem fotografia disponível."
+            )
 
         answer = st.radio(
             "Escolhe uma resposta:",
             options,
-            key=f"quiz_{question.get('id')}_{st.session_state.quiz_total}",
+            key=(
+                f"quiz_{question.get('id')}_"
+                f"{st.session_state.quiz_total}"
+            ),
         )
 
-        if st.button("✅ Responder"):
+        if st.button(
+            "✅ Responder"
+        ):
             st.session_state.quiz_total += 1
 
             if answer == correct:
                 st.session_state.quiz_score += 1
-                st.session_state.achievements.add("Primeiro acerto")
-                st.success("🎉 Correto!")
+
+                st.session_state.achievements.add(
+                    "Primeiro acerto"
+                )
+
+                st.success(
+                    "🎉 Correto!"
+                )
             else:
-                st.error(f"❌ Não. Era **{correct}**.")
+                st.error(
+                    f"❌ Não. Era **{correct}**."
+                )
 
         st.metric(
             "Pontuação",
-            f"{st.session_state.quiz_score}/{st.session_state.quiz_total}",
+            f"{st.session_state.quiz_score}/"
+            f"{st.session_state.quiz_total}",
         )
 
 
@@ -1085,100 +1439,192 @@ elif st.session_state.page == "🏆 Conquistas":
     st.subheader("🏆 Conquistas")
 
     achievements = [
-        ("Primeiro favorito", "❤️ Guardaste o primeiro animal."),
-        ("Primeiro resgate", "🚑 Fizeste o primeiro resgate."),
-        ("Primeiro acerto", "🧠 Acertaste a primeira pergunta do quiz."),
+        (
+            "Primeiro favorito",
+            "❤️ Guardaste o primeiro animal."
+        ),
+        (
+            "Primeiro resgate",
+            "🚑 Fizeste o primeiro resgate."
+        ),
+        (
+            "Primeiro acerto",
+            "🧠 Acertaste a primeira pergunta do quiz."
+        ),
     ]
 
     if len(st.session_state.favorites) >= 10:
-        st.session_state.achievements.add("Colecionador")
+        st.session_state.achievements.add(
+            "Colecionador"
+        )
+
     if len(st.session_state.favorites) >= 25:
-        st.session_state.achievements.add("Grande Colecionador")
+        st.session_state.achievements.add(
+            "Grande Colecionador"
+        )
+
     if len(st.session_state.favorites) >= 50:
-        st.session_state.achievements.add("Mestre do Zoo")
+        st.session_state.achievements.add(
+            "Mestre do Zoo"
+        )
 
     achievements.extend([
-        ("Colecionador", "❤️ Tens 10 animais."),
-        ("Grande Colecionador", "❤️ Tens 25 animais."),
-        ("Mestre do Zoo", "❤️ Tens 50 animais."),
+        (
+            "Colecionador",
+            "❤️ Tens 10 animais."
+        ),
+        (
+            "Grande Colecionador",
+            "❤️ Tens 25 animais."
+        ),
+        (
+            "Mestre do Zoo",
+            "❤️ Tens 50 animais."
+        ),
     ])
 
     for name, description in achievements:
         if name in st.session_state.achievements:
-            st.success(f"🏆 **{name}** — {description}")
+            st.success(
+                f"🏆 **{name}** — {description}"
+            )
         else:
-            st.write(f"🔒 **{name}** — {description}")
+            st.write(
+                f"🔒 **{name}** — {description}"
+            )
 
 
 # ============================================================
 # ESTATÍSTICAS
 # ============================================================
 elif st.session_state.page == "📊 Estatísticas":
-    st.subheader("📊 Estatísticas do teu MundoVivo")
+    st.subheader(
+        "📊 Estatísticas do teu MundoVivo"
+    )
 
-    total = len(st.session_state.favorites)
-    rescued = len(st.session_state.rescued)
+    total = len(
+        st.session_state.favorites
+    )
+
+    rescued = len(
+        st.session_state.rescued
+    )
 
     classes = {}
+
     for taxon in st.session_state.favorites:
         cls = class_name(taxon)
-        classes[cls] = classes.get(cls, 0) + 1
+
+        classes[cls] = (
+            classes.get(cls, 0) + 1
+        )
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.markdown('<div class="stat">❤️<br><b>Zoo</b><br>'
-                    f'{total}</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="stat">❤️<br><b>Zoo</b><br>'
+            f'{total}</div>',
+            unsafe_allow_html=True,
+        )
 
     with c2:
-        st.markdown('<div class="stat">🚑<br><b>Resgates</b><br>'
-                    f'{rescued}</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="stat">🚑<br><b>Resgates</b><br>'
+            f'{rescued}</div>',
+            unsafe_allow_html=True,
+        )
 
     with c3:
-        st.markdown('<div class="stat">🏆<br><b>Conquistas</b><br>'
-                    f'{len(st.session_state.achievements)}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="stat">🏆<br><b>Conquistas</b><br>'
+            f'{len(st.session_state.achievements)}</div>',
+            unsafe_allow_html=True,
+        )
 
     st.divider()
 
     if classes:
-        st.subheader("🐾 Animais por classe")
-        for cls, amount in sorted(classes.items(), key=lambda x: x[1], reverse=True):
-            st.write(f"**{cls}:** {amount}")
-            st.progress(min(amount / max(total, 1), 1.0))
+        st.subheader(
+            "🐾 Animais por classe"
+        )
+
+        for cls, amount in sorted(
+            classes.items(),
+            key=lambda x: x[1],
+            reverse=True,
+        ):
+            st.write(
+                f"**{cls}:** {amount}"
+            )
+
+            st.progress(
+                min(
+                    amount / max(total, 1),
+                    1.0,
+                )
+            )
     else:
-        st.info("Adiciona animais ao teu Zoo para veres estatísticas.")
+        st.info(
+            "Adiciona animais ao teu Zoo "
+            "para veres estatísticas."
+        )
 
 
 # ============================================================
 # DEFINIÇÕES
 # ============================================================
 elif st.session_state.page == "⚙️ Definições":
-    st.subheader("⚙️ Definições")
+    st.subheader(
+        "⚙️ Definições"
+    )
 
-    st.write("### 🧹 Dados locais da aplicação")
+    st.write(
+        "### 🧹 Dados locais da aplicação"
+    )
 
-    if st.button("🗑️ Limpar Meu Zoo"):
+    if st.button(
+        "🗑️ Limpar Meu Zoo"
+    ):
         st.session_state.favorites = []
-        st.success("Meu Zoo limpo.")
 
-    if st.button("🗑️ Limpar resgates"):
+        st.success(
+            "Meu Zoo limpo."
+        )
+
+    if st.button(
+        "🗑️ Limpar resgates"
+    ):
         st.session_state.rescued = []
-        st.success("Resgates limpos.")
 
-    if st.button("🔄 Repor conquistas"):
+        st.success(
+            "Resgates limpos."
+        )
+
+    if st.button(
+        "🔄 Repor conquistas"
+    ):
         st.session_state.achievements = set()
         st.session_state.quiz_score = 0
         st.session_state.quiz_total = 0
-        st.success("Conquistas e pontuação repostas.")
+
+        st.success(
+            "Conquistas e pontuação repostas."
+        )
 
     st.divider()
 
-    st.markdown("### ℹ️ Sobre")
+    st.markdown(
+        "### ℹ️ Sobre"
+    )
+
     st.write(
         "MundoVivo é uma aplicação educativa de exploração animal. "
         "Os dados e fotografias apresentados dependem da disponibilidade "
         "da API do iNaturalist."
     )
 
-    st.caption("Versão: MundoVivo 2.0 — sem Premium e sem sons.")
+    st.caption(
+        "Versão: MundoVivo 2.0 — sem Premium e sem sons."
+    )
+```
