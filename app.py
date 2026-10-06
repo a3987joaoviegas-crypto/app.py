@@ -1,8 +1,5 @@
 import random
 import time
-from datetime import datetime
-from urllib.parse import quote
-
 import requests
 import streamlit as st
 
@@ -245,7 +242,7 @@ for key, value in defaults.items():
 
 
 # ============================================================
-# FUNÇÕES API
+# API
 # ============================================================
 
 def api_get(endpoint, params=None):
@@ -265,24 +262,49 @@ def api_get(endpoint, params=None):
     return {}
 
 
-def safe_photo(animal):
-    photos = animal.get("photos", [])
+# ============================================================
+# IMAGENS — MAIOR QUALIDADE POSSÍVEL
+# ============================================================
 
-    if photos:
-        url = photos[0].get("url")
+def safe_photo(animal):
+
+    default_photo = animal.get("default_photo")
+
+    if default_photo:
+
+        url = (
+            default_photo.get("original")
+            or default_photo.get("large")
+            or default_photo.get("medium")
+            or default_photo.get("url")
+        )
 
         if url:
-            return url.replace("square", "medium")
+            return url
 
-    taxon_photos = animal.get("default_photo")
+    photos = animal.get("photos", [])
 
-    if taxon_photos:
-        return taxon_photos.get("medium") or taxon_photos.get("url")
+    for photo in photos:
+
+        url = (
+            photo.get("original")
+            or photo.get("large")
+            or photo.get("medium")
+            or photo.get("url")
+        )
+
+        if url:
+            return url
 
     return None
 
 
+# ============================================================
+# INFORMAÇÕES DOS ANIMAIS
+# ============================================================
+
 def animal_name(animal):
+
     scientific = animal.get("name", "")
 
     if scientific in COMMON_NAMES:
@@ -302,6 +324,7 @@ def animal_name(animal):
 
 
 def class_name(animal):
+
     iconic = animal.get("iconic_taxon_name", "")
 
     classes = {
@@ -316,13 +339,20 @@ def class_name(animal):
         "Plantae": "Planta"
     }
 
-    return classes.get(iconic, iconic or "Animal")
+    return classes.get(
+        iconic,
+        iconic or "Animal"
+    )
 
 
 def get_conservation(animal):
-    conservation = animal.get("conservation_status")
+
+    conservation = animal.get(
+        "conservation_status"
+    )
 
     if isinstance(conservation, dict):
+
         return (
             conservation.get("name")
             or conservation.get("status_name")
@@ -336,6 +366,7 @@ def get_conservation(animal):
 
 
 def get_diet(animal):
+
     cls = class_name(animal)
 
     if cls == "Mamífero":
@@ -360,15 +391,26 @@ def get_diet(animal):
 
 
 def get_reproduction(animal):
+
     cls = class_name(animal)
 
-    if cls in ["Mamífero", "Ave", "Réptil", "Anfíbio", "Peixe"]:
-        return "Reprodução sexuada e desenvolvimento através de ovos ou nascimento de crias, conforme a espécie."
+    if cls in [
+        "Mamífero",
+        "Ave",
+        "Réptil",
+        "Anfíbio",
+        "Peixe"
+    ]:
+        return (
+            "Reprodução sexuada e desenvolvimento através "
+            "de ovos ou nascimento de crias, conforme a espécie."
+        )
 
     return "Reprodução sexuada e desenvolvimento através de ovos."
 
 
 def get_habitat(animal):
+
     cls = class_name(animal)
 
     if cls == "Mamífero":
@@ -390,41 +432,71 @@ def get_habitat(animal):
 
 
 def get_distribution(animal):
-    place = animal.get("preferred_establishment_means")
 
-    if place:
-        return str(place)
-
-    return "Distribuição geográfica disponível nas fontes científicas associadas à espécie."
+    return (
+        "Distribuição geográfica disponível nas fontes "
+        "científicas associadas à espécie."
+    )
 
 
 def get_fun_fact(animal):
+
     cls = class_name(animal)
 
     facts = {
-        "Mamífero": "Os mamíferos distinguem-se, entre outras características, pela presença de pelos e pela alimentação das crias através de leite.",
-        "Ave": "As aves possuem penas e muitas espécies conseguem voar, embora existam também aves que não voam.",
-        "Réptil": "Os répteis são vertebrados adaptados a diferentes ambientes terrestres e aquáticos.",
-        "Anfíbio": "Muitos anfíbios passam parte do seu ciclo de vida na água e parte em terra.",
-        "Peixe": "Os peixes representam um dos grupos de vertebrados mais diversos do planeta.",
-        "Inseto": "Os insetos constituem um dos grupos de animais mais diversos do planeta.",
-        "Aracnídeo": "Os aracnídeos incluem aranhas, escorpiões, ácaros e carraças.",
-        "Molusco": "Os moluscos incluem animais muito diferentes entre si, como caracóis, mexilhões, lulas e polvos."
+        "Mamífero":
+            "Os mamíferos distinguem-se, entre outras características, "
+            "pela presença de pelos e pela alimentação das crias através de leite.",
+
+        "Ave":
+            "As aves possuem penas e muitas espécies conseguem voar, "
+            "embora existam também aves que não voam.",
+
+        "Réptil":
+            "Os répteis são vertebrados adaptados a diferentes "
+            "ambientes terrestres e aquáticos.",
+
+        "Anfíbio":
+            "Muitos anfíbios passam parte do seu ciclo de vida "
+            "na água e parte em terra.",
+
+        "Peixe":
+            "Os peixes representam um dos grupos de vertebrados "
+            "mais diversos do planeta.",
+
+        "Inseto":
+            "Os insetos constituem um dos grupos de animais "
+            "mais diversos do planeta.",
+
+        "Aracnídeo":
+            "Os aracnídeos incluem aranhas, escorpiões, "
+            "ácaros e carraças.",
+
+        "Molusco":
+            "Os moluscos incluem animais muito diferentes entre si, "
+            "como caracóis, mexilhões, lulas e polvos."
     }
 
     return facts.get(
         cls,
-        "A biodiversidade do planeta inclui milhões de espécies com características únicas."
+        "A biodiversidade do planeta inclui milhões de espécies "
+        "com características únicas."
     )
 
 
 # ============================================================
-# FILTRO DE ANIMAIS
+# FILTRO — NUNCA MOSTRAR PLANTAS
 # ============================================================
 
 def is_plant(animal):
-    kingdom = str(animal.get("kingdom_name", "")).lower()
-    iconic = str(animal.get("iconic_taxon_name", "")).lower()
+
+    kingdom = str(
+        animal.get("kingdom_name", "")
+    ).lower()
+
+    iconic = str(
+        animal.get("iconic_taxon_name", "")
+    ).lower()
 
     return (
         kingdom == "plantae"
@@ -439,6 +511,7 @@ def is_animal(animal):
 
 
 def only_animals(animals):
+
     return [
         animal
         for animal in animals
@@ -451,6 +524,7 @@ def only_animals(animals):
 # ============================================================
 
 def normalize_taxa(results):
+
     normalized = []
 
     for animal in results:
@@ -485,6 +559,8 @@ def search_animals(query):
         data.get("results", [])
     )
 
+    results = only_animals(results)
+
     st.session_state.search_results = results
     st.session_state.last_animals = results
 
@@ -513,9 +589,14 @@ def observations_bbox(bbox):
 
     animals = []
 
-    for observation in data.get("results", []):
+    for observation in data.get(
+        "results",
+        []
+    ):
 
-        taxon = observation.get("taxon")
+        taxon = observation.get(
+            "taxon"
+        )
 
         if not taxon:
             continue
@@ -528,6 +609,7 @@ def observations_bbox(bbox):
     unique = {}
 
     for animal in animals:
+
         animal_id = animal.get("id")
 
         if animal_id:
@@ -542,7 +624,9 @@ def country_place_id(country):
 
 def country_animals(country):
 
-    place_id = country_place_id(country)
+    place_id = country_place_id(
+        country
+    )
 
     if not place_id:
         return []
@@ -558,9 +642,14 @@ def country_animals(country):
 
     animals = []
 
-    for observation in data.get("results", []):
+    for observation in data.get(
+        "results",
+        []
+    ):
 
-        taxon = observation.get("taxon")
+        taxon = observation.get(
+            "taxon"
+        )
 
         if not taxon:
             continue
@@ -573,6 +662,7 @@ def country_animals(country):
     unique = {}
 
     for animal in animals:
+
         animal_id = animal.get("id")
 
         if animal_id:
@@ -595,7 +685,9 @@ def add_favorite(animal):
     ]
 
     if name not in existing:
-        st.session_state.favorites.append(animal)
+        st.session_state.favorites.append(
+            animal
+        )
 
 
 def remove_favorite(name):
@@ -621,9 +713,14 @@ def add_rescue(animal):
     ]
 
     if name not in existing:
-        st.session_state.rescued.append(animal)
 
-    st.success(f"🚑 {name} foi adicionado à lista de resgate.")
+        st.session_state.rescued.append(
+            animal
+        )
+
+    st.success(
+        f"🚑 {name} foi adicionado à lista de resgate."
+    )
 
 
 # ============================================================
@@ -635,7 +732,10 @@ def open_vet(animal):
     name = animal_name(animal)
 
     if name not in st.session_state.veterinary:
-        st.session_state.veterinary.append(name)
+
+        st.session_state.veterinary.append(
+            name
+        )
 
     st.success(
         f"🩺 Consulta veterinária preparada para {name}."
@@ -649,6 +749,7 @@ def open_vet(animal):
 def show_animal_card(animal):
 
     name = animal_name(animal)
+
     scientific = animal.get(
         "name",
         "Não disponível"
@@ -659,7 +760,9 @@ def show_animal_card(animal):
         "animal"
     )
 
-    conservation = get_conservation(animal)
+    conservation = get_conservation(
+        animal
+    )
 
     st.markdown(
         '<div class="animal-card">',
@@ -669,6 +772,7 @@ def show_animal_card(animal):
     photo = safe_photo(animal)
 
     if photo:
+
         st.image(
             photo,
             width=280
@@ -687,6 +791,7 @@ def show_animal_card(animal):
     )
 
     if conservation != "Não disponível":
+
         st.markdown(
             f"""
             <div class="safe">
@@ -710,6 +815,7 @@ def show_animal_card(animal):
                 "💔 Remover",
                 key=f"remove_{taxon_id}"
             ):
+
                 remove_favorite(name)
                 st.rerun()
 
@@ -719,6 +825,7 @@ def show_animal_card(animal):
                 "❤️ Favorito",
                 key=f"fav_{taxon_id}"
             ):
+
                 add_favorite(animal)
                 st.rerun()
 
@@ -728,6 +835,7 @@ def show_animal_card(animal):
             "🚑 Resgatar",
             key=f"rescue_{taxon_id}"
         ):
+
             add_rescue(animal)
 
     with col3:
@@ -736,6 +844,7 @@ def show_animal_card(animal):
             "🩺 Veterinário",
             key=f"vet_{taxon_id}"
         ):
+
             open_vet(animal)
 
     st.markdown(
@@ -750,12 +859,16 @@ def show_animal_card(animal):
 
 def show_results(results):
 
-    results = only_animals(results)
+    results = only_animals(
+        results
+    )
 
     if not results:
+
         st.info(
             "🔎 Não foram encontrados animais."
         )
+
         return
 
     st.markdown(
@@ -763,7 +876,10 @@ def show_results(results):
     )
 
     for animal in results:
-        show_animal_card(animal)
+
+        show_animal_card(
+            animal
+        )
 
 
 # ============================================================
@@ -784,7 +900,9 @@ def show_encyclopedia(animal):
         "Não disponível"
     )
 
-    conservation = get_conservation(animal)
+    conservation = get_conservation(
+        animal
+    )
 
     st.markdown(
         '<div class="animal-card">',
@@ -794,6 +912,7 @@ def show_encyclopedia(animal):
     photo = safe_photo(animal)
 
     if photo:
+
         st.image(
             photo,
             width=280
@@ -884,6 +1003,7 @@ def show_encyclopedia(animal):
                 "💔 Remover dos favoritos",
                 key=f"ency_remove_{taxon_id}"
             ):
+
                 remove_favorite(name)
                 st.rerun()
 
@@ -893,6 +1013,7 @@ def show_encyclopedia(animal):
                 "❤️ Adicionar aos favoritos",
                 key=f"ency_fav_{taxon_id}"
             ):
+
                 add_favorite(animal)
                 st.rerun()
 
@@ -902,6 +1023,7 @@ def show_encyclopedia(animal):
             "🚑 Resgatar animal",
             key=f"ency_rescue_{taxon_id}"
         ):
+
             add_rescue(animal)
 
     with col3:
@@ -910,6 +1032,7 @@ def show_encyclopedia(animal):
             "🩺 Veterinário",
             key=f"ency_vet_{taxon_id}"
         ):
+
             open_vet(animal)
 
     st.markdown(
@@ -951,7 +1074,9 @@ pages = [
 st.session_state.page = st.sidebar.radio(
     "Navegação",
     pages,
-    index=pages.index(st.session_state.page)
+    index=pages.index(
+        st.session_state.page
+    )
 )
 
 
@@ -1013,6 +1138,7 @@ if st.session_state.page == "🏠 Início":
     col1, col2, col3 = st.columns(3)
 
     with col1:
+
         st.markdown(
             """
             ### 🌳 Florestas
@@ -1023,6 +1149,7 @@ if st.session_state.page == "🏠 Início":
         )
 
     with col2:
+
         st.markdown(
             """
             ### 🌊 Oceanos
@@ -1033,6 +1160,7 @@ if st.session_state.page == "🏠 Início":
         )
 
     with col3:
+
         st.markdown(
             """
             ### 📚 Enciclopédia
@@ -1068,7 +1196,10 @@ elif st.session_state.page == "❤️ Meu Zoo":
         for animal in st.session_state.favorites:
 
             if is_animal(animal):
-                show_animal_card(animal)
+
+                show_animal_card(
+                    animal
+                )
 
 
 # ============================================================
@@ -1215,7 +1346,9 @@ elif st.session_state.page == "🔬 Laboratório":
                     f"Espécie encontrada: {animal_name(animal)}"
                 )
 
-                show_animal_card(animal)
+                show_animal_card(
+                    animal
+                )
 
             else:
 
@@ -1264,7 +1397,10 @@ elif st.session_state.page == "📚 Enciclopédia":
             if results:
 
                 for animal in results[:5]:
-                    show_encyclopedia(animal)
+
+                    show_encyclopedia(
+                        animal
+                    )
 
             else:
 
@@ -1292,7 +1428,12 @@ elif st.session_state.page == "📸 Visão IA":
 
     uploaded = st.file_uploader(
         "📷 Escolhe uma fotografia",
-        type=["jpg", "jpeg", "png", "webp"]
+        type=[
+            "jpg",
+            "jpeg",
+            "png",
+            "webp"
+        ]
     )
 
     if uploaded:
@@ -1347,7 +1488,9 @@ elif st.session_state.page == "🚑 Salvamento":
 
             if is_animal(animal):
 
-                show_animal_card(animal)
+                show_animal_card(
+                    animal
+                )
 
 
 # ============================================================
@@ -1412,12 +1555,16 @@ elif st.session_state.page == "🧬 Tanque de Fusão":
 
     for animal in animals:
 
-        animal_id = animal.get("id")
+        animal_id = animal.get(
+            "id"
+        )
 
         if animal_id:
             unique[animal_id] = animal
 
-    animals = list(unique.values())
+    animals = list(
+        unique.values()
+    )
 
     if len(animals) < 2:
 
@@ -1520,12 +1667,16 @@ elif st.session_state.page == "🧠 Quiz":
 
     for animal in quiz_animals:
 
-        animal_id = animal.get("id")
+        animal_id = animal.get(
+            "id"
+        )
 
         if animal_id:
             unique[animal_id] = animal
 
-    quiz_animals = list(unique.values())
+    quiz_animals = list(
+        unique.values()
+    )
 
     if len(quiz_animals) < 3:
 
@@ -1539,7 +1690,9 @@ elif st.session_state.page == "🧠 Quiz":
             quiz_animals
         )
 
-        correct = animal_name(animal)
+        correct = animal_name(
+            animal
+        )
 
         options = [
             correct
@@ -1551,19 +1704,25 @@ elif st.session_state.page == "🧠 Quiz":
             if animal_name(x) != correct
         ]
 
-        random.shuffle(others)
+        random.shuffle(
+            others
+        )
 
         options.extend(
             others[:3]
         )
 
-        random.shuffle(options)
+        random.shuffle(
+            options
+        )
 
         st.markdown(
             "### 🐾 Que animal é este?"
         )
 
-        photo = safe_photo(animal)
+        photo = safe_photo(
+            animal
+        )
 
         if photo:
 
@@ -1630,21 +1789,25 @@ elif st.session_state.page == "🏆 Conquistas":
     achievements = []
 
     if favorites_count >= 1:
+
         achievements.append(
             "❤️ Primeiro favorito"
         )
 
     if favorites_count >= 5:
+
         achievements.append(
             "🌟 Colecionador"
         )
 
     if rescued_count >= 1:
+
         achievements.append(
             "🚑 Primeiro resgate"
         )
 
     if quiz_total >= 5:
+
         achievements.append(
             "🧠 Mestre do Quiz"
         )
@@ -1685,7 +1848,9 @@ elif st.session_state.page == "📊 Estatísticas":
 
         st.metric(
             "❤️ Favoritos",
-            len(st.session_state.favorites)
+            len(
+                st.session_state.favorites
+            )
         )
 
         st.markdown(
@@ -1702,7 +1867,9 @@ elif st.session_state.page == "📊 Estatísticas":
 
         st.metric(
             "🚑 Resgates",
-            len(st.session_state.rescued)
+            len(
+                st.session_state.rescued
+            )
         )
 
         st.markdown(
@@ -1719,7 +1886,9 @@ elif st.session_state.page == "📊 Estatísticas":
 
         st.metric(
             "🩺 Veterinário",
-            len(st.session_state.veterinary)
+            len(
+                st.session_state.veterinary
+            )
         )
 
         st.markdown(
